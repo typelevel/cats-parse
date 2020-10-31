@@ -640,28 +640,28 @@ object Parser extends ParserInstances {
       case n@Impl.Not(_) => n
       case p@Impl.Peek(_) => p
       case p1: Parser1[A] => void1(p1)
-      case notVoid => Impl.Void(Impl.unmap(pa))
+      case _ => Impl.Void(Impl.unmap(pa))
     }
 
   def void1[A](pa: Parser1[A]): Parser1[Unit] =
     pa match {
       case v@Impl.Void1(_) => v
       case p: Impl.Str => p
-      case notVoid => Impl.Void1(Impl.unmap1(pa))
+      case _ => Impl.Void1(Impl.unmap1(pa))
     }
 
   def string[A](pa: Parser[A]): Parser[String] =
     pa match {
       case str@Impl.StringP(_) => str
       case s1: Parser1[A] => string1(s1)
-      case notStr => Impl.StringP(Impl.unmap(pa))
+      case _ => Impl.StringP(Impl.unmap(pa))
     }
 
   def string1[A](pa: Parser1[A]): Parser1[String] =
     pa match {
       case str@Impl.StringP1(_) => str
       case len@Impl.Length(_) => len
-      case notStr => Impl.StringP1(Impl.unmap1(pa))
+      case _ => Impl.StringP1(Impl.unmap1(pa))
     }
 
   /**
