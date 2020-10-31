@@ -50,6 +50,8 @@ lazy val root = project
 
 lazy val docs = project
   .enablePlugins(ParadoxPlugin)
+  .disablePlugins(MimaPlugin)
+  .settings(noPublishSettings)
   .settings(
     name := "paradox-docs",
     paradoxTheme := Some(builtinParadoxTheme("generic")),
@@ -57,7 +59,7 @@ lazy val docs = project
       "empty" -> "",
       "version" -> version.value
     ),
-    publish / skip := true
+    githubWorkflowArtifactUpload := false
   )
 
 lazy val core = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full)
