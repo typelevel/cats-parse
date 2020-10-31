@@ -27,3 +27,4 @@ TAGS
 # vscode wants to put metals directories here
 .metals
 .bloop
+.bsp
