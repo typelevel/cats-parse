@@ -1,3 +1,24 @@
+/*
+ * Copyright (c) 2020 Typelevel
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package cats.parse
 
 import cats.{Eq, Id, FlatMap, Functor, Defer, MonoidK, Monad, Eval}
@@ -240,7 +261,7 @@ object ParserGen {
 
       Gen.zip(genRes1.fa, gfn)
         .map { case (init, fn) =>
-          GenT(Monad[Parser].tailRecM(init)(fn))(genRes2.cogen),
+          GenT(Monad[Parser].tailRecM(init)(fn))(genRes2.cogen)
         }
     }
 
@@ -261,7 +282,7 @@ object ParserGen {
 
       Gen.zip(genRes1.fa, gfn)
         .map { case (init, fn) =>
-          GenT(FlatMap[Parser1].tailRecM(init)(fn))(genRes2.cogen),
+          GenT(FlatMap[Parser1].tailRecM(init)(fn))(genRes2.cogen)
         }
     }
 
@@ -441,7 +462,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     .map(BigInt(_))
 
   property("test an example with BigInt") {
-    forAll { bi: BigInt =>
+    forAll { (bi: BigInt) =>
       parseTest(bigIntP, bi.toString, bi)
     }
   }
@@ -852,7 +873,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("Parser.end gives the right error") {
-    forAll { str: String =>
+    forAll { (str: String) =>
       Parser.end.parse(str) match {
         case Right((rest, _)) =>
           assertEquals(str, "")
@@ -935,7 +956,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("MonoidK[Parser].empty never succeeds") {
-    forAll { str: String =>
+    forAll { (str: String) =>
       assert(MonoidK[Parser].empty.parse(str).isLeft)
       assert(MonoidK[Parser1].empty.parse(str).isLeft)
     }
@@ -1108,7 +1129,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("BitSetUtil union works") {
-    forAll { cs: List[List[Char]] =>
+    forAll { (cs: List[List[Char]]) =>
       val arys = cs.filter(_.nonEmpty).map(_.toArray.sorted)
       val bs = arys.map { ary => (ary(0).toInt, BitSetUtil.bitSetFor(ary)) }
       val sortedFlat = BitSetUtil.union(bs)
