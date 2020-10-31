@@ -42,7 +42,7 @@ abstract class JmhBenchmarks(name: String) {
     new String(bytes, "UTF-8")
   }
 
-  @Benchmark
+  // @Benchmark too slow
   def attoParse(): JValue = {
     import _root_.atto._, Atto._
     cats.parse.bench.atto.JsonExample.jexpr.parseOnly(text).option.get
