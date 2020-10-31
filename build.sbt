@@ -90,3 +90,17 @@ lazy val core = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full)
 
 lazy val coreJVM = core.jvm
 lazy val coreJS = core.js
+
+lazy val bench = (project in file("bench")).
+  enablePlugins(JmhPlugin).
+  settings(
+    name := "bench",
+    skip in publish := true,
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "fastparse" % "2.3.0",
+      "org.http4s" %% "parsley" % "1.5.0-M3",
+      "org.typelevel" %% "jawn-ast" % "1.0.0",
+      "org.parboiled" %% "parboiled" % "2.2.1",
+      "org.tpolecat" %% "atto-core" % "0.8.0",
+    )
+  )
