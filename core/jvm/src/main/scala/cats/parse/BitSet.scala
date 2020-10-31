@@ -48,7 +48,8 @@ object BitSetUtil {
   // what are all the Chars in these bitsets
   def union(bs: List[(Int, BitSet)]): Iterable[Char] = {
     def toIter(m: Int, bs: BitSet): Iterator[Char] =
-      Iterator.iterate(0) { m => bs.nextSetBit(m + 1) }
+      Iterator
+        .iterate(0) { m => bs.nextSetBit(m + 1) }
         .takeWhile(_ >= 0)
         .map { i => (m + i).toChar }
 
