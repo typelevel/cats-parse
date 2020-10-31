@@ -422,7 +422,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     p.parse(str) match {
       case Right(res) =>
         assert(false, s"expected to not parse, but found: $res")
-      case Left(errs) =>
+      case Left(_) =>
         assert(true)
     }
 
@@ -673,7 +673,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       val cres = composed.parse(str)
 
       val composed1 = Monad[Parser].product(p1.fa, p2.fa)
-      val cres1 = composed1.parse(str)
+      composed1.parse(str)
 
       val sequence =
         for {
