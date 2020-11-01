@@ -59,12 +59,16 @@ abstract class JmhBenchmarks(name: String) {
   def parboiled2Parse(): JValue =
     new parboiled2.JsonParser(text).Json.run().get
 
-  // Stable instance to warm up
-  val parsleyJson = parsley.ParsleyJson.json
-
   @Benchmark
-  def parsleyParseHotThreadSafe(): JValue =
-    org.http4s.parsley.runParserThreadSafe(parsleyJson, text).toOption.get
+  def parsleyParseCold(): JValue =
+    org.http4s.parsley.runParserThreadSafe(parsley.ParsleyJson.json, text).toOption.get
+
+  // Stable instance to warm up
+  val hotParsley = parsley.ParsleyJson.json
+
+  // @Benchmark Failing when multithreaded
+  def parsleyParseHot(): JValue =
+    org.http4s.parsley.runParserThreadSafe(hotParsley, text).toOption.get
 }
 
 class BarBench extends JmhBenchmarks("bar.json")
