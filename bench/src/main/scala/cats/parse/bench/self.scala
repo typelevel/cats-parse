@@ -59,7 +59,7 @@ object Json {
     val obj = (P.char('{') *> rep(kv) <* P.char('}'))
       .map { vs => JObject(collection.mutable.Map.from(vs)) }
 
-    P.oneOf1(pnull :: bool :: str :: num :: list :: obj :: Nil)
+    P.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
   }
 
   // any whitespace followed by json followed by whitespace followed by end
