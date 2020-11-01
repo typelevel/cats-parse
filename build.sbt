@@ -52,8 +52,6 @@ ThisBuild / licenses := List(("MIT", url("http://opensource.org/licenses/MIT")))
 
 ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 
-ThisBuild / scalafmtOnCompile := true
-
 lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js)

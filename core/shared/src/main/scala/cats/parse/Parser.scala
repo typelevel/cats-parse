@@ -252,14 +252,14 @@ object Parser extends ParserInstances {
           else {
             // these are never equal
             (left, right) match {
-              case (Str(_, s1), Str(_, s2))      => s1.compare(s2)
-              case (Str(_, _), _)                => -1
+              case (Str(_, s1), Str(_, s2)) => s1.compare(s2)
+              case (Str(_, _), _) => -1
               case (InRange(_, _, _), Str(_, _)) => 1
               case (InRange(_, l1, u1), InRange(_, l2, u2)) =>
                 val c1 = Character.compare(l1, l2)
                 if (c1 == 0) Character.compare(u1, u2)
                 else c1
-              case (InRange(_, _, _), _)                            => -1
+              case (InRange(_, _, _), _) => -1
               case (StartOfString(_), Str(_, _) | InRange(_, _, _)) => 1
               case (StartOfString(_), _) =>
                 -1 // if they have the same offset, already handled above
@@ -276,12 +276,12 @@ object Parser extends ParserInstances {
                 val c1 = Integer.compare(e1, e2)
                 if (c1 == 0) Integer.compare(a1, a2)
                 else c1
-              case (Length(_, _, _), _)               => -1
+              case (Length(_, _, _), _) => -1
               case (ExpectedFailureAt(_, _), Fail(_)) => -1
               case (ExpectedFailureAt(_, m1), ExpectedFailureAt(_, m2)) =>
                 m1.compare(m2)
               case (ExpectedFailureAt(_, _), _) => 1
-              case (Fail(_), _)                 => 1
+              case (Fail(_), _) => 1
             }
           }
         }
@@ -427,9 +427,9 @@ object Parser extends ParserInstances {
 
     val flat = flatten(parsers, Nil)
     Impl.mergeCharIn[A, Parser1[A]](flat) match {
-      case Nil      => fail
+      case Nil => fail
       case p :: Nil => p
-      case two      => Impl.OneOf1(two)
+      case two => Impl.OneOf1(two)
     }
   }
 
@@ -450,9 +450,9 @@ object Parser extends ParserInstances {
 
     val flat = flatten(ps, Nil)
     Impl.mergeCharIn[A, Parser[A]](flat) match {
-      case Nil      => fail
+      case Nil => fail
       case p :: Nil => p
-      case two      => Impl.OneOf(two)
+      case two => Impl.OneOf(two)
     }
   }
 
@@ -492,7 +492,7 @@ object Parser extends ParserInstances {
     */
   def repSep[A](p1: Parser1[A], min: Int, sep: Parser[Any]): Parser[List[A]] = {
     if (min <= 0) rep1Sep(p1, 1, sep).?.map {
-      case None      => Nil
+      case None => Nil
       case Some(nel) => nel.toList
     }
     else rep1Sep(p1, min, sep).map(_.toList)
@@ -606,32 +606,32 @@ object Parser extends ParserInstances {
     pa match {
       case v @ Impl.Void(_) => v
       case Impl.StartParser => Impl.StartParser
-      case Impl.EndParser   => Impl.EndParser
-      case n @ Impl.Not(_)  => n
+      case Impl.EndParser => Impl.EndParser
+      case n @ Impl.Not(_) => n
       case p @ Impl.Peek(_) => p
-      case p1: Parser1[A]   => void1(p1)
-      case _                => Impl.Void(Impl.unmap(pa))
+      case p1: Parser1[A] => void1(p1)
+      case _ => Impl.Void(Impl.unmap(pa))
     }
 
   def void1[A](pa: Parser1[A]): Parser1[Unit] =
     pa match {
       case v @ Impl.Void1(_) => v
-      case p: Impl.Str       => p
-      case _                 => Impl.Void1(Impl.unmap1(pa))
+      case p: Impl.Str => p
+      case _ => Impl.Void1(Impl.unmap1(pa))
     }
 
   def string[A](pa: Parser[A]): Parser[String] =
     pa match {
       case str @ Impl.StringP(_) => str
-      case s1: Parser1[A]        => string1(s1)
-      case _                     => Impl.StringP(Impl.unmap(pa))
+      case s1: Parser1[A] => string1(s1)
+      case _ => Impl.StringP(Impl.unmap(pa))
     }
 
   def string1[A](pa: Parser1[A]): Parser1[String] =
     pa match {
       case str @ Impl.StringP1(_) => str
-      case len @ Impl.Length(_)   => len
-      case _                      => Impl.StringP1(Impl.unmap1(pa))
+      case len @ Impl.Length(_) => len
+      case _ => Impl.StringP1(Impl.unmap1(pa))
     }
 
   /** returns a parser that succeeds if the
@@ -668,9 +668,9 @@ object Parser extends ParserInstances {
     */
   def backtrack[A](pa: Parser[A]): Parser[A] =
     pa match {
-      case p1: Parser1[A]               => backtrack1(p1)
+      case p1: Parser1[A] => backtrack1(p1)
       case pa if Impl.doesBacktrack(pa) => pa
-      case nbt                          => Impl.Backtrack(nbt)
+      case nbt => Impl.Backtrack(nbt)
     }
 
   /** If we fail, rewind the offset back so that
@@ -681,7 +681,7 @@ object Parser extends ParserInstances {
   def backtrack1[A](pa: Parser1[A]): Parser1[A] =
     pa match {
       case pa if Impl.doesBacktrack(pa) => pa
-      case nbt                          => Impl.Backtrack1(nbt)
+      case nbt => Impl.Backtrack1(nbt)
     }
 
   implicit val catsInstancesParser1: FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] =
@@ -708,7 +708,7 @@ object Parser extends ParserInstances {
       ): Eval[Parser1[C]] =
         Now(pb match {
           case Now(pb) => map2(pa, pb)(fn)
-          case later   => map2(pa, defer(later.value))(fn)
+          case later => map2(pa, defer(later.value))(fn)
         })
 
       def tailRecM[A, B](init: A)(fn: A => Parser1[Either[A, B]]): Parser1[B] =
@@ -745,11 +745,11 @@ object Parser extends ParserInstances {
         case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_) | Length(_) |
             StartParser | EndParser | Index | Pure(_) =>
           true
-        case Map(p, _)       => doesBacktrack(p)
-        case Map1(p, _)      => doesBacktrack(p)
-        case SoftProd(a, b)  => doesBacktrackCheat(a) && doesBacktrack(b)
+        case Map(p, _) => doesBacktrack(p)
+        case Map1(p, _) => doesBacktrack(p)
+        case SoftProd(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
         case SoftProd1(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
-        case _               => false
+        case _ => false
       }
 
     /** This removes any trailing map functions which
@@ -761,7 +761,7 @@ object Parser extends ParserInstances {
     def unmap[A](pa: Parser[A]): Parser[Any] =
       pa match {
         case p1: Parser1[Any] => unmap1(p1)
-        case Map(p, _)        =>
+        case Map(p, _) =>
           // we discard any allocations done by fn
           unmap(p)
         case StringP(s) =>
@@ -795,8 +795,8 @@ object Parser extends ParserInstances {
           else SoftProd(u1, u2)
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
-        case Rep(p)                                                           => Rep(unmap1(p))
-        case Pure(_)                                                          => Parser.unit
+        case Rep(p) => Rep(unmap1(p))
+        case Pure(_) => Parser.unit
         case Index | StartParser | EndParser | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
@@ -823,8 +823,8 @@ object Parser extends ParserInstances {
           // unmap may simplify enough
           // to remove the backtrack wrapper
           Parser.backtrack1(unmap1(p))
-        case OneOf1(ps)        => OneOf1(ps.map(unmap1))
-        case Prod1(p1, p2)     => Prod1(unmap(p1), unmap(p2))
+        case OneOf1(ps) => OneOf1(ps.map(unmap1))
+        case Prod1(p1, p2) => Prod1(unmap(p1), unmap(p2))
         case SoftProd1(p1, p2) => SoftProd1(unmap(p1), unmap(p2))
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
@@ -1125,14 +1125,14 @@ object Parser extends ParserInstances {
     final def compute[A](fn: () => Parser[A]): Parser[A] =
       fn() match {
         case Defer1(f) => compute1(f)
-        case Defer(f)  => compute(f)
-        case notDefer  => notDefer
+        case Defer(f) => compute(f)
+        case notDefer => notDefer
       }
     @annotation.tailrec
     final def compute1[A](fn: () => Parser1[A]): Parser1[A] =
       fn() match {
         case Defer1(f) => compute1(f)
-        case notDefer  => notDefer
+        case notDefer => notDefer
       }
 
     case class Defer1[A](fn: () => Parser1[A]) extends Parser1[A] {
@@ -1244,7 +1244,7 @@ object Parser extends ParserInstances {
           }
 
         ps match {
-          case Nil             => frontRes
+          case Nil => frontRes
           case AnyChar :: tail =>
             // AnyChar is bigger than all subsequent CharIn:
             // and any direct prefix CharIns
@@ -1370,7 +1370,7 @@ abstract class ParserInstances {
       ): Eval[Parser[C]] =
         Now(pb match {
           case Now(pb) => map2(pa, pb)(fn)
-          case later   => map2(pa, defer(later.value))(fn)
+          case later => map2(pa, defer(later.value))(fn)
         })
 
       def flatMap[A, B](fa: Parser[A])(fn: A => Parser[B]): Parser[B] =

@@ -681,7 +681,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("a.backtrack either succeeds or fails at 0") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
       a.fa.backtrack.parse(str) match {
-        case Right(_)  => ()
+        case Right(_) => ()
         case Left(err) => assertEquals(err.failedAtOffset, 0)
       }
     }
@@ -772,7 +772,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           p3 = (Parser.length(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
-            case notEps2                                   => notEps2
+            case notEps2 => notEps2
           })
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -796,7 +796,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           p3 = (Parser.length(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
-            case notEps2                                   => notEps2
+            case notEps2 => notEps2
           })
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -820,7 +820,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           p3 = (Parser.length(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
-            case notEps2                                   => notEps2
+            case notEps2 => notEps2
           })
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -1017,7 +1017,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.parse(str)
       res0 match {
-        case Left(_)       => assert(true)
+        case Left(_) => assert(true)
         case Right((s, _)) => assert(str != s)
       }
     }
@@ -1030,7 +1030,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       val r = if (r1.isLeft) p2.fa.parse(str) else r1
       (ores, r) match {
         case (Left(_), l) => assert(l.isLeft)
-        case (ra, rb)     => assertEquals(ra, rb)
+        case (ra, rb) => assertEquals(ra, rb)
       }
     }
   }
@@ -1042,7 +1042,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       val r = if (r1.isLeft) p2.fa.parse(str) else r1
       (ores, r) match {
         case (Left(_), l) => assert(l.isLeft)
-        case (ra, rb)     => assertEquals(ra, rb)
+        case (ra, rb) => assertEquals(ra, rb)
       }
     }
   }
@@ -1161,9 +1161,9 @@ class ParserTest extends munit.ScalaCheckSuite {
       val p = Parser.until(a.fa) *> a.fa
       def loopMatch(cnt: Int): Option[(String, a.A)] =
         (Parser.length(cnt) *> a.fa).parse(str) match {
-          case Right(res)                  => Some(res)
+          case Right(res) => Some(res)
           case Left(_) if cnt > str.length => None
-          case _                           => loopMatch(cnt + 1)
+          case _ => loopMatch(cnt + 1)
         }
 
       assertEquals(p.parse(str).toOption, loopMatch(0))
