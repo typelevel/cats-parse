@@ -104,4 +104,5 @@ lazy val bench = project.
       "org.tpolecat" %% "atto-core" % "0.8.0",
     ),
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("0."))
-  )
+  ).
+  dependsOn(coreJVM)

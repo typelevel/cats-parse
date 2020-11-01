@@ -41,6 +41,13 @@ abstract class JmhBenchmarks(name: String) {
   }
 
   @Benchmark
+  def catsParseParse(): JValue =
+    self.Json.parser.parse(text) match {
+      case Right((_, json)) => json
+      case Left(e) => sys.error(e.toString)
+    }
+
+  @Benchmark
   def fastparseParse(): JValue =
     _root_.fastparse.parse(text, fastparse.JsonParse.jsonExpr(_)).get.value
 
