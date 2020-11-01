@@ -20,7 +20,7 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
 )
 
 ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
+  WorkflowStep.Sbt(List("fmtCheck", "test", "bench/test", "mimaReportBinaryIssues"))
 )
 
 ThisBuild / githubWorkflowEnv ++= Map(
@@ -114,6 +114,7 @@ lazy val bench = project
       "org.parboiled" %% "parboiled" % "2.2.1",
       "org.tpolecat" %% "atto-core" % "0.8.0"
     ),
-    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("0."))
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("0.")),
+    githubWorkflowArtifactUpload := false
   )
   .dependsOn(coreJVM)
