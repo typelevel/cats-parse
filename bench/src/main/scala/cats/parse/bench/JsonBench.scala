@@ -21,26 +21,18 @@
 
 package cats.parse.bench
 
-import java.io.{File, FileInputStream}
 import java.util.concurrent.TimeUnit
-
 import org.openjdk.jmh.annotations._
 import org.typelevel.jawn.ast.JValue
+import scala.io.Source
 
 /* Based on https://github.com/typelevel/jawn/blob/v1.0.0/benchmark/src/main/scala/jawn/JmhBenchmarks.scala */
 @State(Scope.Benchmark)
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 abstract class JmhBenchmarks(name: String) {
-  val path: String = s"src/main/resources/$name"
-
-  val text: String = {
-    val file = new File(path)
-    val bytes = new Array[Byte](file.length.toInt)
-    val fis = new FileInputStream(file)
-    fis.read(bytes)
-    new String(bytes, "UTF-8")
-  }
+  val text: String =
+    Source.fromResource(name, getClass.getClassLoader).getLines().mkString("\n")
 
   // @Benchmark too slow
   def attoParse(): JValue = {
