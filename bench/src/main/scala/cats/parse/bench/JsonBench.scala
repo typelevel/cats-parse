@@ -60,6 +60,7 @@ abstract class JmhBenchmarks(name: String) {
     org.http4s.parsley.runParserThreadSafe(parsleyJson, text).toOption.get
 }
 
+class BarBench extends JmhBenchmarks("bar.json")
 class Qux2Bench extends JmhBenchmarks("qux2.json")
 class Bla25Bench extends JmhBenchmarks("bla25.json")
 class CountriesBench extends JmhBenchmarks("countries.geo.json")
