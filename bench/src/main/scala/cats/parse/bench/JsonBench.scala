@@ -52,9 +52,12 @@ abstract class JmhBenchmarks(name: String) {
   def parboiled2Parse(): JValue =
     new parboiled2.JsonParser(text).Json.run().get
 
+  // Stable instance to warm up
+  val parsleyJson = parsley.ParsleyJson.json
+
   @Benchmark
-  def parsleyParse(): JValue =
-    org.http4s.parsley.runParserThreadSafe(parsley.ParsleyJson.json, text).toOption.get
+  def parsleyParseHotThreadSafe(): JValue =
+    org.http4s.parsley.runParserThreadSafe(parsleyJson, text).toOption.get
 }
 
 class Qux2Bench extends JmhBenchmarks("qux2.json")
