@@ -102,18 +102,18 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
 lazy val coreJVM = core.jvm
 lazy val coreJS = core.js
 
-lazy val bench = project.
-  enablePlugins(JmhPlugin).
-  settings(noPublishSettings).
-  settings(
+lazy val bench = project
+  .enablePlugins(JmhPlugin)
+  .settings(noPublishSettings)
+  .settings(
     name := "bench",
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "fastparse" % "2.3.0",
       "org.http4s" %% "parsley" % "1.5.0-M3",
       "org.typelevel" %% "jawn-ast" % "1.0.0",
       "org.parboiled" %% "parboiled" % "2.2.1",
-      "org.tpolecat" %% "atto-core" % "0.8.0",
+      "org.tpolecat" %% "atto-core" % "0.8.0"
     ),
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("0."))
-  ).
-  dependsOn(coreJVM)
+  )
+  .dependsOn(coreJVM)
