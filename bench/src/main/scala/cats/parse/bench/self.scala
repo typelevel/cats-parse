@@ -40,7 +40,9 @@ object Json {
     val recurse = P.defer1(parser)
     val pnull = P.string1("null").as(JNull)
     val bool = P.string1("true").as(JBool.True).orElse1(P.string1("false").as(JBool.False))
-    val justStr = JsonStringUtil.escapedString('"')
+    val justStr = JsonStringUtil.simpleString
+      .backtrack
+      .orElse1(JsonStringUtil.escapedString('"'))
     val str = justStr.map(JString(_))
     val num = JsonNumber.parser.map(JNum(_))
 
@@ -124,6 +126,12 @@ abstract class GenericStringUtil {
           case Left(_) => P.fail
         }
       }
+
+  val simpleString: P1[String] = {
+    val notBackslash =
+      P.charWhere(c => c >= ' ' && c != '"' && c != '\\').rep
+    P.char('"') *> notBackslash.string <* P.char('"')
+  }
 
   def escapedString(q: Char): P1[String] = {
     val end: P1[Unit] = P.char(q)
