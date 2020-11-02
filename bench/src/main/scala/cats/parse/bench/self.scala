@@ -21,9 +21,8 @@
 
 package cats.parse.bench.self
 
-import cats.Order
 import cats.implicits._
-import cats.parse.{Parser => P, Parser1 => P1}
+import cats.parse.{Parser => P, Parser1 => P1, Numbers}
 import org.typelevel.jawn.ast._
 
 /* Based on https://github.com/johnynek/bosatsu/blob/7f4b75356c207b0e0eb2ab7d39f646e04b4004ca/core/src/main/scala/org/bykn/bosatsu/Json.scala */
@@ -42,7 +41,7 @@ object Json {
     val bool = P.string1("true").as(JBool.True).orElse1(P.string1("false").as(JBool.False))
     val justStr = JsonStringUtil.escapedString('"')
     val str = justStr.map(JString(_))
-    val num = JsonNumber.parser.map(JNum(_))
+    val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: P1[Unit] =
       (whitespaces0.with1.soft ~ P.char(',') ~ whitespaces0).void
@@ -51,19 +50,19 @@ object Json {
       (whitespaces0 *> P.repSep(pa, min = 0, sep = listSep) <* whitespaces0)
 
     val list = (P.char('[') *> rep(recurse) <* P.char(']'))
-      .map { vs => JArray(vs.toArray) }
+      .map { vs => JArray.fromSeq(vs) }
 
     val kv: P1[(String, JValue)] =
       justStr ~ ((whitespaces0.with1 ~ P.char(':') ~ whitespaces0) *> recurse)
 
     val obj = (P.char('{') *> rep(kv) <* P.char('}'))
-      .map { vs => JObject(collection.mutable.Map.from(vs)) }
+      .map { vs => JObject.fromSeq(vs) }
 
     P.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
   }
 
   // any whitespace followed by json followed by whitespace followed by end
-  val parserFile: P1[JValue] = whitespaces0.with1 *> (parser ~ whitespaces0 ~ P.end).map(_._1._1)
+  val parserFile: P1[JValue] = whitespaces0.with1 *> parser <* (whitespaces0 ~ P.end)
 }
 
 object JsonStringUtil extends GenericStringUtil {
@@ -128,19 +127,6 @@ abstract class GenericStringUtil {
   def escapedString(q: Char): P1[String] = {
     val end: P1[Unit] = P.char(q)
     end *> undelimitedString1(end).orElse(P.pure("")) <* end
-  }
-
-  def interpolatedString[A](quoteChar: Char, istart: P1[Unit], interp: P[A], iend: P1[Unit]): P1[List[Either[A, (Region, String)]]] = {
-    val strQuote = P.char(quoteChar)
-
-    val strLit: P1[String] = undelimitedString1(strQuote.orElse1(istart))
-    val notStr: P1[A] = (istart ~ interp ~ iend).map { case ((_, a), _) => a }
-
-    val either: P1[Either[A, (Region, String)]] =
-      ((P.index.with1 ~ strLit ~ P.index).map { case ((s, str), l) => Right((Region(s, l), str)) })
-        .orElse1(notStr.map(Left(_)))
-
-    (strQuote ~ either.rep ~ strQuote).map { case ((_, lst), _) => lst }
   }
 
   def escape(quoteChar: Char, str: String): String = {
@@ -221,58 +207,4 @@ abstract class GenericStringUtil {
     if (res < 0) Left(~res)
     else Right(sb.toString)
   }
-}
-
-object JsonNumber {
-  val digit19: P1[Char] = P.charIn('1' to '9')
-  val digit09: P1[Char] = P.charIn('0' to '9')
-
-  /**
-    *  from: https://tools.ietf.org/html/rfc4627
-    *     number = [ minus ] int [ frac ] [ exp ]
-    *     decimal-point = %x2E       ; .
-    *     digit1-9 = %x31-39         ; 1-9
-    *     e = %x65 / %x45            ; e E
-    *     exp = e [ minus / plus ] 1*DIGIT
-    *     frac = decimal-point 1*DIGIT
-    *     int = zero / ( digit1-9 *DIGIT )
-    *     minus = %x2D               ; -
-    *     plus = %x2B                ; +
-    *     zero = %x30                ; 0
-    */
-   val digits: P[Unit] = digit09.rep.void
-   val digits1: P1[Unit] = digit09.rep1.void
-   val int: P1[Unit] = P.char('0') <+> (digit19 ~ digits).void
-   val frac: P1[Any] = P.char('.') ~ digits1
-   val exp: P1[Unit] = (P.charIn("eE") ~ P.charIn("+-").? ~ digits1).void
-
-   val parser: P1[String] =
-     (P.char('-').?.with1 ~ int ~ frac.? ~ exp.?).string
-
-   // this gives you the individual parts of a floating point string
-   case class Parts(negative: Boolean, leftOfPoint: String, floatingPart: String, exp: String) {
-     def asString: String = {
-       val neg = if (negative) "-" else ""
-       s"$neg$leftOfPoint$floatingPart$exp"
-     }
-   }
-
-   val partsParser: P1[Parts] =
-     (P.char('-').?.with1 ~ int.string ~ frac.string.? ~ exp.string.?)
-       .map { case (((optNeg, left), float), exp) =>
-         Parts(optNeg.isDefined, left, float.getOrElse(""), exp.getOrElse(""))
-       }
- }
-
-case class Region(start: Int, end: Int) {
-  def +(that: Region): Region =
-    Region(start, that.end)
-}
-
-object Region {
-  implicit val ordering: Ordering[Region] =
-    Ordering.by { r: Region => (r.start, r.end) }
-
-  implicit val regionOrder: Order[Region] =
-    Order.fromOrdering(ordering)
 }
