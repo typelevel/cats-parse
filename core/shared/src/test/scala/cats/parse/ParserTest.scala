@@ -465,26 +465,6 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(Parser.product(fooP, barP), "foobar", ((), ()))
   }
 
-  // we can use String => Iterable[Char]
-  val digit = Parser.charIn("0123456789")
-  // or use a range which reads a bit nicer:
-  val digit1 = Parser.charIn('1' to '9')
-  def maybeNeg[A](p1: Parser1[A]): Parser1[String] =
-    (Parser.char('-').?.with1 ~ p1).string
-
-  val bigIntP =
-    maybeNeg(
-      ((digit1 ~ Parser.rep(digit)).void)
-        .orElse1(Parser.char('0'))
-    )
-      .map(BigInt(_))
-
-  property("test an example with BigInt") {
-    forAll { (bi: BigInt) =>
-      parseTest(bigIntP, bi.toString, bi)
-    }
-  }
-
   property("Parser.start and end work") {
     forAll { (s: String) =>
       if (s.isEmpty) {
