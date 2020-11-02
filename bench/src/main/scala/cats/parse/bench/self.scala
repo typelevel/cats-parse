@@ -40,7 +40,9 @@ object Json {
     val recurse = P.defer1(parser)
     val pnull = P.string1("null").as(JNull)
     val bool = P.string1("true").as(JBool.True).orElse1(P.string1("false").as(JBool.False))
-    val justStr = JsonStringUtil.simpleString.orElse1(JsonStringUtil.escapedString('"'))
+    val justStr = JsonStringUtil.simpleString
+      .backtrack
+      .orElse1(JsonStringUtil.escapedString('"'))
     val str = justStr.map(JString(_))
     val num = JsonNumber.parser.map(JNum(_))
 
