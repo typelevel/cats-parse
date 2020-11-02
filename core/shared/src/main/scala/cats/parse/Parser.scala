@@ -965,24 +965,25 @@ object Parser extends ParserInstances {
       }
     }
 
-    final def oneOf[A](all: List[Parser[A]], state: State): A = {
-      var ps = all
+    final def oneOf[A](all: Array[Parser[A]], state: State): A = {
       val offset = state.offset
       var errs: Chain[Expectation] = Chain.nil
-      while (ps.nonEmpty) {
-        val thisParser = ps.head
-        ps = ps.tail
+      var idx = 0
+      while (idx < all.length) {
+        val thisParser = all(idx)
         val res = thisParser.parseMut(state)
         // we stop if there was no error
         // or if we consumed some input
-        if ((state.error eq null) || (state.offset != offset)) {
+        val err = state.error
+        if ((err eq null) || (state.offset != offset)) {
           return res
         } else {
           // we failed to parse, but didn't consume input
           // is unchanged we continue
           // else we stop
-          errs = errs ++ state.error
+          errs = errs ++ err
           state.error = null
+          idx = idx + 1
         }
       }
       // if we got here, all of them failed, but we
@@ -993,12 +994,16 @@ object Parser extends ParserInstances {
 
     case class OneOf1[A](all: List[Parser1[A]]) extends Parser1[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
-      override def parseMut(state: State): A = oneOf(all, state)
+      private[this] val ary: Array[Parser[A]] = all.toArray
+
+      override def parseMut(state: State): A = oneOf(ary, state)
     }
 
     case class OneOf[A](all: List[Parser[A]]) extends Parser[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
-      override def parseMut(state: State): A = oneOf(all, state)
+      private[this] val ary = all.toArray
+
+      override def parseMut(state: State): A = oneOf(ary, state)
     }
 
     final def prod[A, B](pa: Parser[A], pb: Parser[B], state: State): (A, B) = {
@@ -1292,7 +1297,7 @@ object Parser extends ParserInstances {
           val cInt = char.toInt
           if (BitSetUtil.isSet(bitSet, cInt - min)) {
             // we found the character
-            state.offset += 1
+            state.offset = offset + 1
             char
           } else {
             state.error = makeError(offset)
