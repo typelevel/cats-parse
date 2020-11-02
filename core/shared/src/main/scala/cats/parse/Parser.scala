@@ -1223,9 +1223,6 @@ object Parser extends ParserInstances {
           return ()
         }
       }
-      // $COVERAGE-OFF$
-      sys.error("unreachable")
-      // $COVERAGE-ON$
     }
 
     case class Rep[A](p1: Parser1[A]) extends Parser[List[A]] {
