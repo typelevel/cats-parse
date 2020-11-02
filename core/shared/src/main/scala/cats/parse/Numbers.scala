@@ -44,15 +44,15 @@ object Numbers {
   /** A String of either 1 '0' or
     * 1 non-zero digit followed by zero or more digits
     */
-  val positiveIntString: Parser1[String] =
+  val nonNegativeIntString: Parser1[String] =
     (nonZeroDigit ~ digits).void
       .orElse1(Parser.char('0'))
       .string
 
-  /** A positiveIntString possibly preceded by -
+  /** A nonNegativeIntString possibly preceded by '-'
     */
   val signedIntString: Parser1[String] =
-    (Parser.char('-').?.with1 ~ positiveIntString).string
+    (Parser.char('-').?.with1 ~ nonNegativeIntString).string
 
   /** map a signedIntString into a BigInt
     */
