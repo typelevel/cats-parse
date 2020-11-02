@@ -1,6 +1,9 @@
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import Dependencies._
 
+addCommandAlias("fmt", "; compile:scalafmt; test:scalafmt; scalafmtSbt")
+addCommandAlias("fmtCheck", "; compile:scalafmtCheck; test:scalafmtCheck; scalafmtSbtCheck")
+
 ThisBuild / baseVersion := "0.1"
 
 ThisBuild / organization := "org.typelevel"
@@ -15,11 +18,17 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
   RefPredicate.Equals(Ref.Branch("main")),
   RefPredicate.StartsWith(Ref.Tag("v"))
 )
+
+ThisBuild / githubWorkflowBuild := Seq(
+  WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
+)
+
 ThisBuild / githubWorkflowEnv ++= Map(
   "SONATYPE_USERNAME" -> s"$${{ secrets.SONATYPE_USERNAME }}",
   "SONATYPE_PASSWORD" -> s"$${{ secrets.SONATYPE_PASSWORD }}",
   "PGP_SECRET" -> s"$${{ secrets.PGP_SECRET }}"
 )
+
 ThisBuild / githubWorkflowTargetTags += "v*"
 
 ThisBuild / githubWorkflowPublishPreamble +=
@@ -62,7 +71,8 @@ lazy val docs = project
     githubWorkflowArtifactUpload := false
   )
 
-lazy val core = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full)
+lazy val core = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Full)
   .settings(
     name := "cats-parse",
     libraryDependencies += cats.value
@@ -73,7 +83,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full)
     libraryDependencies ++=
       Seq(
         munit.value % Test,
-        munitScalacheck.value % Test,
+        munitScalacheck.value % Test
       )
   )
   .jsSettings(
@@ -81,12 +91,29 @@ lazy val core = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full)
     parallelExecution := false,
     jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
     // batch mode decreases the amount of memory needed to compile scala.js code
-    scalaJSLinkerConfig := scalaJSLinkerConfig.value.withBatchMode(scala.sys.env.get("TRAVIS").isDefined).withModuleKind(ModuleKind.CommonJSModule),
+    scalaJSLinkerConfig := scalaJSLinkerConfig.value
+      .withBatchMode(scala.sys.env.get("TRAVIS").isDefined)
+      .withModuleKind(ModuleKind.CommonJSModule),
     coverageEnabled := false,
     scalaJSUseMainModuleInitializer := false
   )
   .jsSettings(crossScalaVersions := crossScalaVersions.value.filterNot(_.startsWith("0.")))
 
-
 lazy val coreJVM = core.jvm
 lazy val coreJS = core.js
+
+lazy val bench = project
+  .enablePlugins(JmhPlugin)
+  .settings(noPublishSettings)
+  .settings(
+    name := "bench",
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "fastparse" % "2.3.0",
+      "org.http4s" %% "parsley" % "1.5.0-M3",
+      "org.typelevel" %% "jawn-ast" % "1.0.0",
+      "org.parboiled" %% "parboiled" % "2.2.1",
+      "org.tpolecat" %% "atto-core" % "0.8.0"
+    ),
+    githubWorkflowArtifactUpload := false
+  )
+  .dependsOn(coreJVM)

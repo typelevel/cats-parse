@@ -23,52 +23,43 @@ package cats.parse
 
 object Numbers {
 
-  /**
-    * a single base 10 digit
+  /** a single base 10 digit
     */
   val digit: Parser1[Char] =
     Parser.charIn('0' to '9')
 
-  /**
-    * zero or more digit chars
+  /** zero or more digit chars
     */
   val digits: Parser[String] = digit.rep.string
 
-  /**
-    * one or more digit chars
+  /** one or more digit chars
     */
   val digits1: Parser1[String] = digit.rep1.string
 
-  /**
-    * a single base 10 digit excluding 0
+  /** a single base 10 digit excluding 0
     */
   val nonZeroDigit: Parser1[Char] =
     Parser.charIn('1' to '9')
 
-  /**
-    * A String of either 1 '0' or
+  /** A String of either 1 '0' or
     * 1 non-zero digit followed by zero or more digits
     */
   val positiveIntString: Parser1[String] =
-    (nonZeroDigit ~ digits)
-      .void
+    (nonZeroDigit ~ digits).void
       .orElse1(Parser.char('0'))
       .string
 
-  /**
-    * A positiveIntString possibly preceded by -
+  /** A positiveIntString possibly preceded by -
     */
   val signedIntString: Parser1[String] =
-     (Parser.char('-').?.with1 ~ positiveIntString).string
+    (Parser.char('-').?.with1 ~ positiveIntString).string
 
-  /**
-    * map a signedIntString into a BigInt
+  /** map a signedIntString into a BigInt
     */
   val bigInt: Parser1[BigInt] =
     signedIntString.map(BigInt(_))
 
-  /**
-   * A string matching the json specification for numbers.
+  /** A string matching the json specification for numbers.
     * from: https://tools.ietf.org/html/rfc4627
     */
   val jsonNumber: Parser1[String] = {
