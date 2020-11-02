@@ -1174,9 +1174,8 @@ object Parser extends ParserInstances {
       }
     }
 
-    final def rep[A](p: Parser1[A], min: Int, state: State): List[A] = {
-      val cap = state.capture
-      val bldr = if (cap) List.newBuilder[A] else null
+    final def repCapture[A](p: Parser1[A], min: Int, state: State): List[A] = {
+      val bldr = List.newBuilder[A]
       var offset = state.offset
       var cnt = 0
 
@@ -1184,15 +1183,16 @@ object Parser extends ParserInstances {
         val a = p.parseMut(state)
         if (state.error eq null) {
           cnt += 1
-          if (cap) { bldr += a }
+          bldr += a
           offset = state.offset
         } else if (state.offset != offset) {
           // we partially consumed, this is an error
           return null
         } else if (cnt >= min) {
-          // return the latest
+          // we correctly read at least min items
+          // reset the error to make the success
           state.error = null
-          return if (cap) bldr.result() else null
+          return bldr.result()
         } else {
           return null
         }
@@ -1202,8 +1202,40 @@ object Parser extends ParserInstances {
       // $COVERAGE-ON$
     }
 
+    final def repNoCapture[A](p: Parser1[A], min: Int, state: State): Unit = {
+      var offset = state.offset
+      var cnt = 0
+
+      while (true) {
+        p.parseMut(state)
+        if (state.error eq null) {
+          cnt += 1
+          offset = state.offset
+        } else {
+          // there has been an error
+          if ((state.offset == offset) && (cnt >= min)) {
+            // we correctly read at least min items
+            // reset the error to make the success
+            state.error = null
+          }
+          // else we did a partial read then failed
+          // but didn't read at least min items
+          return ()
+        }
+      }
+      // $COVERAGE-OFF$
+      sys.error("unreachable")
+      // $COVERAGE-ON$
+    }
+
     case class Rep[A](p1: Parser1[A]) extends Parser[List[A]] {
-      override def parseMut(state: State): List[A] = Impl.rep(p1, 0, state)
+      override def parseMut(state: State): List[A] = {
+        if (state.capture) Impl.repCapture(p1, 0, state)
+        else {
+          Impl.repNoCapture(p1, 0, state)
+          null
+        }
+      }
     }
 
     case class Rep1[A](p1: Parser1[A], min: Int) extends Parser1[NonEmptyList[A]] {
@@ -1213,9 +1245,13 @@ object Parser extends ParserInstances {
         val head = p1.parseMut(state)
 
         if (state.error ne null) null
-        else {
-          val tail = Impl.rep(p1, min - 1, state)
-          if (state.capture) NonEmptyList(head, tail) else null
+        else if (state.capture) {
+          val tail = Impl.repCapture(p1, min - 1, state)
+          if (tail ne null) NonEmptyList(head, tail)
+          else null
+        } else {
+          Impl.repNoCapture(p1, min - 1, state)
+          null
         }
       }
     }
