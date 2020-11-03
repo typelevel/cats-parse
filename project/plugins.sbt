@@ -9,6 +9,7 @@ addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.0")
 addSbtPlugin("com.codecommit" % "sbt-spiewak-sonatype" % "0.16.0")
 addSbtPlugin("com.codecommit" % "sbt-github-actions" % "0.9.4")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.2")
+addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.2.10")
 
 // This is adding this compiler plugin as a dependency for the build, not the code itself
 libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.8.4"

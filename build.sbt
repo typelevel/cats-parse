@@ -20,7 +20,7 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
 )
 
 ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
+  WorkflowStep.Sbt(List("fmtCheck", "; test; docs/mdoc", "mimaReportBinaryIssues"))
 )
 
 ThisBuild / githubWorkflowEnv ++= Map(
@@ -58,18 +58,25 @@ lazy val root = project
   .settings(noPublishSettings)
 
 lazy val docs = project
-  .enablePlugins(ParadoxPlugin)
+  .enablePlugins(ParadoxPlugin, MdocPlugin)
   .disablePlugins(MimaPlugin)
   .settings(noPublishSettings)
   .settings(
     name := "paradox-docs",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "jawn-ast" % "1.0.0"
+    ),
     paradoxTheme := Some(builtinParadoxTheme("generic")),
     paradoxProperties in Compile ++= Map(
       "empty" -> "",
       "version" -> version.value
     ),
-    githubWorkflowArtifactUpload := false
+    githubWorkflowArtifactUpload := false,
+    mdocIn := (paradox / sourceDirectory).value,
+    paradox / sourceManaged := mdocOut.value,
+    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value
   )
+  .dependsOn(coreJVM, bench)
 
 lazy val core = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
