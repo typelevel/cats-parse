@@ -1,8 +1,8 @@
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import Dependencies._
 
-addCommandAlias("fmt", "; compile:scalafmt; test:scalafmt; scalafmtSbt")
-addCommandAlias("fmtCheck", "; compile:scalafmtCheck; test:scalafmtCheck; scalafmtSbtCheck")
+addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
+addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 ThisBuild / baseVersion := "0.1"
 
