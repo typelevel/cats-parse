@@ -27,7 +27,10 @@ ThisBuild / githubWorkflowAddedJobs += WorkflowJob(
   id = "build-docs",
   name = "Build docs",
   scalas = List("2.13.3"),
-  steps = List(WorkflowStep.Sbt(List("docs/mdoc")))
+  steps = List(
+    WorkflowStep.Checkout,
+    WorkflowStep.SetupScala
+  ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(WorkflowStep.Sbt(List("docs/mdoc")))
 )
 
 ThisBuild / githubWorkflowEnv ++= Map(
