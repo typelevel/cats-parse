@@ -378,8 +378,8 @@ sealed abstract class Parser1[+A] extends Parser[A] {
 
   /** This method overrides `Parser#soft` to refine the return type.
     */
-  override def soft: Parser.Soft1[A] =
-    new Parser.Soft1(this)
+  override def soft: Parser.Soft10[A] =
+    new Parser.Soft10(this)
 }
 
 object Parser extends ParserInstances {
