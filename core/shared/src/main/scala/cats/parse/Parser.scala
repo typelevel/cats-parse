@@ -42,18 +42,20 @@ import cats.implicits._
  *
  *   - Arresting failure: The parser fails to extract a value but does
  *     consume one-or-more characters of input. The input offset will
- *     be moved forward by the number of characters consumed. The
- *     consumed characters will not be available to any additional
- *     parsers which may run.
+ *     be moved forward by the number of characters consumed and all
+ *     parsing will stop (unless a higher-level parser backtracks).
  *
  * Operations such as `x.orElse(y)` will only consider parser `y` if
  * `x` returns an epsilon failure; these methods cannot recover from
  * an arresting failure. Arresting failures can be "rewound" using
- * methods such as `backtrack` or `softProduct`, which converts
- * arresting failures into epsilon failures. Since rewinding is
- * expensive and tends to make error reporting more difficult it is
- * not the default behavior.
-  */
+ * methods such as `x.backtrack` (which converts arresting failures
+ * from `x` into epsilon failures), or `softProduct(x, y)` (which can
+ * rewind successful parses by `x` that are followed by epsilon
+ * failures for `y`).
+ *
+ * Rewinding tends to make error reporting more difficult and can lead
+ * to exponential parser behavior it is not the default behavior.
+ */
 sealed abstract class Parser[+A] {
 
   /**
@@ -75,12 +77,12 @@ sealed abstract class Parser[+A] {
   }
 
   /**
-   * Attempt to parse all of `str` into an `A` value.
+   * Attempt to parse all of the input `str` into an `A` value.
    *
    * This method will return a failure unless all of `str` is consumed
    * during parsing.
    *
-   * `p.parseAll(s)` is equivalent to `(p <* * Parser.end).parse(s).map(_._2)`.
+   * `p.parseAll(s)` is equivalent to `(p <* Parser.end).parse(s).map(_._2)`.
    */
   final def parseAll(str: String): Either[Parser.Error, A] = {
     val state = new Parser.Impl.State(str)
@@ -133,6 +135,9 @@ sealed abstract class Parser[+A] {
    * this parser will return the matched substring instead of any
    * value that the underlying parser would have returned. It will
    * still match exactly the same inputs as the original parser.
+   *
+   * This method is very efficient: similarly to `void`, we can avoid
+   * allocating results to return.
    */
   def string: Parser[String] =
     Parser.string(this)
@@ -141,8 +146,12 @@ sealed abstract class Parser[+A] {
    * If this parser fails to match, rewind the offset to the starting
    * point before moving on to other parser.
    *
-   * This method will mostly be used before calling methos such as
-   * `orElse`, `~`, or `flatMap` which involve a subsequent parser
+   * This method converts arresting failures into epsilon failures,
+   * which includes rewinding the offset to that used before parsing
+   * began.
+   *
+   * This method will most often be used before calling methods such
+   * as `orElse`, `~`, or `flatMap` which involve a subsequent parser
    * picking up where this one left off.
    */
   def backtrack: Parser[A] =
@@ -158,9 +167,6 @@ sealed abstract class Parser[+A] {
    *
    * If either parser produces an error the result is an error.
    * Otherwise both extracted values are combined into a tuple.
-   *
-   * Backtracking may be used on the left parser to allow the right
-   * one to pick up after an error.
    */
   def ~[B](that: Parser[B]): Parser[(A, B)] =
     Parser.product(this, that)
@@ -169,7 +175,8 @@ sealed abstract class Parser[+A] {
    * If this parser fails to parse its input with an epsilon error,
    * try the given parser instead.
    *
-   * If this parser fails with other errors, the next parser won't be tried.
+   * If this parser fails with an arresting error, the next parser
+   * won't be tried.
    *
    * Backtracking may be used on the left parser to allow the right
    * one to pick up after any error, resetting any state that was
@@ -240,7 +247,7 @@ sealed abstract class Parser[+A] {
     new Parser.Soft(this)
 
   /**
-   * Return a parses that succeeds (consuming nothing, and extracting
+   * Return a parser that succeeds (consuming nothing, and extracting
    * nothing) if the current parser would fail.
    *
    * This parser expects the underlying parser to fail, and will
