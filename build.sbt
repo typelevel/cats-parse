@@ -58,17 +58,17 @@ lazy val root = project
   .settings(noPublishSettings)
 
 lazy val docs = project
-  .enablePlugins(ParadoxPlugin)
+  .in(file("cats-parse-docs"))
+  .enablePlugins(MdocPlugin, DocusaurusPlugin)
   .disablePlugins(MimaPlugin)
   .settings(noPublishSettings)
+  .dependsOn(core.jvm)
   .settings(
-    name := "paradox-docs",
-    paradoxTheme := Some(builtinParadoxTheme("generic")),
-    paradoxProperties in Compile ++= Map(
-      "empty" -> "",
-      "version" -> version.value
-    ),
-    githubWorkflowArtifactUpload := false
+    moduleName := "cats-parse-docs",
+    watchSources += baseDirectory.in(ThisBuild).value / "docs",
+    mdocVariables := Map(
+      "VERSION" -> version.value
+    )
   )
 
 lazy val core = crossProject(JSPlatform, JVMPlatform)
