@@ -344,20 +344,21 @@ sealed abstract class Parser1[+A] extends Parser[A] {
   def rep: Parser[List[A]] =
     Parser.rep(this)
 
-  /** Use this parser to parse at least `n` values (where `n >= 0`).
+  /** Use this parser to parse at least `min` values (where `min >= 0`).
     *
-    * If `n` is zero, this parser may succeed without consuming input
-    * in the case where zero values are parsed. If `n` is known to be
-    * greater than zero, consider using `rep1(n)` instead.
+    * If `min` is zero, this parser may succeed without consuming
+    * input in the case where zero values are parsed. If `min` is
+    * known to be greater than zero, consider using `rep1(min)`
+    * instead.
     *
     * Like `rep`, arresting failures in the underlying parser will
     * result in an arresting failure. Unlike `rep`, this method may
     * also return an arresting failure if it has not parsed at least
-    * `n` values (but has consumed input).
+    * `min` values (but has consumed input).
     */
-  def rep(n: Int): Parser[List[A]] =
-    if (n == 0) rep
-    else rep1(n).map(_.toList)
+  def rep(min: Int): Parser[List[A]] =
+    if (min == 0) rep
+    else rep1(min).map(_.toList)
 
   /** Use this parser to parse one-or-more values.
     *
@@ -368,13 +369,13 @@ sealed abstract class Parser1[+A] extends Parser[A] {
   def rep1: Parser1[NonEmptyList[A]] =
     Parser.rep1(this, min = 1)
 
-  /** Use this parser to parse at least `n` values (where `n >= 1`).
+  /** Use this parser to parse at least `min` values (where `min >= 1`).
     *
-    * This method behaves likes `rep1`, except that if fewer than `n`
+    * This method behaves likes `rep1`, except that if fewer than `min`
     * values are produced an arresting failure will be returned.
     */
-  def rep1(n: Int): Parser1[NonEmptyList[A]] =
-    Parser.rep1(this, min = n)
+  def rep1(min: Int): Parser1[NonEmptyList[A]] =
+    Parser.rep1(this, min = min)
 
   /** This method overrides `Parser#soft` to refine the return type.
     */
