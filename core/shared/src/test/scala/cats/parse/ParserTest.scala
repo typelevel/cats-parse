@@ -1166,4 +1166,82 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(sortedFlat.toSet, cs.flatten.toSet)
     }
   }
+
+  /*
+   * it would be nice if parsers were purely distributive, but they are not.
+   * While cats Alternative laws do require some weak distributivity, Haskell
+   * does not:
+   *
+   * https://en.wikibooks.org/wiki/Haskell/Alternative_and_MonadPlus#Other_suggested_laws
+   *
+   * see a related cats discussion here:
+   * https://github.com/typelevel/cats/pull/1345
+   *
+   * Instead, we have some weakened versions of distributive laws
+   */
+  property("b.orElse(c) ~ a == (b ~ a).orElse((!b) *> (c ~ a))") {
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
+      (a, b, c, str) =>
+        val pa = a.fa
+        val pb = b.fa
+        val pc = c.fa
+
+        val left = pb.orElse(pc) ~ pa
+        val right = (pb ~ pa).orElse((!pb) *> (pc ~ pa))
+
+        val leftRes = left.parse(str).toOption
+        val rightRes = right.parse(str).toOption
+        assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("b.orElse1(c) ~ a == (b ~ a).orElse1((!b) *> (c ~ a))") {
+    forAll(ParserGen.gen, ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) {
+      (a, b, c, str) =>
+        val pa = a.fa
+        val pb = b.fa
+        val pc = c.fa
+
+        val left = pb.orElse1(pc) ~ pa
+        val right = (pb ~ pa).orElse1((!pb).with1 *> (pc ~ pa))
+
+        val leftRes = left.parseAll(str).toOption
+        val rightRes = right.parseAll(str).toOption
+        if (leftRes.isDefined && rightRes.isDefined) {
+          assertEquals(leftRes, rightRes)
+        } else ()
+    }
+  }
+
+  property("a ~ b.orElse(c) == (a.soft ~ b).orElse(a ~ c)") {
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
+      (a, b, c, str) =>
+        val pa = a.fa
+        val pb = b.fa
+        val pc = c.fa
+
+        val left = pa ~ pb.orElse(pc)
+        val right = (pa.soft ~ pb).orElse(pa ~ pc)
+
+        val leftRes = left.parse(str).toOption
+        val rightRes = right.parse(str).toOption
+        assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("a ~ b.orElse1(c) == (a.soft ~ b).orElse1(a ~ c)") {
+    forAll(ParserGen.gen, ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) {
+      (a, b, c, str) =>
+        val pa = a.fa
+        val pb = b.fa
+        val pc = c.fa
+
+        val left = pa ~ pb.orElse1(pc)
+        val right = (pa.soft.with1 ~ pb).orElse(pa.with1 ~ pc)
+
+        val leftRes = left.parse(str).toOption
+        val rightRes = right.parse(str).toOption
+        assertEquals(leftRes, rightRes)
+    }
+  }
 }

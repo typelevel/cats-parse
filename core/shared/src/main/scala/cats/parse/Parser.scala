@@ -406,6 +406,14 @@ object Parser extends ParserInstances {
 
     def <*[B](that: Parser[B]): Parser[A] =
       softProduct(parser, void(that)).map(_._1)
+
+    /** If we can parse this then that, do so,
+      * if we fail that without consuming, rewind
+      * before this without consuming.
+      * If either consume 1 or more, do not rewind
+      */
+    def with1: Soft01[A] =
+      new Soft01(parser)
   }
 
   /** If we can parse this then that, do so,
