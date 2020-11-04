@@ -20,7 +20,14 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
 )
 
 ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(List("fmtCheck", "; test; docs/mdoc", "mimaReportBinaryIssues"))
+  WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
+)
+
+ThisBuild / githubWorkflowAddedJobs += WorkflowJob(
+  id = "build-docs",
+  name = "Build docs",
+  scalas = List("2.13.3"),
+  steps = List(WorkflowStep.Sbt(List("docs/mdoc")))
 )
 
 ThisBuild / githubWorkflowEnv ++= Map(
