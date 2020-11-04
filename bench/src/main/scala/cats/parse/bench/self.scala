@@ -125,9 +125,7 @@ abstract class GenericStringUtil {
       }
 
   private val simpleString: P[String] =
-    P.charWhere(c => c >= ' ' && c != '"' && c != '\\')
-      .rep
-      .string
+    P.charsWhile(c => c >= ' ' && c != '"' && c != '\\')
 
   def escapedString(q: Char): P1[String] = {
     val end: P1[Unit] = P.char(q)

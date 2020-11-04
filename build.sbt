@@ -1,8 +1,8 @@
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import Dependencies._
 
-addCommandAlias("fmt", "; compile:scalafmt; test:scalafmt; scalafmtSbt")
-addCommandAlias("fmtCheck", "; compile:scalafmtCheck; test:scalafmtCheck; scalafmtSbtCheck")
+addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
+addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 ThisBuild / baseVersion := "0.1"
 
@@ -12,7 +12,7 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("0.27.0-RC1", "2.12.11", "2.13.3")
+ThisBuild / crossScalaVersions := List("0.27.0-RC1", "2.12.12", "2.13.3")
 
 ThisBuild / githubWorkflowPublishTargetBranches := Seq(
   RefPredicate.Equals(Ref.Branch("main")),
