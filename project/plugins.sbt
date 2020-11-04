@@ -11,4 +11,4 @@ addSbtPlugin("com.codecommit" % "sbt-github-actions" % "0.9.4")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.2")
 
 // This is adding this compiler plugin as a dependency for the build, not the code itself
-libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.8.4"
+libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.10.8"
