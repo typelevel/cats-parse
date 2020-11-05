@@ -23,6 +23,16 @@ ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
 )
 
+ThisBuild / githubWorkflowAddedJobs += WorkflowJob(
+  id = "build-docs",
+  name = "Build docs",
+  scalas = List("2.13.3"),
+  steps = List(
+    WorkflowStep.Checkout,
+    WorkflowStep.SetupScala
+  ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(WorkflowStep.Sbt(List("docs/mdoc")))
+)
+
 ThisBuild / githubWorkflowEnv ++= Map(
   "SONATYPE_USERNAME" -> s"$${{ secrets.SONATYPE_USERNAME }}",
   "SONATYPE_PASSWORD" -> s"$${{ secrets.SONATYPE_PASSWORD }}",
@@ -58,18 +68,25 @@ lazy val root = project
   .settings(noPublishSettings)
 
 lazy val docs = project
-  .enablePlugins(ParadoxPlugin)
+  .enablePlugins(ParadoxPlugin, MdocPlugin)
   .disablePlugins(MimaPlugin)
   .settings(noPublishSettings)
   .settings(
     name := "paradox-docs",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "jawn-ast" % "1.0.0"
+    ),
     paradoxTheme := Some(builtinParadoxTheme("generic")),
     paradoxProperties in Compile ++= Map(
       "empty" -> "",
       "version" -> version.value
     ),
-    githubWorkflowArtifactUpload := false
+    githubWorkflowArtifactUpload := false,
+    mdocIn := (paradox / sourceDirectory).value,
+    paradox / sourceManaged := mdocOut.value,
+    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value
   )
+  .dependsOn(coreJVM, bench)
 
 lazy val core = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
