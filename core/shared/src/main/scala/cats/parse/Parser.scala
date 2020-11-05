@@ -592,6 +592,19 @@ object Parser extends ParserInstances {
       softProduct01(parser, void1(that)).map(_._1)
   }
 
+  /** Methods with complex variance type signatures due to covariance.
+    */
+  implicit final class Parser1Methods[A](private val self: Parser1[A]) extends AnyVal {
+    def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
+      Parser.repAs(self)(acc)
+
+    def rep1As[B](implicit acc: Accumulator1[A, B]): Parser[B] =
+      Parser.rep1As(self, min = 1)(acc)
+
+    def rep1As[B](min: Int)(implicit acc: Accumulator1[A, B]): Parser[B] =
+      Parser.rep1As(self, min = min)(acc)
+  }
+
   /** Don't advance in the parsed string, just return a
     *  This is used by the Applicative typeclass.
     */
@@ -688,12 +701,23 @@ object Parser extends ParserInstances {
     * note: this can wind up parsing nothing
     */
   def rep[A](p1: Parser1[A]): Parser[List[A]] =
-    Impl.Rep(p1)
+    repAs[A, List[A]](p1)
+
+  /** Repeat this parser 0 or more times
+    * note: this can wind up parsing nothing
+    */
+  def repAs[A, B](p1: Parser1[A])(implicit acc: Accumulator[A, B]): Parser[B] =
+    Impl.Rep(p1, acc)
 
   /** Repeat this parser 1 or more times
     */
   def rep1[A](p1: Parser1[A], min: Int): Parser1[NonEmptyList[A]] =
-    Impl.Rep1(p1, min)
+    rep1As[A, NonEmptyList[A]](p1, min)
+
+  /** Repeat this parser 1 or more times
+    */
+  def rep1As[A, B](p1: Parser1[A], min: Int)(implicit acc: Accumulator1[A, B]): Parser1[B] =
+    Impl.Rep1(p1, min, acc)
 
   /** Repeat 1 or more times with a separator
     */
@@ -1141,7 +1165,7 @@ object Parser extends ParserInstances {
           else SoftProd(u1, u2)
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
-        case Rep(p) => Rep(unmap1(p))
+        case Rep(p, acc) => Rep(unmap1(p), acc)
         case Pure(_) => Parser.unit
         case Index | StartParser | EndParser | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
@@ -1174,7 +1198,7 @@ object Parser extends ParserInstances {
         case SoftProd1(p1, p2) => SoftProd1(unmap(p1), unmap(p2))
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
-        case Rep1(p, m) => Rep1(unmap1(p), m)
+        case Rep1(p, m, acc) => Rep1(unmap1(p), m, acc)
         case AnyChar | CharIn(_, _, _) | Str(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
@@ -1527,8 +1551,12 @@ object Parser extends ParserInstances {
       }
     }
 
-    final def repCapture[A](p: Parser1[A], min: Int, state: State): List[A] = {
-      val bldr = List.newBuilder[A]
+    final def repCapture[A, B](
+        p: Parser1[A],
+        min: Int,
+        state: State,
+        append: Appender[A, B]
+    ): Unit = {
       var offset = state.offset
       var cnt = 0
 
@@ -1536,23 +1564,20 @@ object Parser extends ParserInstances {
         val a = p.parseMut(state)
         if (state.error eq null) {
           cnt += 1
-          bldr += a
+          append.append(a)
           offset = state.offset
-        } else if (state.offset != offset) {
-          // we partially consumed, this is an error
-          return null
-        } else if (cnt >= min) {
-          // we correctly read at least min items
-          // reset the error to make the success
-          state.error = null
-          return bldr.result()
         } else {
-          return null
+          // there has been an error
+          if ((state.offset == offset) && (cnt >= min)) {
+            // we correctly read at least min items
+            // reset the error to make the success
+            state.error = null
+          }
+          // else we did a partial read then failed
+          // but didn't read at least min items
+          return ()
         }
       }
-      // $COVERAGE-OFF$
-      sys.error("unreachable")
-      // $COVERAGE-ON$
     }
 
     final def repNoCapture[A](p: Parser1[A], min: Int, state: State): Unit = {
@@ -1578,30 +1603,39 @@ object Parser extends ParserInstances {
       }
     }
 
-    case class Rep[A](p1: Parser1[A]) extends Parser[List[A]] {
-      override def parseMut(state: State): List[A] = {
-        if (state.capture) Impl.repCapture(p1, 0, state)
-        else {
-          Impl.repNoCapture(p1, 0, state)
-          null
+    case class Rep[A, B](p1: Parser1[A], acc: Accumulator[A, B]) extends Parser[B] {
+      private[this] val ignore: B = null.asInstanceOf[B]
+
+      override def parseMut(state: State): B = {
+        if (state.capture) {
+          val app = acc.newAppender()
+          repCapture(p1, 0, state, app)
+          if (state.error eq null) app.finish()
+          else ignore
+        } else {
+          repNoCapture(p1, 0, state)
+          ignore
         }
       }
     }
 
-    case class Rep1[A](p1: Parser1[A], min: Int) extends Parser1[NonEmptyList[A]] {
+    case class Rep1[A, B](p1: Parser1[A], min: Int, acc1: Accumulator1[A, B]) extends Parser1[B] {
       if (min < 1) throw new IllegalArgumentException(s"expected min >= 1, found: $min")
 
-      override def parseMut(state: State): NonEmptyList[A] = {
+      private[this] val ignore: B = null.asInstanceOf[B]
+
+      override def parseMut(state: State): B = {
         val head = p1.parseMut(state)
 
-        if (state.error ne null) null
+        if (state.error ne null) ignore
         else if (state.capture) {
-          val tail = Impl.repCapture(p1, min - 1, state)
-          if (tail ne null) NonEmptyList(head, tail)
-          else null
+          val app = acc1.newAppender(head)
+          repCapture(p1, min - 1, state, app)
+          if (state.error eq null) app.finish()
+          else ignore
         } else {
-          Impl.repNoCapture(p1, min - 1, state)
-          null
+          repNoCapture(p1, min - 1, state)
+          ignore
         }
       }
     }

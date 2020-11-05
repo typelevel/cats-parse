@@ -1294,4 +1294,43 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(Parser.failWith(mes).?.parse(str), Right((str, None)))
     }
   }
+
+  property("a.repAs[Vector[A]] matches a.rep.map(_.toVector)") {
+    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa: Parser1[a.A] = a.fa
+
+      val left = pa.repAs[Vector[a.A]]
+      val right = pa.rep.map(_.toVector)
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("a.rep1As[Vector[A]] matches a.rep1.map(_.toList.toVector)") {
+    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa: Parser1[a.A] = a.fa
+
+      val left = pa.rep1As[Vector[a.A]]
+      val right = pa.rep1.map(_.toList.toVector)
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("a.string.repAs[String] matches a.string.rep.map(_.mkString)") {
+    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa: Parser1[String] = a.fa.string
+
+      val left = pa.repAs[String]
+      val right = pa.rep.map(_.mkString)
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes, rightRes)
+    }
+  }
 }
