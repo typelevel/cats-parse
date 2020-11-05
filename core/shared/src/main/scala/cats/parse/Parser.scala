@@ -1089,7 +1089,7 @@ object Parser extends ParserInstances {
     final def doesBacktrack(p: Parser[Any]): Boolean =
       p match {
         case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_) | Length(_) |
-            StartParser | EndParser | Index | Pure(_) =>
+            StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) =>
           true
         case Map(p, _) => doesBacktrack(p)
         case Map1(p, _) => doesBacktrack(p)
