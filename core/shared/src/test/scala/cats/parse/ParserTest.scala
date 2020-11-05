@@ -1244,4 +1244,32 @@ class ParserTest extends munit.ScalaCheckSuite {
         assertEquals(leftRes, rightRes)
     }
   }
+
+  property("a.backtrack.orElse(b) parses iff b.backtrack.orElse(a)") {
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
+      val pa = a.fa
+      val pb = b.fa
+
+      val left = pa.backtrack.orElse(pb)
+      val right = pb.backtrack.orElse(pa)
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes.toOption.isDefined, rightRes.toOption.isDefined)
+    }
+  }
+
+  property("a.backtrack.orElse1(b) parses iff b.backtrack.orElse1(a)") {
+    forAll(ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, b, str) =>
+      val pa = a.fa
+      val pb = b.fa
+
+      val left = pa.backtrack.orElse1(pb)
+      val right = pb.backtrack.orElse1(pa)
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes.toOption.isDefined, rightRes.toOption.isDefined)
+    }
+  }
 }
