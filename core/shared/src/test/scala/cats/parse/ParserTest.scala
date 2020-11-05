@@ -104,6 +104,11 @@ object ParserGen {
   val fail: Gen[GenT[Parser]] =
     Gen.const(GenT(Parser.fail: Parser[Unit]))
 
+  val failWith: Gen[GenT[Parser]] =
+    Arbitrary.arbitrary[String].map { str =>
+      GenT(Parser.failWith[Unit](str))
+    }
+
   def void(g: GenT[Parser]): GenT[Parser] =
     GenT(Parser.void(g.fa))
 
@@ -372,6 +377,8 @@ object ParserGen {
       (5, expect0),
       (5, charIn),
       (1, Gen.oneOf(GenT(Parser.start), GenT(Parser.end), GenT(Parser.index))),
+      (1, fail),
+      (1, failWith),
       (1, rec.map(void(_))),
       (1, rec.map(string(_))),
       (1, rec.map(backtrack(_))),
@@ -1270,6 +1277,21 @@ class ParserTest extends munit.ScalaCheckSuite {
       val leftRes = left.parse(str)
       val rightRes = right.parse(str)
       assertEquals(leftRes.toOption.isDefined, rightRes.toOption.isDefined)
+    }
+  }
+
+  property("failWith returns the given error message") {
+    forAll { (str: String, mes: String) =>
+      assertEquals(
+        Parser.failWith(mes).parse(str),
+        Left(Parser.Error(0, NonEmptyList.of(Parser.Expectation.FailWith(0, mes))))
+      )
+    }
+  }
+
+  property("failWith.? returns None") {
+    forAll { (str: String, mes: String) =>
+      assertEquals(Parser.failWith(mes).?.parse(str), Right((str, None)))
     }
   }
 }
