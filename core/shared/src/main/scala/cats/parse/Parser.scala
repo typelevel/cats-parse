@@ -1556,7 +1556,7 @@ object Parser extends ParserInstances {
         min: Int,
         state: State,
         append: Appender[A, B]
-    ): Unit = {
+    ): Boolean = {
       var offset = state.offset
       var cnt = 0
 
@@ -1572,12 +1572,18 @@ object Parser extends ParserInstances {
             // we correctly read at least min items
             // reset the error to make the success
             state.error = null
+            return true
+          } else {
+            // else we did a partial read then failed
+            // but didn't read at least min items
+            return false
           }
-          // else we did a partial read then failed
-          // but didn't read at least min items
-          return ()
         }
       }
+      // $COVERAGE-OFF$
+      // unreachable due to infinite loop
+      return false
+      // $COVERAGE-ON$
     }
 
     final def repNoCapture[A](p: Parser1[A], min: Int, state: State): Unit = {
@@ -1609,8 +1615,7 @@ object Parser extends ParserInstances {
       override def parseMut(state: State): B = {
         if (state.capture) {
           val app = acc.newAppender()
-          repCapture(p1, 0, state, app)
-          if (state.error eq null) app.finish()
+          if (repCapture(p1, 0, state, app)) app.finish()
           else ignore
         } else {
           repNoCapture(p1, 0, state)
@@ -1630,8 +1635,7 @@ object Parser extends ParserInstances {
         if (state.error ne null) ignore
         else if (state.capture) {
           val app = acc1.newAppender(head)
-          repCapture(p1, min - 1, state, app)
-          if (state.error eq null) app.finish()
+          if (repCapture(p1, min - 1, state, app)) app.finish()
           else ignore
         } else {
           repNoCapture(p1, min - 1, state)
