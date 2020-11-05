@@ -24,6 +24,8 @@ package cats.parse
 import cats.data.{NonEmptyList, NonEmptyVector}
 import scala.collection.mutable.Builder
 
+/** A limited Builder-like value we use for portability
+  */
 trait Appender[-A, +B] {
   def append(item: A): this.type
   def finish(): B
@@ -63,10 +65,28 @@ object Appender {
 
       def finish(): B = bldr.result()
     }
+
+  val unitAppender: Appender[Any, Unit] =
+    new Appender[Any, Unit] {
+      def append(item: Any) = this
+      def finish(): Unit = ()
+    }
 }
 
-trait Accumulator[-A, +B] {
+/** Creates an appender given the first item to be added
+  * This is used to build the result in Parser1.repAs1
+  */
+trait Accumulator1[-A, +B] {
+  def newAppender(first: A): Appender[A, B]
+}
+
+/** Creates an appender
+  * This is used to build the result in Parser1.repAs
+  */
+trait Accumulator[-A, +B] extends Accumulator1[A, B] {
   def newAppender(): Appender[A, B]
+  def newAppender(first: A): Appender[A, B] =
+    newAppender().append(first)
 }
 
 object Accumulator {
@@ -89,10 +109,16 @@ object Accumulator {
     new Accumulator[A, Vector[A]] {
       def newAppender() = Appender.fromBuilder(Vector.newBuilder[A])
     }
-}
 
-trait Accumulator1[-A, +B] {
-  def newAppender(first: A): Appender[A, B]
+  /** An accumulator that does nothing and returns Unit
+    * Note, this should not generally be used with repAs
+    * because internal allocations still happen. Instead
+    * use .rep.void
+    */
+  val unitAccumulator: Accumulator[Any, Unit] =
+    new Accumulator[Any, Unit] {
+      def newAppender() = Appender.unitAppender
+    }
 }
 
 object Accumulator1 extends Priority0Accumulator1 {
@@ -127,19 +153,6 @@ object Accumulator1 extends Priority0Accumulator1 {
     }
 }
 
-sealed trait Priority0Accumulator1 {
-  implicit def fromAccumulator[A, B](implicit acc: Accumulator[A, B]): Accumulator1[A, B] =
-    new Accumulator1[A, B] {
-      def newAppender(first: A) =
-        new Appender[A, B] {
-          val app = acc.newAppender().append(first)
-
-          def append(item: A) = {
-            app.append(item)
-            this
-          }
-
-          def finish() = app.finish()
-        }
-    }
+private[parse] sealed trait Priority0Accumulator1 {
+  implicit def fromAccumulator[A, B](implicit acc: Accumulator[A, B]): Accumulator1[A, B] = acc
 }

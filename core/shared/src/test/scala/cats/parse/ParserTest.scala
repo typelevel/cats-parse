@@ -1308,11 +1308,11 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("a.rep1As[Vector[A]] matches a.rep1.map(_.toList.toVector)") {
+  property("a.repAs1[Vector[A]] matches a.rep1.map(_.toList.toVector)") {
     forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa: Parser1[a.A] = a.fa
 
-      val left = pa.rep1As[Vector[a.A]]
+      val left = pa.repAs1[Vector[a.A]]
       val right = pa.rep1.map(_.toList.toVector)
 
       val leftRes = left.parse(str)
@@ -1327,6 +1327,19 @@ class ParserTest extends munit.ScalaCheckSuite {
 
       val left = pa.repAs[String]
       val right = pa.rep.map(_.mkString)
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("a.repAs[Unit] matches a.rep.void") {
+    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa: Parser1[a.A] = a.fa
+
+      val left = pa.repAs[Unit](Accumulator.unitAccumulator)
+      val right = pa.rep.void
 
       val leftRes = left.parse(str)
       val rightRes = right.parse(str)

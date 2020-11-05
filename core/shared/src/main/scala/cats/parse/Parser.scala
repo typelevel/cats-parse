@@ -598,11 +598,11 @@ object Parser extends ParserInstances {
     def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
       Parser.repAs(self)(acc)
 
-    def rep1As[B](implicit acc: Accumulator1[A, B]): Parser[B] =
-      Parser.rep1As(self, min = 1)(acc)
+    def repAs1[B](implicit acc: Accumulator1[A, B]): Parser[B] =
+      Parser.repAs1(self, min = 1)(acc)
 
-    def rep1As[B](min: Int)(implicit acc: Accumulator1[A, B]): Parser[B] =
-      Parser.rep1As(self, min = min)(acc)
+    def repAs1[B](min: Int)(implicit acc: Accumulator1[A, B]): Parser[B] =
+      Parser.repAs1(self, min = min)(acc)
   }
 
   /** Don't advance in the parsed string, just return a
@@ -712,11 +712,11 @@ object Parser extends ParserInstances {
   /** Repeat this parser 1 or more times
     */
   def rep1[A](p1: Parser1[A], min: Int): Parser1[NonEmptyList[A]] =
-    rep1As[A, NonEmptyList[A]](p1, min)
+    repAs1[A, NonEmptyList[A]](p1, min)
 
   /** Repeat this parser 1 or more times
     */
-  def rep1As[A, B](p1: Parser1[A], min: Int)(implicit acc: Accumulator1[A, B]): Parser1[B] =
+  def repAs1[A, B](p1: Parser1[A], min: Int)(implicit acc: Accumulator1[A, B]): Parser1[B] =
     Impl.Rep1(p1, min, acc)
 
   /** Repeat 1 or more times with a separator
@@ -1165,7 +1165,7 @@ object Parser extends ParserInstances {
           else SoftProd(u1, u2)
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
-        case Rep(p, acc) => Rep(unmap1(p), acc)
+        case Rep(p, _) => Rep(unmap1(p), Accumulator.unitAccumulator)
         case Pure(_) => Parser.unit
         case Index | StartParser | EndParser | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
@@ -1198,7 +1198,7 @@ object Parser extends ParserInstances {
         case SoftProd1(p1, p2) => SoftProd1(unmap(p1), unmap(p2))
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
-        case Rep1(p, m, acc) => Rep1(unmap1(p), m, acc)
+        case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator.unitAccumulator)
         case AnyChar | CharIn(_, _, _) | Str(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
