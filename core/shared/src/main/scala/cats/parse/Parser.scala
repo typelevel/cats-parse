@@ -402,6 +402,7 @@ object Parser extends ParserInstances {
     case class ExpectedFailureAt(offset: Int, matched: String) extends Expectation
     // this is the result of oneOf(Nil) at a given location
     case class Fail(offset: Int) extends Expectation
+    case class FailWith(offset: Int, message: String) extends Expectation
 
     implicit val catsOrderExpectation: Order[Expectation] =
       new Order[Expectation] {
@@ -438,10 +439,15 @@ object Parser extends ParserInstances {
                 else c1
               case (Length(_, _, _), _) => -1
               case (ExpectedFailureAt(_, _), Fail(_)) => -1
+              case (ExpectedFailureAt(_, _), FailWith(_, _)) => -1
               case (ExpectedFailureAt(_, m1), ExpectedFailureAt(_, m2)) =>
                 m1.compare(m2)
               case (ExpectedFailureAt(_, _), _) => 1
+              case (Fail(_), FailWith(_, _)) => -1
               case (Fail(_), _) => 1
+              case (FailWith(_, s1), FailWith(_, s2)) =>
+                s1.compare(s2)
+              case (FailWith(_, _), _) => 1
             }
           }
         }
@@ -834,13 +840,22 @@ object Parser extends ParserInstances {
   def defer[A](pa: => Parser[A]): Parser[A] =
     Impl.Defer(() => pa)
 
-  /** A parser that always fails
+  /** A parser that always fails with an epsilon failure
     */
   val Fail: Parser1[Nothing] = Impl.Fail()
 
-  /** A parser that always fails
+  /** A parser that always fails with an epsilon failure
     */
   def fail[A]: Parser1[A] = Fail
+
+  /** A parser that always fails with an epsilon failure and a given message
+    * this is generally used with flatMap to validate a result beyond
+    * the literal parsing.
+    *
+    * e.g. parsing a number then validate that it is bounded.
+    */
+  def failWith[A](message: String): Parser1[A] =
+    Impl.FailWith(message)
 
   /** A parser that returns unit
     */
@@ -1160,8 +1175,8 @@ object Parser extends ParserInstances {
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
         case Rep1(p, m) => Rep1(unmap1(p), m)
-        case AnyChar | CharIn(_, _, _) | Str(_) | Fail() | Length(_) | TailRecM1(_, _) |
-            FlatMap1(_, _) =>
+        case AnyChar | CharIn(_, _, _) | Str(_) | Fail() | FailWith(_) | Length(_) |
+            TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
           pa
 
@@ -1292,6 +1307,13 @@ object Parser extends ParserInstances {
     case class Fail[A]() extends Parser1[A] {
       override def parseMut(state: State): A = {
         state.error = Chain.one(Expectation.Fail(state.offset));
+        null.asInstanceOf[A]
+      }
+    }
+
+    case class FailWith[A](message: String) extends Parser1[A] {
+      override def parseMut(state: State): A = {
+        state.error = Chain.one(Expectation.FailWith(state.offset, message));
         null.asInstanceOf[A]
       }
     }
