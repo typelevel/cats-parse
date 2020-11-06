@@ -616,8 +616,10 @@ object Parser extends ParserInstances {
     * this is an error if the string is empty
     */
   def stringCI1(str: String): Parser1[Unit] =
-    if (str.length == 1) charIn(str.charAt(0).toLower, str.charAt(0).toUpper).void
-    else Impl.Str(str, true)
+    if (str.length == 1) {
+      val c = str.charAt(0)
+      charIn(c.toLower, c.toUpper).void
+    } else Impl.Str(str, true)
 
   /** Parse a given string or
     * fail. This backtracks on failure
