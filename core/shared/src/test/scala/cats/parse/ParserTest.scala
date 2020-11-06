@@ -457,9 +457,15 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   val fooP = Parser.string1("foo")
   val barP = Parser.string1("bar")
+  val fooCIP = Parser.stringCI1("foo")
+  val cCIP = Parser.stringCI1("a")
 
   test("string tests") {
     parseTest(fooP, "foobar", ())
+    parseFail(fooP, "FOO")
+    parseTest(fooCIP, "FoO", ())
+    parseTest(cCIP, "A", ())
+    parseTest(cCIP, "a", ())
     parseFail(fooP, "bar")
 
     parseTest(Parser.oneOf1(fooP :: barP :: Nil), "bar", ())

@@ -611,13 +611,21 @@ object Parser extends ParserInstances {
   def pure[A](a: A): Parser[A] =
     Impl.Pure(a)
 
+  /** Parse a given string, in a case-insensitive manner,
+    * or fail. This backtracks on failure
+    * this is an error if the string is empty
+    */
+  def stringCI1(str: String): Parser1[Unit] =
+    if (str.length == 1) charIn(str.charAt(0).toLower, str.charAt(0).toUpper).void
+    else Impl.Str(str, true)
+
   /** Parse a given string or
     * fail. This backtracks on failure
     * this is an error if the string is empty
     */
   def string1(str: String): Parser1[Unit] =
     if (str.length == 1) char(str.charAt(0))
-    else Impl.Str(str)
+    else Impl.Str(str, false)
 
   /** Parse a potentially empty string or
     * fail. This backtracks on failure
@@ -625,6 +633,13 @@ object Parser extends ParserInstances {
   def string(str: String): Parser[Unit] =
     if (str.length == 0) unit
     else string1(str)
+
+  /** Parse a potentially empty string, in a case-insensitive manner,
+    * or fail. This backtracks on failure
+    */
+  def stringCI(str: String): Parser[Unit] =
+    if (str.length == 0) unit
+    else stringCI1(str)
 
   /** go through the list of parsers trying each
     *  as long as they are epsilon failures (don't advance)
@@ -1112,7 +1127,7 @@ object Parser extends ParserInstances {
     @annotation.tailrec
     final def doesBacktrack(p: Parser[Any]): Boolean =
       p match {
-        case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_) | Length(_) |
+        case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_, _) | Length(_) |
             StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) =>
           true
         case Map(p, _) => doesBacktrack(p)
@@ -1199,7 +1214,7 @@ object Parser extends ParserInstances {
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
         case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator.unitAccumulator)
-        case AnyChar | CharIn(_, _, _) | Str(_) | Fail() | FailWith(_) | Length(_) |
+        case AnyChar | CharIn(_, _, _) | Str(_, _) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
           pa
@@ -1312,13 +1327,13 @@ object Parser extends ParserInstances {
         Impl.backtrack(parser, state)
     }
 
-    case class Str(message: String) extends Parser1[Unit] {
+    case class Str(message: String, caseInsensitive: Boolean) extends Parser1[Unit] {
       if (message.isEmpty)
         throw new IllegalArgumentException("we need a non-empty string to expect a message")
 
       override def parseMut(state: State): Unit = {
         val offset = state.offset
-        if (state.str.regionMatches(offset, message, 0, message.length)) {
+        if (state.str.regionMatches(caseInsensitive, offset, message, 0, message.length)) {
           state.offset += message.length
           ()
         } else {
