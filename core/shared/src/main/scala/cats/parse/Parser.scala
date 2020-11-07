@@ -198,6 +198,11 @@ sealed abstract class Parser[+A] {
   def flatMap[B](fn: A => Parser[B]): Parser[B] =
     Parser.flatMap(this)(fn)
 
+  /** Replaces parsed values with the given value.
+    */
+  def as[B](b: B): Parser[B] =
+    Parser.as(this)(b)
+
   /** Wrap this parser in a helper class, enabling better composition
     * with `Parser1` values.
     *
@@ -320,6 +325,11 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     */
   override def flatMap[B](fn: A => Parser[B]): Parser1[B] =
     Parser.flatMap10(this)(fn)
+
+  /** This method overrides `Parser#as` to refine the return type.
+    */
+  override def as[B](b: B): Parser1[B] =
+    Parser.as1(this)(b)
 
   /** If this parser fails to parse its input with an epsilon error,
     * try the given parser instead.
@@ -853,6 +863,16 @@ object Parser extends ParserInstances {
     */
   def flatMap01[A, B](pa: Parser[A])(fn: A => Parser1[B]): Parser1[B] =
     Impl.FlatMap1(pa, fn)
+
+  /** Replaces parsed values with the given value.
+    */
+  def as[A, B](pa: Parser[A])(b: B): Parser[B] =
+    map(Impl.Void(pa))(_ => b)
+
+  /** Replaces Parser1 parsed values with the given value.
+    */
+  def as1[A, B](pa: Parser1[A])(b: B): Parser1[B] =
+    map1(Impl.Void1(pa))(_ => b)
 
   /** tail recursive monadic flatMaps
     * This is a rarely used function, but needed to implement cats.FlatMap
