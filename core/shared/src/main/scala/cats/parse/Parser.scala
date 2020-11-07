@@ -615,11 +615,18 @@ object Parser extends ParserInstances {
     * or fail. This backtracks on failure
     * this is an error if the string is empty
     */
-  def stringCI1(str: String): Parser1[Unit] =
+  def ignoreCase1(str: String): Parser1[Unit] =
     if (str.length == 1) {
-      val c = str.charAt(0)
-      charIn(c.toLower, c.toUpper).void
+      ignoreCaseChar(str.charAt(0))
     } else Impl.Str(str, true)
+
+  /** Ignore the case of a single character
+    *  If you want to know if it is upper or
+    *  lower, use .string to capture the string
+    *  and then map to process the result.
+    */
+  def ignoreCaseChar(c: Char): Parser1[Unit] =
+    charIn(c.toLower, c.toUpper).void
 
   /** Parse a given string or
     * fail. This backtracks on failure
@@ -639,9 +646,9 @@ object Parser extends ParserInstances {
   /** Parse a potentially empty string, in a case-insensitive manner,
     * or fail. This backtracks on failure
     */
-  def stringCI(str: String): Parser[Unit] =
+  def ignoreCase(str: String): Parser[Unit] =
     if (str.length == 0) unit
-    else stringCI1(str)
+    else ignoreCase1(str)
 
   /** go through the list of parsers trying each
     *  as long as they are epsilon failures (don't advance)
@@ -922,6 +929,18 @@ object Parser extends ParserInstances {
       }
     }
 
+  /** Parse any single character in a set of characters as lower or upper case
+    */
+  def ignoreCaseCharIn(cs: Iterable[Char]): Parser1[Char] = {
+    val letters = cs.flatMap { c => c.toUpper :: c.toLower :: Nil }
+    charIn(letters)
+  }
+
+  /** Parse any single character in a set of characters as lower or upper case
+    */
+  def ignoreCaseCharIn(c0: Char, cs: Char*): Parser1[Char] =
+    ignoreCaseCharIn(c0 +: cs)
+
   @inline
   private[this] def charImpl(c: Char): Parser1[Unit] =
     charIn(c :: Nil).void
@@ -941,7 +960,7 @@ object Parser extends ParserInstances {
   /** parse one of a given set of characters
     */
   def charIn(c0: Char, cs: Char*): Parser1[Char] =
-    charIn(c0 :: cs.toList)
+    charIn(c0 +: cs)
 
   /** parse one character that matches a given function
     */

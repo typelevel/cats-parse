@@ -457,8 +457,10 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   val fooP = Parser.string1("foo")
   val barP = Parser.string1("bar")
-  val fooCIP = Parser.stringCI1("foo")
-  val cCIP = Parser.stringCI1("a")
+  val fooCIP = Parser.ignoreCase1("foo")
+  val cCIP = Parser.ignoreCase1("a")
+  val cCIP1 = Parser.ignoreCaseChar('a')
+  val abcCI = Parser.ignoreCaseCharIn('a', 'b', 'c')
 
   test("string tests") {
     parseTest(fooP, "foobar", ())
@@ -466,7 +468,17 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(fooCIP, "FoO", ())
     parseTest(cCIP, "A", ())
     parseTest(cCIP, "a", ())
+    parseTest(cCIP1, "A", ())
+    parseTest(cCIP1, "a", ())
     parseFail(fooP, "bar")
+
+    parseTest(abcCI, "a", 'a')
+    parseTest(abcCI, "A", 'A')
+    parseTest(abcCI, "b", 'b')
+    parseTest(abcCI, "B", 'B')
+    parseTest(abcCI, "c", 'c')
+    parseTest(abcCI, "C", 'C')
+    parseFail(abcCI, "D")
 
     parseTest(Parser.oneOf1(fooP :: barP :: Nil), "bar", ())
     parseTest(Parser.oneOf1(fooP :: barP :: Nil), "foo", ())
