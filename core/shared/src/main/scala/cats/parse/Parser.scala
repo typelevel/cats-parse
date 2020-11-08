@@ -203,6 +203,11 @@ sealed abstract class Parser[+A] {
   def as[B](b: B): Parser[B] =
     Parser.as(this)(b)
 
+  /** Apply parser `n` times.
+    */
+  def replicateA(n: Int): Parser[List[A]] =
+    Parser.replicateA(n, this)
+
   /** Wrap this parser in a helper class, enabling better composition
     * with `Parser1` values.
     *
@@ -330,6 +335,11 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     */
   override def as[B](b: B): Parser1[B] =
     Parser.as1(this)(b)
+
+  /** This method override `Parser#replicateA` to refine return type.
+    */
+  override def replicateA(n: Int): Parser1[List[A]] =
+    Parser.replicateA1(n, this)
 
   /** If this parser fails to parse its input with an epsilon error,
     * try the given parser instead.
@@ -874,6 +884,20 @@ object Parser extends ParserInstances {
   def as1[A, B](pa: Parser1[A])(b: B): Parser1[B] =
     map1(Impl.Void1(pa))(_ => b)
 
+  /** Apply Parser `n` times
+    */
+  def replicateA[A](n: Int, pa: Parser[A])(implicit
+      acc: Accumulator[A, List[A]]
+  ): Parser[List[A]] =
+    Impl.Replicate(pa, n, acc)
+
+  /** Apply Parser1 `n` times
+    */
+  def replicateA1[A](n: Int, pa: Parser1[A])(implicit
+      acc: Accumulator1[A, List[A]]
+  ): Parser1[List[A]] =
+    Impl.Replicate1(pa, n, acc)
+
   /** tail recursive monadic flatMaps
     * This is a rarely used function, but needed to implement cats.FlatMap
     *  Avoid this function if possible. If you can
@@ -1222,6 +1246,7 @@ object Parser extends ParserInstances {
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
         case Rep(p, _) => Rep(unmap1(p), Accumulator.unitAccumulator)
+        case Replicate(p, n, _) => Replicate(unmap(p), n, Accumulator.unitAccumulator)
         case Pure(_) => Parser.unit
         case Index | StartParser | EndParser | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
@@ -1255,6 +1280,7 @@ object Parser extends ParserInstances {
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
         case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator.unitAccumulator)
+        case Replicate1(p, n, _) => Replicate1(unmap1(p), n, Accumulator.unitAccumulator)
         case AnyChar | CharIn(_, _, _) | Str(_, _) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
@@ -1665,6 +1691,95 @@ object Parser extends ParserInstances {
       }
     }
 
+    final def replicateCapture[A, B](
+        p: Parser[A],
+        n: Int,
+        state: State,
+        append: Appender[A, B]
+    ): Boolean = {
+      var offset = state.offset
+      var cnt = 0
+      var keepParsing = true
+      var result = false
+
+      while (keepParsing) {
+        val a = p.parseMut(state)
+        if ((state.error eq null) && cnt < n) {
+          cnt += 1
+          append.append(a)
+          offset = state.offset
+        } else {
+          keepParsing = false
+          // there has been an error
+          if (cnt == n) {
+            // we correctly read n items
+            // reset the error to make the success
+            state.error = null
+            result = true
+          } else {
+            // we didn't read n items
+            result = false
+          }
+        }
+      }
+
+      result
+    }
+
+    final def replicateNoCapture[A](p: Parser[A], n: Int, state: State): Unit = {
+      var offset = state.offset
+      var cnt = 0
+      var keepParsing = true
+
+      while (keepParsing) {
+        p.parseMut(state)
+        if ((state.error eq null) && cnt < n) {
+          cnt += 1
+          offset = state.offset
+        } else {
+          keepParsing = false
+          // there has been an error
+          if (cnt == n) {
+            // we correctly read n times
+            // reset the error to make the success
+            state.error = null
+          }
+        }
+      }
+    }
+
+    case class Replicate[A, B](p1: Parser[A], n: Int, acc: Accumulator[A, B]) extends Parser[B] {
+      private[this] val ignore: B = null.asInstanceOf[B]
+
+      override def parseMut(state: State): B = {
+        if (state.capture) {
+          val app = acc.newAppender()
+          if (replicateCapture(p1, n, state, app)) app.finish()
+          else ignore
+        } else {
+          replicateNoCapture(p1, n, state)
+          ignore
+        }
+      }
+    }
+
+    case class Replicate1[A, B](p1: Parser1[A], n: Int, acc: Accumulator1[A, B])
+        extends Parser1[B] {
+      private[this] val ignore: B = null.asInstanceOf[B]
+
+      override def parseMut(state: State): B = {
+        val head = p1.parseMut(state)
+        if (state.capture) {
+          val app = acc.newAppender(head)
+          if (replicateCapture(p1, n - 1, state, app)) app.finish()
+          else ignore
+        } else {
+          replicateNoCapture(p1, n - 1, state)
+          ignore
+        }
+      }
+    }
+
     case class Rep[A, B](p1: Parser1[A], acc: Accumulator[A, B]) extends Parser[B] {
       private[this] val ignore: B = null.asInstanceOf[B]
 
@@ -1878,5 +1993,8 @@ abstract class ParserInstances {
 
       override def productR[A, B](pa: Parser[A])(pb: Parser[B]): Parser[B] =
         map(product(pa.void, pb)) { case (_, b) => b }
+
+      override def replicateA[A](n: Int, pa: Parser[A]): Parser[List[A]] =
+        Parser.replicateA(n, pa)
     }
 }

@@ -490,6 +490,21 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(Parser.product(fooP, barP), "foobar", ((), ()))
   }
 
+  test("as tests") {
+    parseTest(Parser.as(barP)("hello"), "bar", "hello")
+    parseTest(Parser.as(barP)("hello").as("world"), "bar", "world")
+  }
+
+  test("replicateA tests") {
+    parseTest(Parser.replicateA(1, barP), "bar", List(()))
+    parseTest(Parser.replicateA(1, barP).void, "bar", ())
+    parseTest(Parser.replicateA(2, barP), "barbar", List((), ()))
+    parseTest(Parser.replicateA(2, barP), "barbarbar", List((), ()))
+    parseTest(Parser.replicateA(2, barP).void, "barbar", ())
+
+    parseFail(Parser.replicateA(2, barP), "bar")
+  }
+
   property("Parser.start and end work") {
     forAll { (s: String) =>
       if (s.isEmpty) {
