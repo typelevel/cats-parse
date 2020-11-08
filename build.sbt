@@ -4,6 +4,8 @@ import Dependencies._
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
+addCommandAlias("prePR", ";fmt; bench/compile; +test")
+
 ThisBuild / baseVersion := "0.1"
 
 ThisBuild / organization := "org.typelevel"
