@@ -490,6 +490,16 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(Parser.product(fooP, barP), "foobar", ((), ()))
   }
 
+  property("Parser on success replaces parsed value") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+      val res0 = genP.fa.as("something").parse(str)
+      res0 match {
+        case Left(_) => ()
+        case Right((_, v)) => assertEquals(v, "something")
+      }
+    }
+  }
+
   property("Parser.start and end work") {
     forAll { (s: String) =>
       if (s.isEmpty) {

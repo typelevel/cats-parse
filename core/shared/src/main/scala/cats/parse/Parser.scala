@@ -198,6 +198,11 @@ sealed abstract class Parser[+A] {
   def flatMap[B](fn: A => Parser[B]): Parser[B] =
     Parser.flatMap(this)(fn)
 
+  /** Replaces parsed values with the given value.
+    */
+  def as[B](b: B): Parser[B] =
+    void.map(_ => b)
+
   /** Wrap this parser in a helper class, enabling better composition
     * with `Parser1` values.
     *
@@ -320,6 +325,11 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     */
   override def flatMap[B](fn: A => Parser[B]): Parser1[B] =
     Parser.flatMap10(this)(fn)
+
+  /** This method overrides `Parser#as` to refine the return type.
+    */
+  override def as[B](b: B): Parser1[B] =
+    void.map(_ => b)
 
   /** If this parser fails to parse its input with an epsilon error,
     * try the given parser instead.
@@ -1127,7 +1137,7 @@ object Parser extends ParserInstances {
         pa.void
 
       override def as[A, B](pa: Parser1[A], b: B): Parser1[B] =
-        pa.void.map(_ => b)
+        pa.as(b)
 
       override def productL[A, B](pa: Parser1[A])(pb: Parser1[B]): Parser1[A] =
         map(product(pa, pb.void)) { case (a, _) => a }
@@ -1851,7 +1861,7 @@ abstract class ParserInstances {
         Parser.void(pa)
 
       override def as[A, B](pa: Parser[A], b: B): Parser[B] =
-        Parser.void(pa).map(_ => b)
+        pa.as(b)
 
       override def productL[A, B](pa: Parser[A])(pb: Parser[B]): Parser[A] =
         map(product(pa, pb.void)) { case (a, _) => a }
