@@ -25,14 +25,28 @@ ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
 )
 
-ThisBuild / githubWorkflowAddedJobs += WorkflowJob(
-  id = "build-docs",
-  name = "Build docs",
-  scalas = List("2.13.3"),
-  steps = List(
-    WorkflowStep.Checkout,
-    WorkflowStep.SetupScala
-  ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(WorkflowStep.Sbt(List("docs/mdoc")))
+ThisBuild / githubWorkflowAddedJobs ++= Seq(
+  WorkflowJob(
+    id = "build-docs",
+    name = "Build docs",
+    scalas = List("2.13.3"),
+    steps = List(
+      WorkflowStep.Checkout,
+      WorkflowStep.SetupScala
+    ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(WorkflowStep.Sbt(List("docs/mdoc")))
+  ),
+  WorkflowJob(
+    id = "coverage",
+    name = "Generate coverage report",
+    scalas = List("2.13.3"),
+    steps = List(
+      WorkflowStep.Checkout,
+      WorkflowStep.SetupScala
+    ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
+      WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate")),
+      WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
+    )
+  )
 )
 
 ThisBuild / githubWorkflowEnv ++= Map(
