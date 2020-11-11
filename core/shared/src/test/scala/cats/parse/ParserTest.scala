@@ -79,6 +79,11 @@ object ParserGen {
       GenT(Parser.string(str))
     }
 
+  val ignoreCase: Gen[GenT[Parser]] =
+    Arbitrary.arbitrary[String].map { str =>
+      GenT(Parser.ignoreCase(str))
+    }
+
   val charIn: Gen[GenT[Parser]] =
     Gen.oneOf(
       Arbitrary.arbitrary[List[Char]].map { cs =>
@@ -99,6 +104,12 @@ object ParserGen {
     Arbitrary.arbitrary[String].map { str =>
       if (str.isEmpty) GenT(Parser.fail: Parser1[Unit])
       else GenT(Parser.string1(str))
+    }
+
+  val ignoreCase1: Gen[GenT[Parser1]] =
+    Arbitrary.arbitrary[String].map { str =>
+      if (str.isEmpty) GenT(Parser.fail: Parser1[Unit])
+      else GenT(Parser.ignoreCase1(str))
     }
 
   val fail: Gen[GenT[Parser]] =
@@ -375,6 +386,7 @@ object ParserGen {
           }))
       ),
       (5, expect0),
+      (1, ignoreCase),
       (5, charIn),
       (1, Gen.oneOf(GenT(Parser.start), GenT(Parser.end), GenT(Parser.index))),
       (1, fail),
@@ -401,6 +413,7 @@ object ParserGen {
 
     Gen.frequency(
       (8, expect1),
+      (2, ignoreCase1),
       (8, charIn1),
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser.char(c)) }),
       (2, rec.map(void1(_))),

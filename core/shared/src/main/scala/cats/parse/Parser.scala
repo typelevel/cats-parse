@@ -628,7 +628,7 @@ object Parser extends ParserInstances {
   def ignoreCase1(str: String): Parser1[Unit] =
     if (str.length == 1) {
       ignoreCaseChar(str.charAt(0))
-    } else Impl.Str(str, true)
+    } else Impl.IgnoreCase(str.toLowerCase)
 
   /** Ignore the case of a single character
     *  If you want to know if it is upper or
@@ -644,7 +644,7 @@ object Parser extends ParserInstances {
     */
   def string1(str: String): Parser1[Unit] =
     if (str.length == 1) char(str.charAt(0))
-    else Impl.Str(str, false)
+    else Impl.Str(str)
 
   /** Parse a potentially empty string or
     * fail. This backtracks on failure
@@ -1158,8 +1158,8 @@ object Parser extends ParserInstances {
     @annotation.tailrec
     final def doesBacktrack(p: Parser[Any]): Boolean =
       p match {
-        case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_, _) | Length(_) |
-            StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) =>
+        case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
+            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) =>
           true
         case Map(p, _) => doesBacktrack(p)
         case Map1(p, _) => doesBacktrack(p)
@@ -1245,7 +1245,7 @@ object Parser extends ParserInstances {
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
         case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator.unitAccumulator)
-        case AnyChar | CharIn(_, _, _) | Str(_, _) | Fail() | FailWith(_) | Length(_) |
+        case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
           pa
@@ -1358,13 +1358,29 @@ object Parser extends ParserInstances {
         Impl.backtrack(parser, state)
     }
 
-    case class Str(message: String, caseInsensitive: Boolean) extends Parser1[Unit] {
+    case class Str(message: String) extends Parser1[Unit] {
       if (message.isEmpty)
         throw new IllegalArgumentException("we need a non-empty string to expect a message")
 
       override def parseMut(state: State): Unit = {
         val offset = state.offset
-        if (state.str.regionMatches(caseInsensitive, offset, message, 0, message.length)) {
+        if (state.str.regionMatches(offset, message, 0, message.length)) {
+          state.offset += message.length
+          ()
+        } else {
+          state.error = Chain.one(Expectation.Str(offset, message))
+          ()
+        }
+      }
+    }
+
+    case class IgnoreCase(message: String) extends Parser1[Unit] {
+      if (message.isEmpty)
+        throw new IllegalArgumentException("we need a non-empty string to expect a message")
+
+      override def parseMut(state: State): Unit = {
+        val offset = state.offset
+        if (state.str.regionMatches(true, offset, message, 0, message.length)) {
           state.offset += message.length
           ()
         } else {
