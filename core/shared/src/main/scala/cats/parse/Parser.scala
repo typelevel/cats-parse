@@ -825,6 +825,8 @@ object Parser extends ParserInstances {
         Impl.Map(p0, AndThen(f0).andThen(fn))
       case Impl.Map1(p0, f0) =>
         Impl.Map1(p0, AndThen(f0).andThen(fn))
+      case Impl.Fail() => Impl.Fail()
+      case Impl.FailWith(str) => Impl.FailWith(str)
       case _ => Impl.Map(p, fn)
     }
 
@@ -1052,16 +1054,24 @@ object Parser extends ParserInstances {
     * current parser fails.
     */
   def not(pa: Parser[Any]): Parser[Unit] =
-    Impl.Not(void(pa))
+    pa match {
+      case Impl.Fail() | Impl.FailWith(_) => unit
+      case _ => Impl.Not(void(pa))
+    }
 
   /** a parser that consumes nothing when
     * it succeeds, basically rewind on success
     */
   def peek(pa: Parser[Any]): Parser[Unit] =
-    // TODO: we can adjust Rep/Rep1 to do minimal
-    // work since we rewind after we are sure there is
-    // a match
-    Impl.Peek(void(pa))
+    pa match {
+      case peek @ Impl.Peek(_) => peek
+      case s if Impl.alwaysSucceeds(s) => void(s)
+      case notPeek =>
+        // TODO: we can adjust Rep/Rep1 to do minimal
+        // work since we rewind after we are sure there is
+        // a match
+        Impl.Peek(void(notPeek))
+    }
 
   /** return the current position in the string
     * we are parsing. This lets you record position information
@@ -1168,6 +1178,18 @@ object Parser extends ParserInstances {
         case _ => false
       }
 
+    final def alwaysSucceeds(p: Parser[Any]): Boolean =
+      p match {
+        case Index | Pure(_) => true
+        case Map(p, _) => alwaysSucceeds(p)
+        case Map1(p, _) => alwaysSucceeds(p)
+        case SoftProd(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case SoftProd1(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case Prod(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case Prod1(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case _ => false
+      }
+
     /** This removes any trailing map functions which
       * can cause wasted allocations if we are later going
       * to void or return strings. This stops
@@ -1177,6 +1199,8 @@ object Parser extends ParserInstances {
     def unmap(pa: Parser[Any]): Parser[Any] =
       pa match {
         case p1: Parser1[Any] => unmap1(p1)
+        case Pure(_) | Index => Parser.unit
+        case s if alwaysSucceeds(s) => Parser.unit
         case Map(p, _) =>
           // we discard any allocations done by fn
           unmap(p)
@@ -1212,8 +1236,7 @@ object Parser extends ParserInstances {
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
         case Rep(p, _) => Rep(unmap1(p), Accumulator.unitAccumulator)
-        case Pure(_) => Parser.unit
-        case Index | StartParser | EndParser | TailRecM(_, _) | FlatMap(_, _) =>
+        case StartParser | EndParser | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
       }

@@ -1387,4 +1387,86 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(leftRes, rightRes)
     }
   }
+
+  property("a.peek == a.peek.peek") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa = a.fa
+
+      val left = pa.peek
+      val right = pa.peek.peek
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("a.peek == a.peek *> a.peek") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa = a.fa.peek
+
+      val left = pa
+      val right = pa *> pa
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("!a == (!a) *> (!a)") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa = !a.fa
+
+      val left = pa
+      val right = pa *> pa
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("!(!a) == a.peek") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa = a.fa
+
+      val left = (!(!pa))
+      val right = pa.peek
+
+      val leftRes = left.parse(str).toOption
+      val rightRes = right.parse(str).toOption
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("!(!(!a)) == !a") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+      val pa = a.fa
+
+      val left = !(!(!pa))
+      val right = !pa
+
+      val leftRes = left.parse(str).toOption
+      val rightRes = right.parse(str).toOption
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("!anyChar == end") {
+    forAll { (str: String) =>
+      val left = !Parser.anyChar
+      val right = Parser.end
+
+      val leftRes = left.parse(str).toOption
+      val rightRes = right.parse(str).toOption
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("anyChar.repAs[String] parses the whole string") {
+    forAll { (str: String) =>
+      assertEquals(Parser.anyChar.repAs[String].parse(str), Right(("", str)))
+    }
+  }
 }
