@@ -705,7 +705,11 @@ object Parser extends ParserInstances {
         case Impl.Fail() :: rest =>
           flatten(rest, acc)
         case notOneOf :: rest =>
-          flatten(rest, notOneOf :: acc)
+          if (Impl.alwaysSucceeds(notOneOf)) {
+            (notOneOf :: acc).reverse.distinct
+          } else {
+            flatten(rest, notOneOf :: acc)
+          }
       }
 
     val flat = flatten(ps, Nil)
@@ -1178,15 +1182,15 @@ object Parser extends ParserInstances {
         case _ => false
       }
 
+    // does this parser always succeed?
+    // note: a parser1 does not always succeed
+    // and by construction, a oneOf never always succeeds
     final def alwaysSucceeds(p: Parser[Any]): Boolean =
       p match {
         case Index | Pure(_) => true
         case Map(p, _) => alwaysSucceeds(p)
-        case Map1(p, _) => alwaysSucceeds(p)
         case SoftProd(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
-        case SoftProd1(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
-        case Prod1(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case _ => false
       }
 
