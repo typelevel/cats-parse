@@ -837,8 +837,10 @@ object Parser extends ParserInstances {
     p match {
       case Impl.Map1(p0, f0) =>
         Impl.Map1(p0, AndThen(f0).andThen(fn))
-      case Impl.Fail() => Impl.Fail()
-      case Impl.FailWith(str) => Impl.FailWith(str)
+      case Impl.Fail() | Impl.FailWith(_) =>
+        // these are really Parser1[Nothing{
+        // but scala can't see that, so we cast
+        p.asInstanceOf[Parser1[B]]
       case _ => Impl.Map1(p, fn)
     }
 
