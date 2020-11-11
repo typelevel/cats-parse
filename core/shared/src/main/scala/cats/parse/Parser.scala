@@ -821,12 +821,9 @@ object Parser extends ParserInstances {
     */
   def map[A, B](p: Parser[A])(fn: A => B): Parser[B] =
     p match {
+      case p1: Parser1[A] => map1(p1)(fn)
       case Impl.Map(p0, f0) =>
         Impl.Map(p0, AndThen(f0).andThen(fn))
-      case Impl.Map1(p0, f0) =>
-        Impl.Map1(p0, AndThen(f0).andThen(fn))
-      case Impl.Fail() => Impl.Fail()
-      case Impl.FailWith(str) => Impl.FailWith(str)
       case _ => Impl.Map(p, fn)
     }
 
@@ -836,6 +833,8 @@ object Parser extends ParserInstances {
     p match {
       case Impl.Map1(p0, f0) =>
         Impl.Map1(p0, AndThen(f0).andThen(fn))
+      case Impl.Fail() => Impl.Fail()
+      case Impl.FailWith(str) => Impl.FailWith(str)
       case _ => Impl.Map1(p, fn)
     }
 
@@ -1008,6 +1007,7 @@ object Parser extends ParserInstances {
     */
   def void(pa: Parser[Any]): Parser[Unit] =
     pa match {
+      case s if Impl.alwaysSucceeds(s) => unit
       case v @ Impl.Void(_) => v
       case Impl.StartParser => Impl.StartParser
       case Impl.EndParser => Impl.EndParser
@@ -1065,7 +1065,7 @@ object Parser extends ParserInstances {
   def peek(pa: Parser[Any]): Parser[Unit] =
     pa match {
       case peek @ Impl.Peek(_) => peek
-      case s if Impl.alwaysSucceeds(s) => void(s)
+      case s if Impl.alwaysSucceeds(s) => unit
       case notPeek =>
         // TODO: we can adjust Rep/Rep1 to do minimal
         // work since we rewind after we are sure there is
