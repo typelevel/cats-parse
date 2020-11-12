@@ -1,12 +1,12 @@
 # cats-parse
 
-[![Continuous Integration](https://github.com/typelevel/cats-parse/workflows/Continuous%20Integration/badge.svg)](https://github.com/typelevel/cats-parse/actions?query=workflow%3A%22Continuous+Integration%22)
+[![Continuous Integration](https://github.com/typelevel/cats-parse/workflows/Continuous%20Integration/badge.svg)](https://github.com/typelevel/cats-parse/actions?query=workflow%3A%22Continuous+Integration%22)[![codecov](https://codecov.io/gh/typelevel/cats-parse/branch/main/graph/badge.svg)](https://codecov.io/gh/typelevel/cats-parse)
 
 A parsing library for the cats ecosystem.
 
 To use in sbt add, the following to your `libraryDependencies`:
-* `"org.typelevel" %% "cats-parse" % "0.0.1"`
-* or `"org.typelevel" %%% "cats-parse" % "0.0.1"` in a Scala.js project. 
+* `"org.typelevel" %% "cats-parse" % "0.1.0"`
+* or `"org.typelevel" %%% "cats-parse" % "0.1.0"` in a Scala.js project. 
 
 The [API docs](https://oss.sonatype.org/service/local/repositories/releases/archive/org/typelevel/cats-parse_2.12/0.0.1/cats-parse_2.12-0.0.1-javadoc.jar/!/cats/parse/index.html) are published.
 
