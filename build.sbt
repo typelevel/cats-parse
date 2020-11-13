@@ -14,7 +14,11 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("0.27.0-RC1", "2.12.12", "2.13.3")
+ThisBuild / crossScalaVersions := List("3.0.0-M1", "2.12.12", "2.13.3")
+
+ThisBuild / versionIntroduced := Map(
+  "3.0.0-M1" -> "0.1.99"
+)
 
 ThisBuild / githubWorkflowPublishTargetBranches := Seq(
   RefPredicate.Equals(Ref.Branch("main")),
@@ -130,7 +134,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     coverageEnabled := false,
     scalaJSUseMainModuleInitializer := false
   )
-  .jsSettings(crossScalaVersions := crossScalaVersions.value.filterNot(_.startsWith("0.")))
+  .jsSettings(crossScalaVersions := crossScalaVersions.value.filter(_.startsWith("2.")))
 
 lazy val coreJVM = core.jvm
 lazy val coreJS = core.js
