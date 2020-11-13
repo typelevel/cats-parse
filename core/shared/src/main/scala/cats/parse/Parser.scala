@@ -201,7 +201,7 @@ sealed abstract class Parser[+A] {
   /** Replaces parsed values with the given value.
     */
   def as[B](b: B): Parser[B] =
-    void.map(_ => b)
+    Parser.as(this, b)
 
   /** Wrap this parser in a helper class, enabling better composition
     * with `Parser1` values.
@@ -329,7 +329,7 @@ sealed abstract class Parser1[+A] extends Parser[A] {
   /** This method overrides `Parser#as` to refine the return type.
     */
   override def as[B](b: B): Parser1[B] =
-    void.map(_ => b)
+    Parser.as1(this, b)
 
   /** If this parser fails to parse its input with an epsilon error,
     * try the given parser instead.
@@ -1053,6 +1053,9 @@ object Parser extends ParserInstances {
     pa match {
       case str @ Impl.StringP1(_) => str
       case len @ Impl.Length(_) => len
+      case strP @ Impl.Str(expect) => strP.as(expect)
+      case Impl.Map1(strP @ Impl.Str(expect), Impl.ConstFn(e2)) if expect == e2 =>
+        strP.as(expect)
       case _ => Impl.StringP1(Impl.unmap1(pa))
     }
 
@@ -1116,6 +1119,19 @@ object Parser extends ParserInstances {
       case nbt => Impl.Backtrack1(nbt)
     }
 
+  /** Replaces parsed values with the given value.
+    */
+  def as[A, B](pa: Parser[A], b: B): Parser[B] =
+    pa match {
+      case Impl.Pure(_) | Impl.Index => pure(b)
+      case _ => pa.void.map(Impl.ConstFn(b))
+    }
+
+  /** Replaces parsed values with the given value.
+    */
+  def as1[A, B](pa: Parser1[A], b: B): Parser1[B] =
+    pa.void.map(Impl.ConstFn(b))
+
   implicit val catsInstancesParser1: FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] =
     new FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] {
       def empty[A] = Fail
@@ -1153,7 +1169,7 @@ object Parser extends ParserInstances {
         pa.void
 
       override def as[A, B](pa: Parser1[A], b: B): Parser1[B] =
-        pa.as(b)
+        Parser.as1(pa, b)
 
       override def productL[A, B](pa: Parser1[A])(pb: Parser1[B]): Parser1[A] =
         map(product(pa, pb.void)) { case (a, _) => a }
@@ -1167,6 +1183,10 @@ object Parser extends ParserInstances {
     val allChars = Char.MinValue to Char.MaxValue
 
     val optTail: List[Parser[Option[Nothing]]] = Parser.pure(None) :: Nil
+
+    case class ConstFn[A](result: A) extends Function[Any, A] {
+      def apply(any: Any) = result
+    }
 
     final def doesBacktrackCheat(p: Parser[Any]): Boolean =
       doesBacktrack(p)
@@ -1914,7 +1934,7 @@ abstract class ParserInstances {
         Parser.void(pa)
 
       override def as[A, B](pa: Parser[A], b: B): Parser[B] =
-        pa.as(b)
+        Parser.as(pa, b)
 
       override def productL[A, B](pa: Parser[A])(pb: Parser[B]): Parser[A] =
         map(product(pa, pb.void)) { case (a, _) => a }

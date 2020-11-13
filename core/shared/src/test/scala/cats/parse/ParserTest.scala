@@ -809,7 +809,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("a1.soft ~ b composes as expected") {
+  property("a1.soft ~ b composes as expected Parser1") {
     forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val composed = p1.fa.soft ~ p2.fa
       val cres = composed.parse(str)
@@ -1469,4 +1469,25 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(Parser.anyChar.repAs[String].parse(str), Right(("", str)))
     }
   }
+
+  property("string.soft ~ string is the same as concatenating the string") {
+    forAll { (str1: String, str2: String, content: String) =>
+      val left = (Parser.string(str1).soft ~ Parser.string(str2)).void
+      val right = Parser.string(str1 + str2)
+
+      val leftRes = left.parse(content).toOption
+      val rightRes = right.parse(content).toOption
+      assertEquals(leftRes, rightRes)
+
+    }
+  }
+
+  property("Parser.string(f).string == Parser.string(f).as(f)") {
+    forAll { (f: String) =>
+      if (f.length > 1)
+        assertEquals(Parser.string(f).string, Parser.string(f).as(f))
+
+    }
+  }
+
 }
