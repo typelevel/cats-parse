@@ -45,7 +45,7 @@ object BitSetUtil {
     bs
   }
 
-  def isSingleton(t: Tpe): Boolean = t.size == 1
+  def isSingleton(t: Tpe): Boolean = t.cardinality() == 1
 
   // what are all the Chars in these bitsets
   def union(bs: List[(Int, BitSet)]): Iterable[Char] = {

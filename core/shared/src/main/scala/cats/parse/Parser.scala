@@ -1052,10 +1052,10 @@ object Parser extends ParserInstances {
   def string(pa: Parser[Any]): Parser[String] =
     pa match {
       case str @ Impl.StringP(_) => str
-      case s1: Parser1[_] => string1(s1)
       case _ =>
         Impl.unmap(pa) match {
           case Impl.Pure(_) | Impl.Index => emptyStringParser
+          case s1: Parser1[_] => string1(s1)
           case notEmpty => Impl.StringP(notEmpty)
         }
     }
@@ -1154,12 +1154,12 @@ object Parser extends ParserInstances {
   /** Replaces parsed values with the given value.
     */
   def as1[A, B](pa: Parser1[A], b: B): Parser1[B] =
-    pa.void match {
-      case Impl.Void1(ci @ Impl.CharIn(min, bs, _))
-          if BitSetUtil.isSingleton(bs) && (min.toChar.equals(b)) =>
+    (pa.void, b) match {
+      case (Impl.Void1(ci @ Impl.CharIn(min, bs, _)), bc: Char)
+          if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
         // this is putting the character back on a singleton CharIn, just return the char in
         ci.asInstanceOf[Parser1[B]]
-      case notSingleChar => notSingleChar.map(Impl.ConstFn(b))
+      case (notSingleChar, _) => notSingleChar.map(Impl.ConstFn(b))
     }
 
   implicit val catsInstancesParser1: FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] =

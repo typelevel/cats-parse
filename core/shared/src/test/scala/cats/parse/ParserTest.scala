@@ -1490,4 +1490,13 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("char(c).as(c) == charIn(c)") {
+    forAll { (c: Char) =>
+      assertEquals(Parser.char(c).as(c.toString), Parser.char(c).string)
+      assertEquals(Parser.char(c).as(c), Parser.charIn(c))
+      assertEquals(Parser.char(c).void.as(c), Parser.charIn(c))
+      assertEquals(Parser.char(c).string.as(c), Parser.charIn(c))
+    }
+  }
+
 }
