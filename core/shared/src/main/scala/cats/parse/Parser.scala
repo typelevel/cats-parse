@@ -1775,32 +1775,31 @@ object Parser extends ParserInstances {
      * Merge CharIn bitsets
      */
     def mergeCharIn[A, P <: Parser[A]](ps: List[P]): List[P] = {
-      def loop(ps: List[P], front: List[(Int, BitSetUtil.Tpe)]): List[P] = {
+      @annotation.tailrec
+      def loop(ps: List[P], front: List[(Int, BitSetUtil.Tpe)], result: List[P]): List[P] = {
         @inline
         def frontRes: List[P] =
-          front match {
-            case Nil => Nil
-            case nel => Parser.charIn(BitSetUtil.union(nel)).asInstanceOf[P] :: Nil
-          }
+          if (front.isEmpty) Nil
+          else Parser.charIn(BitSetUtil.union(front)).asInstanceOf[P] :: Nil
 
         ps match {
-          case Nil => frontRes
+          case Nil => result ::: frontRes
           case AnyChar :: tail =>
             // AnyChar is bigger than all subsequent CharIn:
             // and any direct prefix CharIns
             val tail1 = tail.filterNot(_.isInstanceOf[CharIn])
-            AnyChar.asInstanceOf[P] :: tail1
+            result ::: AnyChar.asInstanceOf[P] :: tail1
           case CharIn(m, bs, _) :: tail =>
-            loop(tail, (m, bs) :: front)
+            loop(tail, (m, bs) :: front, result)
           case h :: tail =>
             // h is not an AnyChar or CharIn
             // we make our prefix frontRes
             // and resume working on the tail
-            frontRes ::: (h :: loop(tail, Nil))
+            loop(tail, Nil, result ::: frontRes ::: h :: Nil)
         }
       }
 
-      loop(ps, Nil)
+      loop(ps, Nil, Nil)
     }
 
     case object AnyChar extends Parser1[Char] {
