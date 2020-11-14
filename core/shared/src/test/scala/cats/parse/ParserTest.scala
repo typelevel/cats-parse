@@ -686,7 +686,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       val r1 = genP.fa.string.parse(str)
       val r2 = (genP.fa ~ Parser.index).map { case (_, end) => str.substring(0, end) }.parse(str)
 
-      assertEquals(r1, r2)
+      assertEquals(r1.toOption, r2.toOption)
     }
   }
 
