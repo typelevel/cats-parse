@@ -686,7 +686,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       val r1 = genP.fa.string.parse(str)
       val r2 = (genP.fa ~ Parser.index).map { case (_, end) => str.substring(0, end) }.parse(str)
 
-      assertEquals(r1, r2)
+      assertEquals(r1.toOption, r2.toOption)
     }
   }
 
@@ -1487,6 +1487,15 @@ class ParserTest extends munit.ScalaCheckSuite {
       if (f.length > 1)
         assertEquals(Parser.string(f).string, Parser.string(f).as(f))
 
+    }
+  }
+
+  property("char(c).as(c) == charIn(c)") {
+    forAll { (c: Char) =>
+      assertEquals(Parser.char(c).as(c.toString), Parser.char(c).string)
+      assertEquals(Parser.char(c).as(c), Parser.charIn(c))
+      assertEquals(Parser.char(c).void.as(c), Parser.charIn(c))
+      assertEquals(Parser.char(c).string.as(c), Parser.charIn(c))
     }
   }
 

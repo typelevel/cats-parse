@@ -1013,14 +1013,17 @@ object Parser extends ParserInstances {
     */
   def void(pa: Parser[Any]): Parser[Unit] =
     pa match {
-      case s if Impl.alwaysSucceeds(s) => unit
       case v @ Impl.Void(_) => v
-      case Impl.StartParser => Impl.StartParser
-      case Impl.EndParser => Impl.EndParser
-      case n @ Impl.Not(_) => n
-      case p @ Impl.Peek(_) => p
       case p1: Parser1[_] => void1(p1)
-      case _ => Impl.Void(Impl.unmap(pa))
+      case s if Impl.alwaysSucceeds(s) => unit
+      case _ =>
+        Impl.unmap(pa) match {
+          case Impl.StartParser => Impl.StartParser
+          case Impl.EndParser => Impl.EndParser
+          case n @ Impl.Not(_) => n
+          case p @ Impl.Peek(_) => p
+          case other => Impl.Void(other)
+        }
     }
 
   /** discard the value in a Parser1.
@@ -1032,8 +1035,15 @@ object Parser extends ParserInstances {
   def void1(pa: Parser1[Any]): Parser1[Unit] =
     pa match {
       case v @ Impl.Void1(_) => v
-      case p: Impl.Str => p
-      case _ => Impl.Void1(Impl.unmap1(pa))
+      case _ =>
+        Impl.unmap1(pa) match {
+          case f @ (Impl.Fail() | Impl.FailWith(_)) =>
+            // these are really Parser1[Nothing]
+            // but scala can't see that, so we cast
+            f.asInstanceOf[Parser1[Unit]]
+          case p: Impl.Str => p
+          case notVoid => Impl.Void1(notVoid)
+        }
     }
 
   /** Discard the result A and instead capture the matching string
@@ -1042,8 +1052,12 @@ object Parser extends ParserInstances {
   def string(pa: Parser[Any]): Parser[String] =
     pa match {
       case str @ Impl.StringP(_) => str
-      case s1: Parser1[_] => string1(s1)
-      case _ => Impl.StringP(Impl.unmap(pa))
+      case _ =>
+        Impl.unmap(pa) match {
+          case Impl.Pure(_) | Impl.Index => emptyStringParser
+          case s1: Parser1[_] => string1(s1)
+          case notEmpty => Impl.StringP(notEmpty)
+        }
     }
 
   /** Discard the result A and instead capture the matching string
@@ -1052,20 +1066,29 @@ object Parser extends ParserInstances {
   def string1(pa: Parser1[Any]): Parser1[String] =
     pa match {
       case str @ Impl.StringP1(_) => str
-      case len @ Impl.Length(_) => len
-      case strP @ Impl.Str(expect) => strP.as(expect)
-      case Impl.Map1(strP @ Impl.Str(expect), Impl.ConstFn(e2)) if expect == e2 =>
-        strP.as(expect)
-      case _ => Impl.StringP1(Impl.unmap1(pa))
+      case _ =>
+        Impl.unmap1(pa) match {
+          case len @ Impl.Length(_) => len
+          case strP @ Impl.Str(expect) => strP.as(expect)
+          case ci @ Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
+            // we can allocate the returned string once here
+            val minStr = min.toChar.toString
+            ci.as(minStr)
+          case f @ (Impl.Fail() | Impl.FailWith(_)) =>
+            // these are really Parser1[Nothing]
+            // but scala can't see that, so we cast
+            f.asInstanceOf[Parser1[String]]
+          case notStr => Impl.StringP1(notStr)
+        }
     }
 
   /** returns a parser that succeeds if the
     * current parser fails.
     */
   def not(pa: Parser[Any]): Parser[Unit] =
-    pa match {
+    void(pa) match {
       case Impl.Fail() | Impl.FailWith(_) => unit
-      case _ => Impl.Not(void(pa))
+      case notFail => Impl.Not(notFail)
     }
 
   /** a parser that consumes nothing when
@@ -1124,13 +1147,20 @@ object Parser extends ParserInstances {
   def as[A, B](pa: Parser[A], b: B): Parser[B] =
     pa match {
       case Impl.Pure(_) | Impl.Index => pure(b)
+      case p1: Parser1[A] => as1(p1, b)
       case _ => pa.void.map(Impl.ConstFn(b))
     }
 
   /** Replaces parsed values with the given value.
     */
   def as1[A, B](pa: Parser1[A], b: B): Parser1[B] =
-    pa.void.map(Impl.ConstFn(b))
+    (pa.void, b) match {
+      case (Impl.Void1(ci @ Impl.CharIn(min, bs, _)), bc: Char)
+          if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
+        // this is putting the character back on a singleton CharIn, just return the char in
+        ci.asInstanceOf[Parser1[B]]
+      case (notSingleChar, _) => notSingleChar.map(Impl.ConstFn(b))
+    }
 
   implicit val catsInstancesParser1: FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] =
     new FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] {
@@ -1246,7 +1276,7 @@ object Parser extends ParserInstances {
           // unmap may simplify enough
           // to remove the backtrack wrapper
           Parser.backtrack(unmap(p))
-        case OneOf(ps) => OneOf(ps.map(unmap))
+        case OneOf(ps) => Parser.oneOf(ps.map(unmap))
         case Prod(p1, p2) =>
           val u1 = unmap(p1)
           val u2 = unmap(p2)
@@ -1288,7 +1318,7 @@ object Parser extends ParserInstances {
           // unmap may simplify enough
           // to remove the backtrack wrapper
           Parser.backtrack1(unmap1(p))
-        case OneOf1(ps) => OneOf1(ps.map(unmap1))
+        case OneOf1(ps) => Parser.oneOf1(ps.map(unmap1))
         case Prod1(p1, p2) => Prod1(unmap(p1), unmap(p2))
         case SoftProd1(p1, p2) => SoftProd1(unmap(p1), unmap(p2))
         case Defer1(fn) =>
