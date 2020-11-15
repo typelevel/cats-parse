@@ -64,7 +64,7 @@ object Rfc5234 {
   /** `0` to `9`
     */
   val digit: Parser1[Char] =
-    Parser.charIn('0' to '9')
+    Numbers.digit
 
   /** double quote (`"`)
     */

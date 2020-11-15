@@ -21,6 +21,7 @@
 
 package cats.parse
 
+import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
@@ -29,7 +30,17 @@ class Rfc5234Test extends munit.ScalaCheckSuite {
 
   def singleCharProperties[A](name: String, rule: Parser[A], valid: Set[Char], f: Char => A) = {
     val genValid = Gen.oneOf(valid)
-    val genInvalid = Gen.oneOf(allChars -- valid)
+    // Bias toward the chars we tend to find in these parsers
+    val genInvalid = Gen.frequency(
+      List(
+        3 -> (Set(0x00.toChar to 0x7f.toChar: _*) -- valid),
+        1 -> (Set(0x80.toChar to 0xff.toChar: _*) -- valid),
+        1 -> (Set(0x100.toChar to Char.MaxValue: _*) -- valid)
+      ).collect {
+        case (freq, set) if set.nonEmpty =>
+          freq -> Gen.oneOf(set)
+      }: _*
+    )
     property(s"${name} parses single valid char") {
       forAll(genValid) { c =>
         assertEquals(rule.parseAll(c.toString), Right(f(c)))
@@ -61,13 +72,13 @@ class Rfc5234Test extends munit.ScalaCheckSuite {
   singleMultiCharProperties("bit", Rfc5234.bit, Set('0', '1'))
   singleMultiCharProperties("char", Rfc5234.char, Set(0x01.toChar to 0x7f.toChar: _*))
   singleConstCharProperties("cr", Rfc5234.cr, 0x0d.toChar)
-  singleMultiCharProperties("ctl", Rfc5234.char, Set(0x01.toChar to 0x1f.toChar: _*) + 0x7f.toChar)
+  singleMultiCharProperties("ctl", Rfc5234.ctl, Set(0x00.toChar to 0x1f.toChar: _*) + 0x7f.toChar)
   singleMultiCharProperties("digit", Rfc5234.digit, Set(0x30.toChar to 0x39.toChar: _*))
   singleConstCharProperties("dquote", Rfc5234.dquote, 0x22.toChar)
   singleMultiCharProperties(
     "hexdig",
     Rfc5234.hexdig,
-    Set('0' to '9': _*) ++ Set('A' to 'F': _*) ++ Set('a' to 'F': _*)
+    Set('0' to '9': _*) ++ Set('A' to 'F': _*) ++ Set('a' to 'f': _*)
   )
   singleConstCharProperties("htab", Rfc5234.htab, 0x09.toChar)
   singleConstCharProperties("lf", Rfc5234.lf, 0x0a.toChar)
@@ -80,7 +91,7 @@ class Rfc5234Test extends munit.ScalaCheckSuite {
     assertEquals(Rfc5234.crlf.parseAll("\r\n"), Right(()))
   }
   property("crlf rejects all but \r\n") {
-    forAll { s: String =>
+    forAll(arbitrary[String].filterNot(_ == "\r\n")) { s: String =>
       assert(Rfc5234.crlf.parseAll(s).isLeft)
     }
   }
@@ -94,7 +105,7 @@ class Rfc5234Test extends munit.ScalaCheckSuite {
           genWsp.map("\r\n" + _)
         )
       )
-      .map(_.mkString(""))
+      .map(_.mkString)
     forAll(genLwsp) { s: String =>
       assertEquals(Rfc5234.lwsp.parseAll(s), Right(()))
     }
