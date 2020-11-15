@@ -59,7 +59,7 @@ object Rfc5234 {
 
   /** controls */
   val ctl: Parser1[Char] =
-    Parser.charIn(0x7f, (0x00.toChar to 0x1f.toChar: _*))
+    Parser.charIn(0x7f, (0x00.toChar to 0x1f.toChar): _*)
 
   /** `0` to `9`
     */

@@ -91,7 +91,7 @@ class Rfc5234Test extends munit.ScalaCheckSuite {
     assertEquals(Rfc5234.crlf.parseAll("\r\n"), Right(()))
   }
   property("crlf rejects all but \r\n") {
-    forAll(arbitrary[String].filterNot(_ == "\r\n")) { s: String =>
+    forAll(arbitrary[String].filterNot(_ == "\r\n")) { (s: String) =>
       assert(Rfc5234.crlf.parseAll(s).isLeft)
     }
   }
@@ -106,7 +106,7 @@ class Rfc5234Test extends munit.ScalaCheckSuite {
         )
       )
       .map(_.mkString)
-    forAll(genLwsp) { s: String =>
+    forAll(genLwsp) { (s: String) =>
       assertEquals(Rfc5234.lwsp.parseAll(s), Right(()))
     }
   }
@@ -114,7 +114,7 @@ class Rfc5234Test extends munit.ScalaCheckSuite {
     val gen = Gen
       .option(Gen.oneOf(allChars - 0x20.toChar - 0x09.toChar))
       .map(opt => "\r\n" ++ opt.fold("")(_.toString))
-    forAll(gen) { s: String =>
+    forAll(gen) { (s: String) =>
       assert(Rfc5234.lwsp.parseAll(s).isLeft)
     }
   }
