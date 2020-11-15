@@ -103,11 +103,11 @@ object Rfc5234 {
 
   /** 8 bits of data
     */
-  val octet: Parser[Char] =
+  val octet: Parser1[Char] =
     Parser.charIn(0x00.toChar to 0xff.toChar)
 
   /** visible (printing) characters
     */
-  val vchar: Parser[Char] =
+  val vchar: Parser1[Char] =
     Parser.charIn(0x21.toChar to 0x7e.toChar)
 }
