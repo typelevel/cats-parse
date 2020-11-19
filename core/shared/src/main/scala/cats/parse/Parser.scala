@@ -25,6 +25,7 @@ import cats.{Eval, Monad, Defer, Alternative, FlatMap, Now, MonoidK, Order}
 import cats.data.{AndThen, Chain, NonEmptyList}
 
 import cats.implicits._
+import scala.collection.mutable.ListBuffer
 
 /** Parser[A] attempts to extract an `A` value from the given input,
   * potentially moving its offset forward in the process.
@@ -681,18 +682,18 @@ object Parser extends ParserInstances {
     */
   def oneOf1[A](parsers: List[Parser1[A]]): Parser1[A] = {
     @annotation.tailrec
-    def flatten(ls: List[Parser1[A]], acc: List[Parser1[A]]): List[Parser1[A]] =
+    def flatten(ls: List[Parser1[A]], acc: ListBuffer[Parser1[A]]): List[Parser1[A]] =
       ls match {
-        case Nil => acc.reverse.distinct
+        case Nil => acc.toList.distinct
         case Impl.OneOf1(ps) :: rest =>
           flatten(ps ::: rest, acc)
         case Impl.Fail() :: rest =>
           flatten(rest, acc)
         case notOneOf :: rest =>
-          flatten(rest, notOneOf :: acc)
+          flatten(rest, acc += notOneOf)
       }
 
-    val flat = flatten(parsers, Nil)
+    val flat = flatten(parsers, new ListBuffer)
     Impl.mergeCharIn[A, Parser1[A]](flat) match {
       case Nil => fail
       case p :: Nil => p
@@ -708,9 +709,9 @@ object Parser extends ParserInstances {
     */
   def oneOf[A](ps: List[Parser[A]]): Parser[A] = {
     @annotation.tailrec
-    def flatten(ls: List[Parser[A]], acc: List[Parser[A]]): List[Parser[A]] =
+    def flatten(ls: List[Parser[A]], acc: ListBuffer[Parser[A]]): List[Parser[A]] =
       ls match {
-        case Nil => acc.reverse.distinct
+        case Nil => acc.toList.distinct
         case Impl.OneOf(ps) :: rest =>
           flatten(ps ::: rest, acc)
         case Impl.OneOf1(ps) :: rest =>
@@ -719,13 +720,13 @@ object Parser extends ParserInstances {
           flatten(rest, acc)
         case notOneOf :: rest =>
           if (Impl.alwaysSucceeds(notOneOf)) {
-            (notOneOf :: acc).reverse.distinct
+            (acc += notOneOf).toList.distinct
           } else {
-            flatten(rest, notOneOf :: acc)
+            flatten(rest, acc += notOneOf)
           }
       }
 
-    val flat = flatten(ps, Nil)
+    val flat = flatten(ps, new ListBuffer)
     Impl.mergeCharIn[A, Parser[A]](flat) match {
       case Nil => fail
       case p :: Nil => p
