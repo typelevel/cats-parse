@@ -467,9 +467,11 @@ object Parser extends ParserInstances {
       * This is called just before finally returning an error in Parser.parse
       */
     def unify(errors: NonEmptyList[Expectation]): NonEmptyList[Expectation] = {
+      val el = errors.toList
+
       // merge all the ranges:
       val rangeMerge: List[InRange] =
-        errors.toList
+        el
           .collect { case InRange(o, l, u) => (o, l to u) }
           .groupBy(_._1)
           .iterator
@@ -483,9 +485,20 @@ object Parser extends ParserInstances {
           }
           .toList
 
-      if (rangeMerge.isEmpty) errors.distinct.sorted
+      // we don't need Fails that point to duplicate offsets
+      val nonFailOffsets: Set[Int] =
+        el.iterator.filterNot(_.isInstanceOf[Fail]).map(_.offset).toSet
+
+      val errors1 = NonEmptyList.fromListUnsafe(
+        el.filterNot {
+          case Fail(off) => nonFailOffsets(off)
+          case _ => false
+        }
+      )
+
+      if (rangeMerge.isEmpty) errors1.distinct.sorted
       else {
-        val nonRanges = errors.toList.filterNot(_.isInstanceOf[InRange])
+        val nonRanges = errors1.toList.filterNot(_.isInstanceOf[InRange])
 
         NonEmptyList
           .fromListUnsafe(
