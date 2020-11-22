@@ -1104,6 +1104,24 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("parse between open and close") {
+    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+      val pa = genP1.fa.between(genP.fa, genP.fa)
+      val pb = ((genP.fa.void ~ genP1.fa).map(_._2) ~ genP.fa.void).map(_._1)
+
+      assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
+  property("sorroundedBy consistent with between") {
+    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+      val pa = genP1.fa.between(genP.fa, genP.fa)
+      val pb = genP1.fa.surroundedBy(genP.fa)
+
+      assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
   property("exactly one of x or !x parse") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, str) =>
       val notx = !p1.fa

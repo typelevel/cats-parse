@@ -388,6 +388,21 @@ sealed abstract class Parser1[+A] extends Parser[A] {
   def rep1(min: Int): Parser1[NonEmptyList[A]] =
     Parser.rep1(this, min = min)
 
+  /** Use this parser to parse between values.
+    *
+    * Parses `b` followed by `this` and `c`.
+    * Returns only the values extracted by `this` parser.
+    */
+  def between[B, C](b: Parser[B], c: Parser[C]): Parser[A] =
+    b *> this <* c
+
+  /** Use this parser to parse surrounded values.
+    *
+    * This is the same as `between(b, b)`
+    */
+  def surroundedBy[B](b: Parser[B]): Parser[A] =
+    between(b, b)
+
   /** This method overrides `Parser#soft` to refine the return type.
     */
   override def soft: Parser.Soft10[A] =
