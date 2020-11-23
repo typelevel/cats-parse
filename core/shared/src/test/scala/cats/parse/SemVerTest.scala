@@ -30,13 +30,13 @@ class SemVerTest extends munit.ScalaCheckSuite {
     major <- Gen.choose(0, 10)
     minor <- Gen.choose(0, 10)
     patch <- Gen.choose(0, 100)
-    preRelease <- Gen.oneOf("-alpha", "-beta", "-alpha.1")
-    buildMetadata <- Gen.oneOf("+001", "+20130313144700", "+exp.sha.5114f85", "+21AF26D3")
+    preRelease <- Gen.oneOf("", "-alpha", "-beta", "-alpha.1")
+    buildMetadata <- Gen.oneOf("", "+001", "+20130313144700", "+exp.sha.5114f85", "+21AF26D3")
   } yield s"$major.$minor.$patch$preRelease$buildMetadata"
 
   property("semver parses SemVer") {
     forAll(genSemVer) { (sv: String) =>
-      assertEquals(SemVer.semver.parseAll(sv), Right(sv))
+      assertEquals(SemVer.semverString.parseAll(sv), Right(sv))
     }
   }
 }

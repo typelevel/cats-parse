@@ -21,8 +21,14 @@
 
 package cats.parse
 
+import cats.implicits._
+
 /** SemVer 2.0.0 Parser based on https://semver.org */
 object SemVer {
+
+  case class Core(major: String, minor: String, patch: String)
+
+  case class SemVer(core: Core, preRelease: Option[String], buildMetadata: Option[String])
 
   val dot: Parser1[Char] = Parser.charIn('.')
   val hyphen: Parser1[Char] = Parser.charIn('-')
@@ -30,15 +36,15 @@ object SemVer {
 
   val letter: Parser1[Char] = Parser.ignoreCaseCharIn('a' to 'z')
 
-  val positiveDigit: Parser1[Char] = Numbers.nonZeroDigit
+  def positiveDigit: Parser1[Char] = Numbers.nonZeroDigit
 
-  val nonDigit: Parser1[Char] = letter orElse1 hyphen
+  val nonDigit: Parser1[Char] = letter.orElse1(hyphen)
 
-  val identifierChar: Parser1[Char] = Numbers.digit orElse1 nonDigit
+  val identifierChar: Parser1[Char] = Numbers.digit.orElse1(nonDigit)
 
   val identifierChars: Parser1[String] = identifierChar.rep1.string
 
-  val numericIdentifier: Parser1[String] = Numbers.nonNegativeIntString
+  def numericIdentifier: Parser1[String] = Numbers.nonNegativeIntString
 
   val alphanumericIdentifier: Parser1[String] = identifierChars
 
@@ -59,11 +65,12 @@ object SemVer {
   val minor: Parser1[String] = numericIdentifier
   val major: Parser1[String] = numericIdentifier
 
-  val core: Parser1[String] = (major ~ dot ~ minor ~ dot ~ patch).string
+  val core: Parser1[Core] = (major, dot *> minor, dot *> patch).mapN(Core)
+  val coreString: Parser1[String] = core.string
 
-  val semver: Parser1[String] =
-    ((core ~ hyphen ~ preRelease ~ plus ~ build).backtrack orElse1
-      (core ~ plus ~ build).backtrack orElse1
-      (core ~ hyphen ~ preRelease).backtrack orElse1
-      core).string
+  val semver: Parser1[SemVer] =
+    (core ~ (hyphen *> preRelease).? ~ (plus *> build).?).map { case ((c, p), b) =>
+      SemVer(c, p, b)
+    }
+  val semverString: Parser1[String] = semver.string
 }
