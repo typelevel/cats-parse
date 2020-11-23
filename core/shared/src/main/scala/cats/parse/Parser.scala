@@ -1114,6 +1114,7 @@ object Parser extends ParserInstances {
 
   /** returns a parser that succeeds if the
     * current parser fails.
+    * Note, this parser backtracks (never returns an arresting failure)
     */
   def not(pa: Parser[Any]): Parser[Unit] =
     void(pa) match {
@@ -1255,7 +1256,7 @@ object Parser extends ParserInstances {
     final def doesBacktrack(p: Parser[Any]): Boolean =
       p match {
         case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
-            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) =>
+            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) | Not(_) =>
           true
         case Map(p, _) => doesBacktrack(p)
         case Map1(p, _) => doesBacktrack(p)
@@ -1273,6 +1274,9 @@ object Parser extends ParserInstances {
         case Map(p, _) => alwaysSucceeds(p)
         case SoftProd(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        // by construction we never build a Not(Fail()) since
+        // it would just be the same as unit
+        //case Not(Fail() | FailWith(_)) => true
         case _ => false
       }
 
@@ -1384,7 +1388,7 @@ object Parser extends ParserInstances {
               Prod1(p11, unmap(Parser.product(p12, p2)))
             case u1 if u1 eq Parser.unit =>
               // if unmap(u1) is unit, p2 must be a Parser1
-              expect1(unmap(p2))
+              unmap1(expect1(p2))
             case u1 =>
               val u2 = unmap(p2)
               if (u2 eq Parser.unit) expect1(u1)
@@ -1402,7 +1406,7 @@ object Parser extends ParserInstances {
               SoftProd1(p11, unmap(Parser.softProduct(p12, p2)))
             case u1 if u1 eq Parser.unit =>
               // if unmap(u1) is unit, p2 must be a Parser1
-              expect1(unmap(p2))
+              unmap1(expect1(p2))
             case u1 =>
               val u2 = unmap(p2)
               if (u2 eq Parser.unit) expect1(u1)

@@ -192,7 +192,8 @@ object ParserGen {
     Gen.oneOf(
       GenT[Parser1, (ga.A, gb.A)](Parser.product10(ga.fa, gb.fa)),
       GenT[Parser1, ga.A](ga.fa <* gb.fa),
-      GenT[Parser1, gb.A](ga.fa *> gb.fa)
+      GenT[Parser1, gb.A](ga.fa *> gb.fa),
+      GenT[Parser1, (ga.A, ga.A)](Parser.product10(ga.fa, ga.fa))
     )
   }
 
@@ -200,8 +201,12 @@ object ParserGen {
     implicit val ca: Cogen[ga.A] = ga.cogen
     implicit val cb: Cogen[gb.A] = gb.cogen
     Gen.oneOf(
+      // left is Parser1
       GenT[Parser1, (ga.A, gb.A)](ga.fa.soft ~ gb.fa),
-      GenT[Parser1, (gb.A, ga.A)](gb.fa.with1.soft ~ ga.fa)
+      // right is Parser1
+      GenT[Parser1, (gb.A, ga.A)](gb.fa.with1.soft ~ ga.fa),
+      // both are parser1
+      GenT[Parser1, (ga.A, ga.A)](ga.fa.soft ~ ga.fa)
     )
   }
 
@@ -441,7 +446,7 @@ object ParserGen {
 
 class ParserTest extends munit.ScalaCheckSuite {
 
-  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 1000
+  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 2000
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters
