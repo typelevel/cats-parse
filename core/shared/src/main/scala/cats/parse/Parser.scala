@@ -257,6 +257,21 @@ sealed abstract class Parser[+A] {
   def peek: Parser[Unit] =
     Parser.peek(this)
 
+  /** Use this parser to parse between values.
+    *
+    * Parses `b` followed by `this` and `c`.
+    * Returns only the values extracted by `this` parser.
+    */
+  def between(b: Parser[Any], c: Parser[Any]): Parser[A] =
+    (b.void ~ (this ~ c.void)).map { case (_, (a, _)) => a }
+
+  /** Use this parser to parse surrounded by values.
+    *
+    * This is the same as `between(b, b)`
+    */
+  def surroundedBy(b: Parser[Any]): Parser[A] =
+    between(b, b)
+
   /** Internal (mutable) parsing method.
     *
     * This method should only be called internally by parser instances.
@@ -388,19 +403,14 @@ sealed abstract class Parser1[+A] extends Parser[A] {
   def rep1(min: Int): Parser1[NonEmptyList[A]] =
     Parser.rep1(this, min = min)
 
-  /** Use this parser to parse between values.
-    *
-    * Parses `b` followed by `this` and `c`.
-    * Returns only the values extracted by `this` parser.
+  /** This method overrides `Parser#between` to refine the return type
     */
-  def between[B, C](b: Parser[B], c: Parser[C]): Parser[A] =
-    b *> this <* c
+  override def between(b: Parser[Any], c: Parser[Any]): Parser1[A] =
+    (b.void.with1 ~ (this ~ c.void)).map { case (_, (a, _)) => a }
 
-  /** Use this parser to parse surrounded values.
-    *
-    * This is the same as `between(b, b)`
+  /** This method overrides `Parser#surroundedBy` to refine the return type
     */
-  def surroundedBy[B](b: Parser[B]): Parser[A] =
+  override def surroundedBy(b: Parser[Any]): Parser1[A] =
     between(b, b)
 
   /** This method overrides `Parser#soft` to refine the return type.
@@ -573,6 +583,18 @@ object Parser extends ParserInstances {
       */
     def soft: Soft01[A] =
       new Soft01(parser)
+
+    /** parse between values.
+      *  Since values are `Parser1` the result is
+      */
+    def between(b: Parser1[Any], c: Parser1[Any]): Parser1[A] =
+      (b.void ~ (parser ~ c.void)).map { case (_, (a, _)) => a }
+
+    /** parse surrounded by that.
+      *  Since that is a Parser1 the result is
+      */
+    def surroundedBy(that: Parser1[Any]): Parser1[A] =
+      between(that, that)
   }
 
   /** If we can parse this then that, do so,

@@ -51,15 +51,17 @@ object Json {
       (whitespaces0.with1.soft ~ P.char(',') ~ whitespaces0).void
 
     def rep[A](pa: Parser1[A]): P[List[A]] =
-      (whitespaces0 *> P.repSep(pa, min = 0, sep = listSep) <* whitespaces0)
+      P.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
 
-    val list = (P.char('[') *> rep(recurse) <* P.char(']'))
+    val list = rep(recurse).with1
+      .between(P.char('['), P.char(']'))
       .map { vs => JArray.fromSeq(vs) }
 
     val kv: Parser1[(String, JValue)] =
       justStr ~ ((whitespaces0.with1 ~ P.char(':') ~ whitespaces0) *> recurse)
 
-    val obj = (P.char('{') *> rep(kv) <* P.char('}'))
+    val obj = rep(kv).with1
+      .between(P.char('{'), P.char('}'))
       .map { vs => JObject.fromSeq(vs) }
 
     P.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
