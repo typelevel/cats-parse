@@ -30,11 +30,10 @@ object Json {
   private[this] val whitespace: P1[Unit] = P.charIn(" \t\r\n").void
   private[this] val whitespaces0: P[Unit] = whitespace.rep.void
 
-  /**
-   * This doesn't have to be super fast (but is fairly fast) since we use it in places
-   * where speed won't matter: feeding it into a program that will convert it to bosatsu
-   * structured data
-   */
+  /** This doesn't have to be super fast (but is fairly fast) since we use it in places
+    * where speed won't matter: feeding it into a program that will convert it to bosatsu
+    * structured data
+    */
   val parser: P1[JValue] = {
     val recurse = P.defer1(parser)
     val pnull = P.string1("null").as(JNull)
@@ -76,7 +75,8 @@ object JsonStringUtil extends GenericStringUtil {
       ('f', 12.toChar), // form-feed
       ('n', '\n'),
       ('r', '\r'),
-      ('t', '\t'))
+      ('t', '\t')
+    )
 }
 
 abstract class GenericStringUtil {
@@ -89,7 +89,7 @@ abstract class GenericStringUtil {
       val strHex = c.toHexString
       val strPad = List.fill(4 - strHex.length)('0').mkString
       s"\\u$strPad$strHex"
-   }.toArray
+    }.toArray
 
   val escapedToken: P1[Unit] = {
     val escapes = P.charIn(decodeTable.keys.toSeq)
@@ -110,11 +110,11 @@ abstract class GenericStringUtil {
     (P.char('\\') ~ after).void
   }
 
-  /**
-   * String content without the delimiter
-   */
+  /** String content without the delimiter
+    */
   def undelimitedString1(endP: P1[Unit]): P1[String] =
-    escapedToken.backtrack.orElse1((!endP).with1 ~ P.anyChar)
+    escapedToken.backtrack
+      .orElse1((!endP).with1 ~ P.anyChar)
       .rep1
       .string
       .flatMap { str =>
@@ -129,8 +129,7 @@ abstract class GenericStringUtil {
 
   def escapedString(q: Char): P1[String] = {
     val end: P1[Unit] = P.char(q)
-    end *> ((simpleString <* end)
-      .backtrack
+    end *> ((simpleString <* end).backtrack
       .orElse(undelimitedString1(end) <* end))
   }
 
@@ -140,12 +139,13 @@ abstract class GenericStringUtil {
     val ignoreEscape = if (quoteChar == '\'') '"' else if (quoteChar == '"') '\'' else 'x'
     str.flatMap { c =>
       if (c == ignoreEscape) c.toString
-      else encodeTable.get(c) match {
-        case None =>
-          if (c < ' ') nonPrintEscape(c.toInt)
-          else c.toString
-        case Some(esc) => esc
-      }
+      else
+        encodeTable.get(c) match {
+          case None =>
+            if (c < ' ') nonPrintEscape(c.toInt)
+            else c.toString
+          case Some(esc) => esc
+        }
     }
   }
 
@@ -167,25 +167,21 @@ abstract class GenericStringUtil {
       if (idx >= str.length) {
         // done
         idx
-      }
-      else if (idx < 0) {
+      } else if (idx < 0) {
         // error from decodeNum
         idx
-      }
-      else {
+      } else {
         val c0 = str.charAt(idx)
         if (c0 != '\\') {
           sb.append(c0)
           loop(idx + 1)
-        }
-        else {
+        } else {
           // str(idx) == \
           val nextIdx = idx + 1
           if (nextIdx >= str.length) {
             // error we expect there to be a character after \
             ~idx
-          }
-          else {
+          } else {
             val c = str.charAt(nextIdx)
             decodeTable.get(c) match {
               case Some(d) =>

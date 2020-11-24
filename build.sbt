@@ -84,7 +84,8 @@ ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 
 lazy val root = project
   .in(file("."))
-  .aggregate(core.jvm, core.js)
+  .settings(scalaVersion := "2.13.3")
+  .aggregate(core.jvm, core.js, bench)
   .settings(noPublishSettings)
 
 lazy val docs = project
@@ -144,6 +145,7 @@ lazy val bench = project
   .settings(noPublishSettings)
   .settings(
     name := "bench",
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2.")),
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "fastparse" % "2.3.0",
       "org.http4s" %% "parsley" % "1.5.0-M3",
