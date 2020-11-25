@@ -26,7 +26,13 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
 )
 
 ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
+  WorkflowStep.Run(
+    List(
+      """sbt ++${{ matrix.scala }} fmtCheck \
+        |    "++${{ matrix.scala }} test" \
+        |    "++${{ matrix.scala }} mimaReportBinaryIssues"""".stripMargin
+    )
+  )
 )
 
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
