@@ -1113,7 +1113,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("sorroundedBy consistent with between") {
+  property("surroundedBy consistent with between") {
     forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
       val pa = genP1.fa.between(genP.fa, genP.fa)
       val pb = genP1.fa.surroundedBy(genP.fa)

@@ -48,7 +48,7 @@ object Json {
     val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: Parser1[Unit] =
-      (whitespaces0.with1.soft ~ P.char(',') ~ whitespaces0).void
+      P.char(',').surroundedBy(whitespaces0).void
 
     def rep[A](pa: Parser1[A]): P[List[A]] =
       P.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
@@ -58,7 +58,7 @@ object Json {
       .map { vs => JArray.fromSeq(vs) }
 
     val kv: Parser1[(String, JValue)] =
-      justStr ~ ((whitespaces0.with1 ~ P.char(':') ~ whitespaces0) *> recurse)
+      justStr ~ (P.char(':').surroundedBy(whitespaces0) *> recurse)
 
     val obj = rep(kv).with1
       .between(P.char('{'), P.char('}'))
