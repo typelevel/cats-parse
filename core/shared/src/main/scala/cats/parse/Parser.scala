@@ -793,7 +793,15 @@ object Parser extends ParserInstances {
   /** parse first then second
     */
   def product[A, B](first: Parser[A], second: Parser[B]): Parser[(A, B)] =
-    Impl.Prod(first, second)
+    first match {
+      case f1: Parser1[A] => product10(f1, second)
+      case _ =>
+        second match {
+          case s1: Parser1[B] =>
+            product01(first, s1)
+          case _ => Impl.Prod(first, second)
+        }
+    }
 
   /** product with the first argument being a Parser1
     */
@@ -813,7 +821,15 @@ object Parser extends ParserInstances {
     *  see @Parser.soft
     */
   def softProduct[A, B](first: Parser[A], second: Parser[B]): Parser[(A, B)] =
-    Impl.SoftProd(first, second)
+    first match {
+      case f1: Parser1[A] => softProduct10(f1, second)
+      case _ =>
+        second match {
+          case s1: Parser1[B] =>
+            softProduct01(first, s1)
+          case _ => Impl.SoftProd(first, second)
+        }
+    }
 
   /** softProduct with the first argument being a Parser1
     *  A soft product backtracks if the first succeeds and the second
@@ -1098,6 +1114,7 @@ object Parser extends ParserInstances {
 
   /** returns a parser that succeeds if the
     * current parser fails.
+    * Note, this parser backtracks (never returns an arresting failure)
     */
   def not(pa: Parser[Any]): Parser[Unit] =
     void(pa) match {
@@ -1239,7 +1256,7 @@ object Parser extends ParserInstances {
     final def doesBacktrack(p: Parser[Any]): Boolean =
       p match {
         case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
-            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) =>
+            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) | Not(_) =>
           true
         case Map(p, _) => doesBacktrack(p)
         case Map1(p, _) => doesBacktrack(p)
@@ -1257,6 +1274,9 @@ object Parser extends ParserInstances {
         case Map(p, _) => alwaysSucceeds(p)
         case SoftProd(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        // by construction we never build a Not(Fail()) since
+        // it would just be the same as unit
+        //case Not(Fail() | FailWith(_)) => true
         case _ => false
       }
 
@@ -1292,23 +1312,46 @@ object Parser extends ParserInstances {
           Parser.backtrack(unmap(p))
         case OneOf(ps) => Parser.oneOf(ps.map(unmap))
         case Prod(p1, p2) =>
-          val u1 = unmap(p1)
-          val u2 = unmap(p2)
-          if (u1 eq Parser.unit) u2
-          else if (u2 eq Parser.unit) u1
-          else Prod(u1, u2)
+          unmap(p1) match {
+            case Prod(p11, p12) =>
+              // right associate so
+              // we can find check matches a bit faster
+              Prod(p11, unmap(Prod(p12, p2)))
+            case u1 if u1 eq Parser.unit =>
+              unmap(p2)
+            case u1 =>
+              val u2 = unmap(p2)
+              if (u2 eq Parser.unit) u1
+              else Prod(u1, u2)
+          }
         case SoftProd(p1, p2) =>
-          val u1 = unmap(p1)
-          val u2 = unmap(p2)
-          if (u1 eq Parser.unit) u2
-          else if (u2 eq Parser.unit) u1
-          else SoftProd(u1, u2)
+          unmap(p1) match {
+            case SoftProd(p11, p12) =>
+              // right associate so
+              // we can find check matches a bit faster
+              SoftProd(p11, unmap(SoftProd(p12, p2)))
+            case u1 if u1 eq Parser.unit =>
+              unmap(p2)
+            case u1 =>
+              val u2 = unmap(p2)
+              if (u2 eq Parser.unit) u1
+              else SoftProd(u1, u2)
+          }
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
         case Rep(p, _) => Rep(unmap1(p), Accumulator.unitAccumulator)
         case StartParser | EndParser | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
+      }
+
+    def expect1[A](p: Parser[A]): Parser1[A] =
+      p match {
+        case p1: Parser1[A] => p1
+        case notP1 =>
+          // $COVERAGE-OFF$
+          sys.error(s"violated invariant: $notP1 should be a Parser1")
+        // $COVERAGE-ON$
       }
 
     /** This removes any trailing map functions which
@@ -1333,8 +1376,42 @@ object Parser extends ParserInstances {
           // to remove the backtrack wrapper
           Parser.backtrack1(unmap1(p))
         case OneOf1(ps) => Parser.oneOf1(ps.map(unmap1))
-        case Prod1(p1, p2) => Prod1(unmap(p1), unmap(p2))
-        case SoftProd1(p1, p2) => SoftProd1(unmap(p1), unmap(p2))
+        case Prod1(p1, p2) =>
+          unmap(p1) match {
+            case Prod(p11, p12) =>
+              // right associate so
+              // we can find check matches a bit faster
+              Prod1(p11, unmap(Parser.product(p12, p2)))
+            case Prod1(p11, p12) =>
+              // right associate so
+              // we can find check matches a bit faster
+              Prod1(p11, unmap(Parser.product(p12, p2)))
+            case u1 if u1 eq Parser.unit =>
+              // if unmap(u1) is unit, p2 must be a Parser1
+              unmap1(expect1(p2))
+            case u1 =>
+              val u2 = unmap(p2)
+              if (u2 eq Parser.unit) expect1(u1)
+              else Prod1(u1, u2)
+          }
+        case SoftProd1(p1, p2) =>
+          unmap(p1) match {
+            case SoftProd(p11, p12) =>
+              // right associate so
+              // we can find check matches a bit faster
+              SoftProd1(p11, unmap(Parser.softProduct(p12, p2)))
+            case SoftProd1(p11, p12) =>
+              // right associate so
+              // we can find check matches a bit faster
+              SoftProd1(p11, unmap(Parser.softProduct(p12, p2)))
+            case u1 if u1 eq Parser.unit =>
+              // if unmap(u1) is unit, p2 must be a Parser1
+              unmap1(expect1(p2))
+            case u1 =>
+              val u2 = unmap(p2)
+              if (u2 eq Parser.unit) expect1(u1)
+              else SoftProd1(u1, u2)
+          }
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
         case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator.unitAccumulator)
