@@ -1352,8 +1352,10 @@ object Parser extends ParserInstances {
           unmap(p1) match {
             case Prod(p11, p12) =>
               // right associate so
-              // we can find check matches a bit faster
-              Prod(p11, unmap(Prod(p12, p2)))
+              // we can check matches a bit faster
+              // note: p12 is already unmapped, so
+              // we wrap with Void to prevent n^2 cost
+              Prod(p11, unmap(Prod(Void(p12), p2)))
             case u1 if u1 eq Parser.unit =>
               unmap(p2)
             case u1 =>
@@ -1365,8 +1367,10 @@ object Parser extends ParserInstances {
           unmap(p1) match {
             case SoftProd(p11, p12) =>
               // right associate so
-              // we can find check matches a bit faster
-              SoftProd(p11, unmap(SoftProd(p12, p2)))
+              // we can check matches a bit faster
+              // note: p12 is already unmapped, so
+              // we wrap with Void to prevent n^2 cost
+              SoftProd(p11, unmap(SoftProd(Void(p12), p2)))
             case u1 if u1 eq Parser.unit =>
               unmap(p2)
             case u1 =>
@@ -1417,12 +1421,15 @@ object Parser extends ParserInstances {
           unmap(p1) match {
             case Prod(p11, p12) =>
               // right associate so
-              // we can find check matches a bit faster
-              Prod1(p11, unmap(Parser.product(p12, p2)))
+              // we can check matches a bit faster
+              // note: p12 is already unmapped, so
+              // we wrap with Void to prevent n^2 cost
+              Prod1(p11, unmap(Parser.product(p12.void, p2)))
             case Prod1(p11, p12) =>
               // right associate so
-              // we can find check matches a bit faster
-              Prod1(p11, unmap(Parser.product(p12, p2)))
+              // we can check matches a bit faster
+              // we wrap with Void to prevent n^2 cost
+              Prod1(p11, unmap(Parser.product(p12.void, p2)))
             case u1 if u1 eq Parser.unit =>
               // if unmap(u1) is unit, p2 must be a Parser1
               unmap1(expect1(p2))
@@ -1435,12 +1442,14 @@ object Parser extends ParserInstances {
           unmap(p1) match {
             case SoftProd(p11, p12) =>
               // right associate so
-              // we can find check matches a bit faster
-              SoftProd1(p11, unmap(Parser.softProduct(p12, p2)))
+              // we can check matches a bit faster
+              // we wrap with Void to prevent n^2 cost
+              SoftProd1(p11, unmap(Parser.softProduct(p12.void, p2)))
             case SoftProd1(p11, p12) =>
               // right associate so
-              // we can find check matches a bit faster
-              SoftProd1(p11, unmap(Parser.softProduct(p12, p2)))
+              // we can check matches a bit faster
+              // we wrap with Void to prevent n^2 cost
+              SoftProd1(p11, unmap(Parser.softProduct(p12.void, p2)))
             case u1 if u1 eq Parser.unit =>
               // if unmap(u1) is unit, p2 must be a Parser1
               unmap1(expect1(p2))

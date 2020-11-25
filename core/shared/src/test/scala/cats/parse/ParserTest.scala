@@ -1110,15 +1110,54 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("parse between open and close") {
-    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
+      (genP1, genP, genQ, str) =>
+        val pa = genP1.fa.between(genP.fa, genQ.fa)
+        val pb = genP.fa *> genP1.fa <* genQ.fa
+
+        assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
+  property("surroundedBy consistent with between") {
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
       val pa = genP1.fa.between(genP.fa, genP.fa)
-      val pb = genP.fa *> genP1.fa <* genP.fa
+      val pb = genP1.fa.surroundedBy(genP.fa)
 
       assertEquals(pa.parse(str), pb.parse(str))
     }
   }
 
-  property("surroundedBy consistent with between") {
+  property("parse between open and close with Parser1 this") {
+    forAll(ParserGen.gen1, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
+      (genP1, genP, genQ, str) =>
+        val pa = genP1.fa.between(genP.fa, genQ.fa)
+        val pb = genP.fa *> genP1.fa <* genQ.fa
+
+        assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
+  property("surroundedBy consistent with between with Parser1 this") {
+    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+      val pa = genP1.fa.between(genP.fa, genP.fa)
+      val pb = genP1.fa.surroundedBy(genP.fa)
+
+      assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
+  property("parse between open and close with Parser1 args") {
+    forAll(ParserGen.gen, ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) {
+      (genP1, genP, genQ, str) =>
+        val pa = genP1.fa.with1.between(genP.fa, genQ.fa)
+        val pb = genP.fa *> genP1.fa <* genQ.fa
+
+        assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
+  property("surroundedBy consistent with between with Parser1 this") {
     forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
       val pa = genP1.fa.between(genP.fa, genP.fa)
       val pb = genP1.fa.surroundedBy(genP.fa)
