@@ -39,7 +39,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "build-docs",
     name = "Build docs",
-    scalas = List("2.13.3"),
+    scalas = List("2.13.4"),
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.SetupScala
@@ -48,7 +48,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
-    scalas = List("2.13.3"),
+    scalas = List("2.13.4"),
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.SetupScala
@@ -126,14 +126,20 @@ lazy val bench = project
   .settings(
     name := "bench",
     coverageEnabled := false,
-    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2.")),
-    libraryDependencies ++= Seq(
-      fastParse,
-      parsley,
-      jawnAst,
-      parboiled,
-      attoCore
-    ),
+    Compile / sources := {
+      if (scalaVersion.value.startsWith("2.")) (Compile / sources).value else Nil
+    },
+    libraryDependencies ++= {
+      if (scalaVersion.value.startsWith("2."))
+        Seq(
+          fastParse,
+          parsley,
+          jawnAst,
+          parboiled,
+          attoCore
+        )
+      else Nil
+    },
     githubWorkflowArtifactUpload := false
   )
   .dependsOn(coreJVM)
