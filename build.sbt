@@ -149,6 +149,7 @@ lazy val bench = project
   .settings(noPublishSettings)
   .settings(
     name := "bench",
+    coverageEnabled := false,
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2.")),
     libraryDependencies ++= Seq(
       fastParse,
