@@ -26,7 +26,13 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
 )
 
 ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
+  WorkflowStep.Run(
+    List(
+      """sbt ++${{ matrix.scala }} fmtCheck \
+        |    "++${{ matrix.scala }} test" \
+        |    "++${{ matrix.scala }} mimaReportBinaryIssues"""".stripMargin
+    )
+  )
 )
 
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
@@ -84,7 +90,8 @@ ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 
 lazy val root = project
   .in(file("."))
-  .aggregate(core.jvm, core.js)
+  .settings(scalaVersion := "2.13.3")
+  .aggregate(core.jvm, core.js, bench)
   .settings(noPublishSettings)
 
 lazy val docs = project
@@ -142,6 +149,7 @@ lazy val bench = project
   .settings(noPublishSettings)
   .settings(
     name := "bench",
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2.")),
     libraryDependencies ++= Seq(
       fastParse,
       parsley,

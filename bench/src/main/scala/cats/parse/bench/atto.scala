@@ -38,13 +38,13 @@ object JsonExample extends Whitespace {
 
   // Json Expression
   lazy val jexpr: Parser[JValue] = delay {
-    stringLiteral        -| JString.apply  |
-    seq('{', pair,  '}') -| JObject.fromSeq |
-    seq('[', jexpr, ']') -| JArray.fromSeq  |
-    double               -| JNum.apply      |
-    string("null")       >| JNull           |
-    string("true")       >| JTrue           |
-    string("false")      >| JFalse
+    stringLiteral -| JString.apply |
+      seq('{', pair, '}') -| JObject.fromSeq |
+      seq('[', jexpr, ']') -| JArray.fromSeq |
+      double -| JNum.apply |
+      string("null") >| JNull |
+      string("true") >| JTrue |
+      string("false") >| JFalse
   }
 
 }
@@ -64,7 +64,7 @@ trait Whitespace {
     sepBy(a.t, b.t)
 
   // Delimited pair, internal whitespace allowed
-  def pairByT[A,B](a: Parser[A], delim: Parser[_], b: Parser[B]): Parser[(A,B)] =
+  def pairByT[A, B](a: Parser[A], delim: Parser[_], b: Parser[B]): Parser[(A, B)] =
     pairBy(a.t, delim.t, b)
 
 }

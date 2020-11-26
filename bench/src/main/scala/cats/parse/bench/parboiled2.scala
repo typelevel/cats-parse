@@ -38,7 +38,9 @@ class JsonParser(val input: ParserInput) extends Parser with StringBuilding {
 
   def JsonObject: Rule1[JObject] =
     rule {
-      ws('{') ~ zeroOrMore(Pair).separatedBy(ws(',')) ~ ws('}') ~> ((fields: Seq[(String, JValue)]) => JObject.fromSeq(fields))
+      ws('{') ~ zeroOrMore(Pair).separatedBy(ws(',')) ~ ws('}') ~> (
+        (fields: Seq[(String, JValue)]) => JObject.fromSeq(fields)
+      )
     }
 
   def Pair = rule(JsonStringUnwrapped ~ ws(':') ~ Value ~> ((_, _)))
@@ -50,14 +52,14 @@ class JsonParser(val input: ParserInput) extends Parser with StringBuilding {
       // we make use of the fact that one-char lookahead is enough to discriminate the cases
       run {
         (cursorChar: @switch) match {
-          case '"'                                                             => JsonString
+          case '"' => JsonString
           case '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '-' => JsonNumber
-          case '{'                                                             => JsonObject
-          case '['                                                             => JsonArray
-          case 't'                                                             => JsonTrue
-          case 'f'                                                             => JsonFalse
-          case 'n'                                                             => JsonNull
-          case _                                                               => MISMATCH
+          case '{' => JsonObject
+          case '[' => JsonArray
+          case 't' => JsonTrue
+          case 'f' => JsonFalse
+          case 'n' => JsonNull
+          case _ => MISMATCH
         }
       }
     }
@@ -68,7 +70,9 @@ class JsonParser(val input: ParserInput) extends Parser with StringBuilding {
 
   def JsonNumber = rule(capture(Integer ~ optional(Frac) ~ optional(Exp)) ~> (JNum(_)) ~ WhiteSpace)
 
-  def JsonArray = rule(ws('[') ~ zeroOrMore(Value).separatedBy(ws(',')) ~ ws(']') ~> (JArray.fromSeq(_)))
+  def JsonArray = rule(
+    ws('[') ~ zeroOrMore(Value).separatedBy(ws(',')) ~ ws(']') ~> (JArray.fromSeq(_))
+  )
 
   def Characters = rule(zeroOrMore(NormalChar | '\\' ~ EscapedChar))
 
@@ -85,7 +89,9 @@ class JsonParser(val input: ParserInput) extends Parser with StringBuilding {
         | Unicode ~> { code => sb.append(code.asInstanceOf[Char]); () }
     )
 
-  def Unicode = rule('u' ~ capture(HexDigit ~ HexDigit ~ HexDigit ~ HexDigit) ~> (java.lang.Integer.parseInt(_, 16)))
+  def Unicode = rule(
+    'u' ~ capture(HexDigit ~ HexDigit ~ HexDigit ~ HexDigit) ~> (java.lang.Integer.parseInt(_, 16))
+  )
 
   def Integer = rule(optional('-') ~ (Digit19 ~ Digits | Digit))
 
@@ -107,7 +113,7 @@ class JsonParser(val input: ParserInput) extends Parser with StringBuilding {
 }
 
 object JsonParser {
-  val WhiteSpaceChar      = CharPredicate(" \n\r\t\f")
-  val QuoteBackslash      = CharPredicate("\"\\")
+  val WhiteSpaceChar = CharPredicate(" \n\r\t\f")
+  val QuoteBackslash = CharPredicate("\"\\")
   val QuoteSlashBackSlash = QuoteBackslash ++ "/"
 }
