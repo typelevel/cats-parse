@@ -76,6 +76,7 @@ lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, bench)
   .enablePlugins(NoPublishPlugin, SonatypeCiRelease)
+  .settings(scalaVersion := "2.13.4")
 
 lazy val docs = project
   .enablePlugins(ParadoxPlugin, MdocPlugin, NoPublishPlugin)
@@ -126,20 +127,15 @@ lazy val bench = project
   .settings(
     name := "bench",
     coverageEnabled := false,
-    Compile / sources := {
-      if (scalaVersion.value.startsWith("2.")) (Compile / sources).value else Nil
-    },
-    libraryDependencies ++= {
-      if (scalaVersion.value.startsWith("2."))
-        Seq(
-          fastParse,
-          parsley,
-          jawnAst,
-          parboiled,
-          attoCore
-        )
-      else Nil
-    },
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2.")),
+    libraryDependencies ++=
+      Seq(
+        fastParse,
+        parsley,
+        jawnAst,
+        parboiled,
+        attoCore
+      ),
     githubWorkflowArtifactUpload := false
   )
   .dependsOn(coreJVM)
