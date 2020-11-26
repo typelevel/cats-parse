@@ -21,6 +21,8 @@ ThisBuild / versionIntroduced := Map(
   "3.0.0-M2" -> "0.1.99"
 )
 
+ThisBuild / spiewakCiReleaseSnapshots := true
+
 ThisBuild / spiewakMainBranches := List("main")
 
 ThisBuild / githubWorkflowBuild := Seq(
