@@ -27,25 +27,39 @@ import org.http4s.parsley.Parsley._
 import org.http4s.parsley.Combinator._
 import org.typelevel.jawn.ast._
 
-object ParsleyJson
-{
+object ParsleyJson {
 
-    def json: Parsley[JValue] =
-    {
-        val jsontoks = LanguageDef("", "", "", false, NotRequired, NotRequired, NotRequired, NotRequired, Set.empty, Set.empty, true, Predicate(Char.isWhitespace))
-        val tok = new TokenParser(jsontoks)
-        lazy val obj: Parsley[JValue] = tok.braces(tok.commaSep(+(tok.stringLiteral <~> tok.colon *> value)).map(pairs => JObject.fromSeq(pairs)))
-        lazy val array: Parsley[JValue] = tok.brackets(tok.commaSep(value)).map(list => JArray.fromSeq(list))
-        lazy val value: Parsley[JValue] =
-            (tok.stringLiteral.map(JString.apply)
-         <|> tok.symbol("true") *> Parsley.pure(JTrue)
-         <|> tok.symbol("false") *> Parsley.pure(JFalse)
-         <|> tok.symbol("null") *> Parsley.pure(JNull)
-         <|> array
-         <|> attempt(tok.float).map(JNum.apply)
-         <|> tok.integer.map(i => JNum.apply(i.toLong))
-         <|> obj)
+  def json: Parsley[JValue] = {
+    val jsontoks = LanguageDef(
+      "",
+      "",
+      "",
+      false,
+      NotRequired,
+      NotRequired,
+      NotRequired,
+      NotRequired,
+      Set.empty,
+      Set.empty,
+      true,
+      Predicate(Char.isWhitespace)
+    )
+    val tok = new TokenParser(jsontoks)
+    lazy val obj: Parsley[JValue] = tok.braces(
+      tok.commaSep(+(tok.stringLiteral <~> tok.colon *> value)).map(pairs => JObject.fromSeq(pairs))
+    )
+    lazy val array: Parsley[JValue] =
+      tok.brackets(tok.commaSep(value)).map(list => JArray.fromSeq(list))
+    lazy val value: Parsley[JValue] =
+      (tok.stringLiteral.map(JString.apply)
+        <|> tok.symbol("true") *> Parsley.pure(JTrue)
+        <|> tok.symbol("false") *> Parsley.pure(JFalse)
+        <|> tok.symbol("null") *> Parsley.pure(JNull)
+        <|> array
+        <|> attempt(tok.float).map(JNum.apply)
+        <|> tok.integer.map(i => JNum.apply(i.toLong))
+        <|> obj)
 
-        tok.whiteSpace *> (obj <|> array) <* eof
-    }
+    tok.whiteSpace *> (obj <|> array) <* eof
+  }
 }

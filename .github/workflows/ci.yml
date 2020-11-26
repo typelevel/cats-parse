@@ -55,7 +55,10 @@ jobs:
       - name: Check that workflows are up to date
         run: sbt ++${{ matrix.scala }} githubWorkflowCheck
 
-      - run: sbt ++${{ matrix.scala }} fmtCheck test mimaReportBinaryIssues
+      - run: |
+          sbt ++${{ matrix.scala }} fmtCheck \
+              "++${{ matrix.scala }} test" \
+              "++${{ matrix.scala }} mimaReportBinaryIssues"
 
       - name: Compress target directories
         run: tar cf targets.tar target core/js/target core/jvm/target project/target

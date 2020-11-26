@@ -26,7 +26,13 @@ ThisBuild / spiewakCiReleaseSnapshots := true
 ThisBuild / spiewakMainBranches := List("main")
 
 ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(List("fmtCheck", "test", "mimaReportBinaryIssues"))
+  WorkflowStep.Run(
+    List(
+      """sbt ++${{ matrix.scala }} fmtCheck \
+        |    "++${{ matrix.scala }} test" \
+        |    "++${{ matrix.scala }} mimaReportBinaryIssues"""".stripMargin
+    )
+  )
 )
 
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
@@ -68,16 +74,14 @@ ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 
 lazy val root = project
   .in(file("."))
-  .aggregate(core.jvm, core.js)
+  .aggregate(core.jvm, core.js, bench)
   .enablePlugins(NoPublishPlugin, SonatypeCiRelease)
 
 lazy val docs = project
   .enablePlugins(ParadoxPlugin, MdocPlugin, NoPublishPlugin)
   .settings(
     name := "paradox-docs",
-    libraryDependencies ++= Seq(
-      "org.typelevel" %% "jawn-ast" % "1.0.0"
-    ),
+    libraryDependencies += jawnAst,
     paradoxTheme := Some(builtinParadoxTheme("generic")),
     paradoxProperties in Compile ++= Map(
       "empty" -> "",
@@ -121,12 +125,14 @@ lazy val bench = project
   .enablePlugins(JmhPlugin, NoPublishPlugin)
   .settings(
     name := "bench",
+    coverageEnabled := false,
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2.")),
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %% "fastparse" % "2.3.0",
-      "org.http4s" %% "parsley" % "1.5.0-M3",
-      "org.typelevel" %% "jawn-ast" % "1.0.0",
-      "org.parboiled" %% "parboiled" % "2.2.1",
-      "org.tpolecat" %% "atto-core" % "0.8.0"
+      fastParse,
+      parsley,
+      jawnAst,
+      parboiled,
+      attoCore
     ),
     githubWorkflowArtifactUpload := false
   )
