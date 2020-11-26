@@ -33,8 +33,6 @@ import cats.parse.bench.self.JsonStringUtil
 import cats.parse.{Parser => P, Parser1, Numbers}
 import org.typelevel.jawn.ast._
 
-import cats.implicits._
-
 object Json {
   private[this] val whitespace: Parser1[Unit] = P.charIn(" \t\r\n").void
   private[this] val whitespaces0: P[Unit] = whitespace.rep.void
