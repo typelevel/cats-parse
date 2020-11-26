@@ -1,0 +1,2 @@
+ignore:
+    - "bench" # ignore bench project and all its contents
