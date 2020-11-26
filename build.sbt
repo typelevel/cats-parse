@@ -14,10 +14,10 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("3.0.0-M1", "2.12.12", "2.13.3")
+ThisBuild / crossScalaVersions := List("3.0.0-M2", "2.12.12", "2.13.4")
 
 ThisBuild / versionIntroduced := Map(
-  "3.0.0-M1" -> "0.1.99"
+  "3.0.0-M2" -> "0.1.99"
 )
 
 ThisBuild / githubWorkflowPublishTargetBranches := Seq(
@@ -33,7 +33,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "build-docs",
     name = "Build docs",
-    scalas = List("2.13.3"),
+    scalas = List("2.13.4"),
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.SetupScala
@@ -42,7 +42,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
-    scalas = List("2.13.3"),
+    scalas = List("2.13.4"),
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.SetupScala
