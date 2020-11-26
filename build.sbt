@@ -93,9 +93,7 @@ lazy val docs = project
   .settings(noPublishSettings)
   .settings(
     name := "paradox-docs",
-    libraryDependencies ++= Seq(
-      "org.typelevel" %% "jawn-ast" % "1.0.0"
-    ),
+    libraryDependencies += jawnAst,
     paradoxTheme := Some(builtinParadoxTheme("generic")),
     paradoxProperties in Compile ++= Map(
       "empty" -> "",
@@ -145,11 +143,11 @@ lazy val bench = project
   .settings(
     name := "bench",
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %% "fastparse" % "2.3.0",
-      "org.http4s" %% "parsley" % "1.5.0-M3",
-      "org.typelevel" %% "jawn-ast" % "1.0.0",
-      "org.parboiled" %% "parboiled" % "2.2.1",
-      "org.tpolecat" %% "atto-core" % "0.8.0"
+      fastParse,
+      parsley,
+      jawnAst,
+      parboiled,
+      attoCore
     ),
     githubWorkflowArtifactUpload := false
   )
