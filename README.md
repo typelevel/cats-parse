@@ -1,1 +1,1 @@
-docs/src/main/paradox/index.md
+docs/src/index.md

@@ -79,19 +79,23 @@ lazy val root = project
   .settings(scalaVersion := "2.13.4")
 
 lazy val docs = project
-  .enablePlugins(ParadoxPlugin, MdocPlugin, NoPublishPlugin)
+  .enablePlugins(ParadoxPlugin, ParadoxMaterialThemePlugin, MdocPlugin, NoPublishPlugin)
   .settings(
     name := "paradox-docs",
     libraryDependencies += jawnAst,
-    paradoxTheme := Some(builtinParadoxTheme("generic")),
     paradoxProperties in Compile ++= Map(
       "empty" -> "",
       "version" -> version.value
     ),
     githubWorkflowArtifactUpload := false,
-    mdocIn := (paradox / sourceDirectory).value,
-    paradox / sourceManaged := mdocOut.value,
-    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value
+    mdocIn := (Compile / baseDirectory).value / "src",
+    Compile / paradox / sourceDirectory := mdocOut.value,
+    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value,
+    Compile / paradoxMaterialTheme := ParadoxMaterialTheme()
+      .withColor("red", "orange")
+      .withFont("Ubuntu", "Ubuntu Mono")
+      .withCopyright("Copyright (c) 2020 Typelevel")
+      .withRepository(uri("https://github.com/typelevel/cats-parse"))
   )
   .dependsOn(coreJVM, bench)
 
