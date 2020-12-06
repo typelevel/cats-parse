@@ -6,7 +6,7 @@ addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 addCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
 
-ThisBuild / baseVersion := "0.1"
+ThisBuild / baseVersion := "0.2"
 
 ThisBuild / organization := "org.typelevel"
 ThisBuild / organizationName := "Typelevel"

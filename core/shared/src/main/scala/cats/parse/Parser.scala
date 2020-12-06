@@ -659,10 +659,10 @@ object Parser extends ParserInstances {
     def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
       Parser.repAs(self)(acc)
 
-    def repAs1[B](implicit acc: Accumulator1[A, B]): Parser[B] =
+    def repAs1[B](implicit acc: Accumulator1[A, B]): Parser1[B] =
       Parser.repAs1(self, min = 1)(acc)
 
-    def repAs1[B](min: Int)(implicit acc: Accumulator1[A, B]): Parser[B] =
+    def repAs1[B](min: Int)(implicit acc: Accumulator1[A, B]): Parser1[B] =
       Parser.repAs1(self, min = min)(acc)
   }
 
