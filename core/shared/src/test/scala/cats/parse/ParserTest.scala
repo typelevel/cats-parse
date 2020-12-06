@@ -244,6 +244,25 @@ object ParserGen {
     val fn: A => F[B]
   }
 
+  def selected(ga: Gen[GenT[Parser]]): Gen[GenT[Parser]] =
+    Gen.zip(ga, pures).flatMap { case (parser, genRes) =>
+      val gpab = Gen.either(parser.fa, genRes.fa.map(Parser.pure)).map {
+        _ match {
+          case Left(pa) => pa.map(Left(_))
+          case Right(pb) => pb.map(Right(_))
+        }
+      }
+
+      val gfn: Gen[Parser[parser.A => genRes.A]] =
+        Gen.function1(genRes.fa)(parser.cogen).map(Parser.pure)
+
+      gpab.flatMap { pab =>
+        gfn.flatMap { fn =>
+          GenT(Parser.select(pab)(fn))(genRes.cogen)
+        }
+      }
+    }
+
   def flatMapped(ga: Gen[GenT[Parser]]): Gen[GenT[Parser]] =
     Gen.zip(ga, pures).flatMap { case (parser, genRes) =>
       val genPR: Gen[Parser[genRes.A]] = {
@@ -403,6 +422,7 @@ object ParserGen {
       (1, rec.map { gen => GenT(!gen.fa) }),
       (1, Gen.lzy(gen1.map(rep(_)))),
       (1, rec.flatMap(mapped(_))),
+      (1, rec.flatMap(selected(_))),
       (1, tailRecM(Gen.lzy(gen1))),
       (1, Gen.choose(0, 10).map { l => GenT(Parser.length(l)) }),
       (1, flatMapped(rec)),
