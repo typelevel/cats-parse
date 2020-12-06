@@ -1745,8 +1745,7 @@ object Parser extends ParserInstances {
       else null.asInstanceOf[B]
     }
 
-    case class Select[A, B](parser: Parser[Either[A, B]], fn: Parser[A => B])
-        extends Parser[B] {
+    case class Select[A, B](parser: Parser[Either[A, B]], fn: Parser[A => B]) extends Parser[B] {
       override def parseMut(state: State): B = Impl.select[A, B](parser, fn, state)
     }
 
