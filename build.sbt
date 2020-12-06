@@ -75,7 +75,7 @@ ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, bench)
-  .enablePlugins(NoPublishPlugin, SonatypeCiRelease)
+  .enablePlugins(NoPublishPlugin, SonatypeCiReleasePlugin)
   .settings(scalaVersion := "2.13.4")
 
 lazy val docs = project
