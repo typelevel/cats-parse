@@ -1738,7 +1738,10 @@ object Parser extends ParserInstances {
     ): B = {
       val either = parser.parseMut(state)
       if ((state.error eq null) && state.capture)
-        either.valueOr(a => fn.map(_(a)).parseMut(state))
+        either match {
+          case Left(a) => fn.map(_(a)).parseMut(state)
+          case Right(b) => b
+        }
       else null.asInstanceOf[B]
     }
 
