@@ -189,6 +189,9 @@ sealed abstract class Parser[+A] {
   def map[B](fn: A => B): Parser[B] =
     Parser.map(this)(fn)
 
+  def filter(fn: A => Boolean): Parser[A] =
+    Parser.select(this.map(a => Either.cond(fn(a), a, ())))(Parser.Fail)
+
   /** Dynamically construct the next parser based on the previously
     * parsed value.
     *
@@ -911,6 +914,9 @@ object Parser extends ParserInstances {
       case _ => Impl.Map1(p, fn)
     }
 
+  def select[A, B](p: Parser[Either[A, B]])(fn: Parser[A => B]): Parser[B] =
+    Impl.Select(p, fn)
+
   /** Standard monadic flatMap
     *  Avoid this function if possible. If you can
     *  instead use product, ~, *>, or <* use that.
@@ -1331,6 +1337,9 @@ object Parser extends ParserInstances {
         case Map(p, _) =>
           // we discard any allocations done by fn
           unmap(p)
+        case Select(p, _) =>
+          // we discard any allocations done by fn
+          unmap(p)
         case StringP(s) =>
           // StringP is added privately, and only after unmap
           s
@@ -1720,6 +1729,22 @@ object Parser extends ParserInstances {
 
     case class Map1[A, B](parser: Parser1[A], fn: A => B) extends Parser1[B] {
       override def parseMut(state: State): B = Impl.map(parser, fn, state)
+    }
+
+    final def select[A, B](
+        parser: Parser[Either[A, B]],
+        fn: Parser[A => B],
+        state: State
+    ): B = {
+      val either = parser.parseMut(state)
+      if ((state.error eq null) && state.capture)
+        either.valueOr(a => fn.map(_(a)).parseMut(state))
+      else null.asInstanceOf[B]
+    }
+
+    case class Select[A, B](parser: Parser[Either[A, B]], fn: Parser[A => B])
+        extends Parser[B] {
+      override def parseMut(state: State): B = Impl.select[A, B](parser, fn, state)
     }
 
     final def flatMap[A, B](parser: Parser[A], fn: A => Parser[B], state: State): B = {
