@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<meta name="description" content="paradox-docs">
+<meta name="generator" content="Paradox, paradox-material-theme=0.6.0, mkdocs-material=3.0.3">
+
+<meta name="lang:clipboard.copy" content="Copy to clipboard">
+<meta name="lang:clipboard.copied" content="Copied to clipboard">
+<meta name="lang:search.language" content="">
+<meta name="lang:search.pipeline.stopwords" content="true">
+<meta name="lang:search.pipeline.trimmer" content="true">
+<meta name="lang:search.result.none" content="No matching documents">
+<meta name="lang:search.result.one" content="1 matching document">
+<meta name="lang:search.result.other" content="# matching documents">
+<meta name="lang:search.tokenizer" content="[\s\-]+">
+
+
+<meta name="description" content="paradox-docs">
+<link rel="shortcut icon" href="assets/images/favicon.png">
+<title>cats-parse</title>
+<link rel="stylesheet" href="assets/stylesheets/application.451f80e5.css">
+<link rel="stylesheet" href="assets/stylesheets/application-palette.22915126.css">
+<meta name="theme-color" content="#ef5350" />
+<link rel="stylesheet" href="lib/material__tabs/dist/mdc.tabs.min.css">
+<link rel="stylesheet" href="lib/prettify/prettify.css">
+<script src="assets/javascripts/modernizr.1aa3b519.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,400i,700|Ubuntu+Mono">
+<style>
+body,input{font-family:"Ubuntu","Helvetica Neue",Helvetica,Arial,sans-serif}
+code,kbd,pre{font-family:"Ubuntu Mono","Courier New",Courier,monospace}
+</style>
+<link rel="stylesheet" href="assets/fonts/font-awesome.css">
+<link rel="stylesheet" href="assets/fonts/material-icons.css">
+<link rel="stylesheet" href="assets/stylesheets/paradox-material-theme.css">
+</head>
+<body
+data-md-color-primary="red"
+data-md-color-accent="orange"
+>
+<input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+<input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+<label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+<header class="md-header" data-md-component="header">
+<nav class="md-header-nav md-grid">
+<div class="md-flex">
+<div class="md-flex__cell md-flex__cell--shrink">
+<a href="index.html" title="cats-parse" class="md-header-nav__button md-logo">
+<i class="md-icon">local_library</i>
+</a>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
+</div>
+<div class="md-flex__cell md-flex__cell--stretch">
+<div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
+cats-parse
+</div>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+<label class="md-icon md-search__icon" for="__search"></label>
+<button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">&#xE5CD;</button>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix>
+<div class="md-search-result" data-md-component="result">
+<div class="md-search-result__meta">
+Type to start searching
+</div>
+<ol class="md-search-result__list"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<div class="md-header-nav__source">
+<a href="https://github.com/typelevel/cats-parse"
+title="Go to repository"
+class="md-source"
+data-md-source="github">
+<div class="md-source__icon">
+<i class="fa fa-github"></i>
+</div>
+<div class="md-source__repository">
+typelevel/cats-parse
+</div>
+</a>
+
+</div>
+</div>
+</div>
+</nav>
+</header>
+
+<div class="md-container">
+<main class="md-main">
+<div class="md-main__inner md-grid" data-md-component="container">
+<div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--primary" data-md-level="0" style="visibility: hidden">
+<label class="md-nav__title md-nav__title--site" for="drawer">
+<a href="index.html" title="cats-parse" class="md-nav__button md-logo">
+<span class="md-nav__button md-logo">
+<i class="md-icon">local_library</i>
+</a>
+<a href="index.html" title="cats-parse">
+cats-parse
+</a>
+</label>
+<div class="md-nav__source">
+<a href="https://github.com/typelevel/cats-parse"
+title="Go to repository"
+class="md-source"
+data-md-source="github">
+<div class="md-source__icon">
+<i class="fa fa-github"></i>
+</div>
+<div class="md-source__repository">
+typelevel/cats-parse
+</div>
+</a>
+
+</div>
+<ul>
+</ul>
+<nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="index.html#cats-parse" class="header">cats-parse</a>
+  <ul>
+    <li><a href="index.html#an-example" class="header">An Example</a></li>
+    <li><a href="index.html#performance" class="header">Performance</a></li>
+    <li><a href="index.html#migrating-from-fastparse" class="header">Migrating from Fastparse</a></li>
+    <li><a href="index.html#getting-and-giving-help" class="header">Getting and Giving Help</a></li>
+  </ul></li>
+</ul>
+</nav>
+
+</nav>
+<ul style="display: none">
+<li class="md-nav__item md-version" id="project.version">
+<label class="md-nav__link" for="__version">
+<i class="md-icon" title="Version">label_outline</i> 0.2-35-b456c60
+</label>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="index.html#cats-parse" class="header">cats-parse</a>
+  <ul>
+    <li><a href="index.html#an-example" class="header">An Example</a></li>
+    <li><a href="index.html#performance" class="header">Performance</a></li>
+    <li><a href="index.html#migrating-from-fastparse" class="header">Migrating from Fastparse</a></li>
+    <li><a href="index.html#getting-and-giving-help" class="header">Getting and Giving Help</a></li>
+  </ul></li>
+</ul>
+</nav>
+
+</div>
+</div>
+</div>
+<div class="md-content">
+<article class="md-content__inner md-typeset">
+<div class="md-content__searchable">
+<h1><a href="#cats-parse" name="cats-parse" class="anchor"><span class="anchor-link"></span></a>cats-parse</h1>
+<p><a href="https://github.com/typelevel/cats-parse/actions?query=workflow%3A%22Continuous+Integration%22"><img src="https://github.com/typelevel/cats-parse/workflows/Continuous%20Integration/badge.svg" alt="Continuous Integration" /></a><a href="https://codecov.io/gh/typelevel/cats-parse"><img src="https://codecov.io/gh/typelevel/cats-parse/branch/main/graph/badge.svg" alt="codecov" /></a></p>
+<p>A parsing library for the cats ecosystem.</p>
+<p>To use in sbt add, the following to your <code>libraryDependencies</code>: </p>
+<pre class="prettyprint"><code class="language-scala">// use this snippet for the JVM
+libraryDependencies += &quot;org.typelevel&quot; %% &quot;cats-parse&quot; % &quot;0.1.0&quot;
+
+// use this snippet for JS, or cross-building
+libraryDependencies += &quot;org.typelevel&quot; %%% &quot;cats-parse&quot; % &quot;0.1.0&quot;
+</code></pre>
+<p>The <a href="https://oss.sonatype.org/service/local/repositories/releases/archive/org/typelevel/cats-parse_2.12/0.0.1/cats-parse_2.12-0.0.1-javadoc.jar/!/cats/parse/index.html">API docs</a> are published.</p>
+<p>Why another parsing library? See this <a href="https://posco.medium.com/designing-a-parsing-library-in-scala-d5076de52536">blog post detailing the design</a>. To reiterate, this library has a few goals:</p>
+<ol>
+  <li>Compatability: should work on all scala platforms and recent versions. Currently it supports JVM, JS on versions 2.12, 2.13, and Dotty. The core library should have minimal dependencies. Currently this library only depends on cats.</li>
+  <li>Excellent performance: should be as fast or faster than any parser combinator that has comparable scala version support.</li>
+  <li>Cats friendliness: method names match cats style, and out of the box support for cats typeclasses.</li>
+  <li>Precise errors: following the <a href="https://hackage.haskell.org/package/trifecta">Haskell Trifecta parsing library</a>, backtracking is opt-in vs opt-out. This design tends to make it easier to write parsers that point correctly to failure points.</li>
+  <li>Safety: by introducing Parser1, a parser that must consume at least one character on success, some combinators and methods can be made safer to use and less prone to runtime errors.</li>
+  <li>Stability: we are very reluctant to break compatibility between versions. We want to put a minimal tax on users to stay on the latest versions.</li>
+</ol>
+<h1><a href="#an-example" name="an-example" class="anchor"><span class="anchor-link"></span></a>An Example</h1>
+<p>Below is most of a json parser (the string unescaping is elided). This example can give you a feel for what it is like to use this library.</p>
+<pre class="prettyprint"><code class="language-scala">import cats.parse.{Parser =&gt; P, Parser1, Numbers}
+import org.typelevel.jawn.ast._
+
+object Json {
+  private[this] val whitespace: Parser1[Unit] = P.charIn(&quot; \t\r\n&quot;).void
+  private[this] val whitespaces0: P[Unit] = whitespace.rep.void
+
+  val parser: Parser1[JValue] = {
+    val recurse = P.defer1(parser)
+    val pnull = P.string1(&quot;null&quot;).as(JNull)
+    val bool = P.string1(&quot;true&quot;).as(JBool.True).orElse1(P.string1(&quot;false&quot;).as(JBool.False))
+    val justStr = JsonStringUtil.escapedString(&#39;&quot;&#39;)
+    val str = justStr.map(JString(_))
+    val num = Numbers.jsonNumber.map(JNum(_))
+
+    val listSep: Parser1[Unit] =
+      P.char(&#39;,&#39;).surroundedBy(whitespaces0).void
+
+    def rep[A](pa: Parser1[A]): P[List[A]] =
+      P.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
+
+    val list = rep(recurse).with1
+      .between(P.char(&#39;[&#39;), P.char(&#39;]&#39;))
+      .map { vs =&gt; JArray.fromSeq(vs) }
+
+    val kv: Parser1[(String, JValue)] =
+      justStr ~ (P.char(&#39;:&#39;).surroundedBy(whitespaces0) *&gt; recurse)
+
+    val obj = rep(kv).with1
+      .between(P.char(&#39;{&#39;), P.char(&#39;}&#39;))
+      .map { vs =&gt; JObject.fromSeq(vs) }
+
+    P.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
+  }
+
+  // any whitespace followed by json followed by whitespace followed by end
+  val parserFile: Parser1[JValue] = whitespaces0.with1 *&gt; parser &lt;* (whitespaces0 ~ P.end)
+}
+</code></pre>
+<h1><a href="#performance" name="performance" class="anchor"><span class="anchor-link"></span></a>Performance</h1>
+<p>We have a benchmark suite that compares JSON parsing across several commonly used libraries. A recent (2020/11/02) result is below:</p>
+<pre><code>[info] Benchmark                        Mode  Cnt    Score    Error  Units
+[info] BarBench.catsParseParse          avgt   10   ≈ 10⁻³           ms/op
+[info] BarBench.fastparseParse          avgt   10   ≈ 10⁻⁴           ms/op
+[info] BarBench.jawnParse               avgt   10   ≈ 10⁻⁴           ms/op
+[info] BarBench.parboiled2Parse         avgt   10   ≈ 10⁻⁴           ms/op
+[info] BarBench.parsleyParseCold        avgt   10    0.083 ±  0.001  ms/op
+[info] Bla25Bench.catsParseParse        avgt   10   34.558 ±  0.192  ms/op
+[info] Bla25Bench.fastparseParse        avgt   10   21.651 ±  0.050  ms/op
+[info] Bla25Bench.jawnParse             avgt   10    9.758 ±  0.059  ms/op
+[info] Bla25Bench.parboiled2Parse       avgt   10   29.403 ±  0.082  ms/op
+[info] Bla25Bench.parsleyParseCold      avgt   10   38.594 ±  0.220  ms/op
+[info] CountriesBench.catsParseParse    avgt   10   12.656 ±  0.031  ms/op
+[info] CountriesBench.fastparseParse    avgt   10    6.722 ±  0.040  ms/op
+[info] CountriesBench.jawnParse         avgt   10    1.720 ±  0.004  ms/op
+[info] CountriesBench.parboiled2Parse   avgt   10    5.674 ±  0.018  ms/op
+[info] CountriesBench.parsleyParseCold  avgt   10   16.040 ±  0.070  ms/op
+[info] Qux2Bench.catsParseParse         avgt   10   10.692 ±  0.040  ms/op
+[info] Qux2Bench.fastparseParse         avgt   10    9.195 ±  0.074  ms/op
+[info] Qux2Bench.jawnParse              avgt   10    2.792 ±  0.014  ms/op
+[info] Qux2Bench.parboiled2Parse        avgt   10    8.641 ±  0.034  ms/op
+[info] Qux2Bench.parsleyParseCold       avgt   10   14.539 ±  0.222  ms/op
+[info] Ugh10kBench.catsParseParse       avgt   10   87.602 ±  0.554  ms/op
+[info] Ugh10kBench.fastparseParse       avgt   10   63.500 ±  0.144  ms/op
+[info] Ugh10kBench.jawnParse            avgt   10   16.802 ±  0.082  ms/op
+[info] Ugh10kBench.parboiled2Parse      avgt   10   49.871 ±  0.161  ms/op
+[info] Ugh10kBench.parsleyParseCold     avgt   10  104.814 ±  0.460  ms/op
+</code></pre>
+<p>Note that parboiled and fastparse both use macros that make them very difficult to port to Dotty. Jawn is a specialized and optimized JSON parser, so that can be considered an upper bound on performance. Keep in mind that parser performance depends both on the parsing library but also how the parser is written, but these results suggest that this library is already quite competitive.</p>
+<h1><a href="#migrating-from-fastparse" name="migrating-from-fastparse" class="anchor"><span class="anchor-link"></span></a>Migrating from Fastparse</h1>
+<p>You should find all the Fastparse methods you are used to. If not, feel free to open an issue. There are a few things to keep in mind:</p>
+<ol>
+  <li>In fastparse, you wrap a parser in <code>P(...)</code> to make the interior lazy. Following cats, to get a lazily constructed parser use <code>Parser.defer</code> or <code>cats.Defer[Parser].defer</code>.</li>
+  <li>In fastparse the <code>~</code> operator does tuple concatenation. This can be nice, but also complex to see what the resulting type is. In cats-parse, <code>~</code> always returns a Tuple2 containing the parsed values from the left and right. To recover fastparse-like behavior, use cats syntax <code>(pa, pb, pc...).tupled</code>.</li>
+  <li>In fastparse, backtracking is opt-out by using cuts. In cats-parse, backtracking is opt-in using <code>.backtrack</code>. Put another way, normal product operations in cats-parse are like <code>~/</code> in fastparse.</li>
+  <li>In cats-parse, using <code>*&gt;</code>, <code>&lt;*</code>, and <code>.void</code> methods can be a significant optimization: if you don&rsquo;t need a result, communicate that to the library with those methods.</li>
+</ol>
+<h1><a href="#getting-and-giving-help" name="getting-and-giving-help" class="anchor"><span class="anchor-link"></span></a>Getting and Giving Help</h1>
+<p>We welcome new contributors and new maintainers. Please feel free to open issues and PRs. If you have any problem using the library, an issue is the best way to ask a question until we flush out more documentation.</p>
+</div>
+<div>
+<a href="https://github.com/typelevel/cats-parse/tree/v0.2-35-b456c60/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
+Edit this page
+</a>
+</div>
+<div class="print-only">
+<span class="md-source-file md-version">
+0.2-35-b456c60
+</span>
+</div>
+</article>
+</div>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-footer-copyright">
+<div class="md-footer-copyright__highlight">
+Copyright (c) 2020 Typelevel
+</div>
+Powered by
+<a href="https://github.com/lightbend/paradox">Paradox</a>
+and
+<a href="https://jonas.github.io/paradox-material-theme/">Paradox Material Theme</a>
+
+</div>
+</div>
+</div>
+</footer>
+
+</div>
+<script src="assets/javascripts/application.583bbe55.js"></script>
+<script src="assets/javascripts/paradox-material-theme.js"></script>
+<script>app.initialize({version:"0.17",url:{base:"."}})</script>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">
+document.addEventListener("DOMContentLoaded", function(event) {
+window.prettyPrint && prettyPrint();
+});
+</script>
+</body>
+</html>
