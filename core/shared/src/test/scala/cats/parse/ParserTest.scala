@@ -1588,6 +1588,22 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("select(pa.map(Left(_)))(pf) == pf.ap(pa)") {
+    forAll(ParserGen.gen, ParserGen.gen) { (genP, genRes) =>
+      val pa = genP.fa
+      val pf = null: Parser[genP.A => genRes.A]
+      assertEquals(Parser.select(pa.map(Left(_)))(pf), pf.ap(pa))
+    }
+  }
+
+  property("select(pa.map(Right(_)))(pf) == pa") {
+    forAll(ParserGen.gen, ParserGen.gen) { (genP, genRes) =>
+      val pa = genRes.fa
+      val pf = null: Parser[genP.A => genRes.A]
+      assertEquals(Parser.select(pa.map(Right(_)))(pf), pa)
+    }
+  }
+
   property("p.filter(_ => true) == p") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.filter(_ => true).parse(str)
