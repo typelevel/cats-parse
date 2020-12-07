@@ -1338,8 +1338,7 @@ object Parser extends ParserInstances {
           // we discard any allocations done by fn
           unmap(p)
         case Select(p, fn) =>
-          // we discard any allocations done by fn
-          Select(p, unmap(fn).map(Function.const))
+          Select(p, unmap(fn).asInstanceOf[Parser[Any => Any]])
         case StringP(s) =>
           // StringP is added privately, and only after unmap
           s
@@ -1742,7 +1741,13 @@ object Parser extends ParserInstances {
       state.capture = cap
       if (state.error eq null)
         either match {
-          case Left(a) => fn.map(_(a)).parseMut(state)
+          case Left(a) =>
+            if (state.capture) {
+              fn.map(_(a)).parseMut(state)
+            } else {
+              fn.parseMut(state)
+              null.asInstanceOf[B]
+            }
           case Right(b) => b
         }
       else null.asInstanceOf[B]
