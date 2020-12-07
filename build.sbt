@@ -59,6 +59,20 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   )
 )
 
+ThisBuild / githubWorkflowPublish ++= Seq(
+  WorkflowStep.Sbt(List("docs/paradox")),
+  WorkflowStep.Use(
+    "JamesIves",
+    "github-pages-deploy-action",
+    "3.7.1",
+    params = Map(
+      "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
+      "BRANCH" -> "gh-pages",
+      "FOLDER" -> "docs/target/paradox/site/main"
+    )
+  )
+)
+
 ThisBuild / homepage := Some(url("https://github.com/typelevel/cats-parse"))
 
 ThisBuild / scmInfo := Some(
