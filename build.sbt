@@ -60,7 +60,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 ThisBuild / githubWorkflowPublish ++= Seq(
-  WorkflowStep.Sbt(List("docs/paradox")),
+  WorkflowStep.Sbt(List("docs/makeSite")),
   WorkflowStep.Use(
     "JamesIves",
     "github-pages-deploy-action",
@@ -68,7 +68,7 @@ ThisBuild / githubWorkflowPublish ++= Seq(
     params = Map(
       "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
       "BRANCH" -> "gh-pages",
-      "FOLDER" -> "docs/target/paradox/site/main"
+      "FOLDER" -> "docs/target/site"
     )
   )
 )
@@ -93,7 +93,13 @@ lazy val root = project
   .settings(scalaVersion := "2.13.4")
 
 lazy val docs = project
-  .enablePlugins(ParadoxPlugin, ParadoxMaterialThemePlugin, MdocPlugin, NoPublishPlugin)
+  .enablePlugins(
+    ParadoxSitePlugin,
+    ParadoxMaterialThemePlugin,
+    MdocPlugin,
+    NoPublishPlugin,
+    GhpagesPlugin
+  )
   .settings(
     name := "paradox-docs",
     libraryDependencies += jawnAst,
@@ -102,6 +108,7 @@ lazy val docs = project
       "version" -> version.value
     ),
     githubWorkflowArtifactUpload := false,
+    git.remoteRepo := "git@github.com:typelevel/cats-parse.git",
     mdocIn := (Compile / baseDirectory).value / "src",
     Compile / paradox / sourceDirectory := mdocOut.value,
     Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value,

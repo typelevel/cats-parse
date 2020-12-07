@@ -147,13 +147,13 @@ jobs:
 
       - run: sbt ++${{ matrix.scala }} release
 
-      - run: sbt ++${{ matrix.scala }} docs/paradox
+      - run: sbt ++${{ matrix.scala }} docs/makeSite
 
       - uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: gh-pages
-          FOLDER: docs/target/paradox/site/main
+          FOLDER: docs/target/site
 
   build-docs:
     name: Build docs
