@@ -1337,9 +1337,9 @@ object Parser extends ParserInstances {
         case Map(p, _) =>
           // we discard any allocations done by fn
           unmap(p)
-        case Select(p, _) =>
+        case Select(p, fn) =>
           // we discard any allocations done by fn
-          unmap(p)
+          Select(p, unmap(fn).map(Function.const))
         case StringP(s) =>
           // StringP is added privately, and only after unmap
           s
@@ -1736,8 +1736,11 @@ object Parser extends ParserInstances {
         fn: Parser[A => B],
         state: State
     ): B = {
+      val cap = state.capture
+      state.capture = true
       val either = parser.parseMut(state)
-      if ((state.error eq null) && state.capture)
+      state.capture = cap
+      if (state.error eq null)
         either match {
           case Left(a) => fn.map(_(a)).parseMut(state)
           case Right(b) => b
