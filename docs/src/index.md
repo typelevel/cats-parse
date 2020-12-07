@@ -4,9 +4,15 @@
 
 A parsing library for the cats ecosystem.
 
-To use in sbt add, the following to your `libraryDependencies`:
-* `"org.typelevel" %% "cats-parse" % "0.1.0"`
-* or `"org.typelevel" %%% "cats-parse" % "0.1.0"` in a Scala.js project. 
+To use in sbt add, the following to your `libraryDependencies`: 
+
+```scala
+// use this snippet for the JVM
+libraryDependencies += "org.typelevel" %% "cats-parse" % "0.1.0"
+
+// use this snippet for JS, or cross-building
+libraryDependencies += "org.typelevel" %%% "cats-parse" % "0.1.0"
+```
 
 The [API docs](https://oss.sonatype.org/service/local/repositories/releases/archive/org/typelevel/cats-parse_2.12/0.0.1/cats-parse_2.12-0.0.1-javadoc.jar/!/cats/parse/index.html) are published.
 
@@ -25,6 +31,7 @@ this library has a few goals:
 
 Below is most of a json parser (the string unescaping is elided). This example can give you a feel
 for what it is like to use this library.
+
 ```scala mdoc:invisible
 import cats.parse.bench.self.JsonStringUtil
 ```

@@ -59,6 +59,20 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   )
 )
 
+ThisBuild / githubWorkflowPublish ++= Seq(
+  WorkflowStep.Sbt(List("docs/makeSite")),
+  WorkflowStep.Use(
+    "JamesIves",
+    "github-pages-deploy-action",
+    "3.7.1",
+    params = Map(
+      "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
+      "BRANCH" -> "gh-pages",
+      "FOLDER" -> "docs/target/site"
+    )
+  )
+)
+
 ThisBuild / homepage := Some(url("https://github.com/typelevel/cats-parse"))
 
 ThisBuild / scmInfo := Some(
@@ -79,19 +93,30 @@ lazy val root = project
   .settings(scalaVersion := "2.13.4")
 
 lazy val docs = project
-  .enablePlugins(ParadoxPlugin, MdocPlugin, NoPublishPlugin)
+  .enablePlugins(
+    ParadoxSitePlugin,
+    ParadoxMaterialThemePlugin,
+    MdocPlugin,
+    NoPublishPlugin,
+    GhpagesPlugin
+  )
   .settings(
     name := "paradox-docs",
     libraryDependencies += jawnAst,
-    paradoxTheme := Some(builtinParadoxTheme("generic")),
     paradoxProperties in Compile ++= Map(
       "empty" -> "",
       "version" -> version.value
     ),
     githubWorkflowArtifactUpload := false,
-    mdocIn := (paradox / sourceDirectory).value,
-    paradox / sourceManaged := mdocOut.value,
-    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value
+    git.remoteRepo := "git@github.com:typelevel/cats-parse.git",
+    mdocIn := (Compile / baseDirectory).value / "src",
+    Compile / paradox / sourceDirectory := mdocOut.value,
+    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value,
+    Compile / paradoxMaterialTheme := ParadoxMaterialTheme()
+      .withColor("red", "orange")
+      .withFont("Ubuntu", "Ubuntu Mono")
+      .withCopyright("Copyright (c) 2020 Typelevel")
+      .withRepository(uri("https://github.com/typelevel/cats-parse"))
   )
   .dependsOn(coreJVM, bench)
 
