@@ -154,4 +154,21 @@ class LocationMapTest extends munit.ScalaCheckSuite {
       }
     }
   }
+
+  property("if x > y && toLineCol(x).isDefined, then toLineCol(x) > toLineCol(y)") {
+    forAll { (s: String, x: Int, y: Int) =>
+      val lm = LocationMap(s)
+      val lcx = lm.toLineCol(x)
+      val lcy = lm.toLineCol(y)
+
+      if (x > y && y >= 0 && lcx.isDefined) {
+        (lcx, lcy) match {
+          case (Some((lx, cx)), Some((ly, cy))) =>
+            assert(lx > ly || ((lx == ly) && (cx > cy)))
+          case other =>
+            fail(other.toString)
+        }
+      }
+    }
+  }
 }
