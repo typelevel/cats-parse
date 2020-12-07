@@ -245,21 +245,28 @@ object ParserGen {
   }
 
   def selected(ga: Gen[GenT[Parser]]): Gen[GenT[Parser]] =
-    Gen.zip(ga, pures).flatMap { case (parser, genRes) =>
-      val gpab = Gen.either(parser.fa, genRes.fa.map(Parser.pure)).map {
-        _ match {
-          case Left(pa) => pa.map(Left(_))
-          case Right(pb) => pb.map(Right(_))
+    Gen.zip(pures, pures).flatMap { case (genRes1, genRes2) =>
+      val genPR: Gen[Parser[Either[genRes1.A, genRes2.A]]] = {
+        ga.flatMap { init =>
+          val mapFn: Gen[init.A => Either[genRes1.A, genRes2.A]] =
+            Gen.function1(Gen.either(genRes1.fa, genRes2.fa))(init.cogen)
+          mapFn.map { fn =>
+            init.fa.map(fn)
+          }
         }
       }
 
-      val gfn: Gen[Parser[parser.A => genRes.A]] =
-        Gen.function1(genRes.fa)(parser.cogen).map(Parser.pure)
-
-      gpab.flatMap { pab =>
-        gfn.flatMap { fn =>
-          GenT(Parser.select(pab)(fn))(genRes.cogen)
+      val gfn: Gen[Parser[genRes1.A => genRes2.A]] =
+        ga.flatMap { init =>
+          val mapFn: Gen[init.A => (genRes1.A => genRes2.A)] =
+            Gen.function1(Gen.function1(genRes2.fa)(genRes1.cogen))(init.cogen)
+          mapFn.map { fn =>
+            init.fa.map(fn)
+          }
         }
+
+      Gen.zip(genPR, gfn).map { case (pab, fn) =>
+        GenT(Parser.select(pab)(fn))(genRes2.cogen)
       }
     }
 
