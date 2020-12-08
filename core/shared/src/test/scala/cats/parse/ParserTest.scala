@@ -244,6 +244,32 @@ object ParserGen {
     val fn: A => F[B]
   }
 
+  def selected(ga: Gen[GenT[Parser]]): Gen[GenT[Parser]] =
+    Gen.zip(pures, pures).flatMap { case (genRes1, genRes2) =>
+      val genPR: Gen[Parser[Either[genRes1.A, genRes2.A]]] = {
+        ga.flatMap { init =>
+          val mapFn: Gen[init.A => Either[genRes1.A, genRes2.A]] =
+            Gen.function1(Gen.either(genRes1.fa, genRes2.fa))(init.cogen)
+          mapFn.map { fn =>
+            init.fa.map(fn)
+          }
+        }
+      }
+
+      val gfn: Gen[Parser[genRes1.A => genRes2.A]] =
+        ga.flatMap { init =>
+          val mapFn: Gen[init.A => (genRes1.A => genRes2.A)] =
+            Gen.function1(Gen.function1(genRes2.fa)(genRes1.cogen))(init.cogen)
+          mapFn.map { fn =>
+            init.fa.map(fn)
+          }
+        }
+
+      Gen.zip(genPR, gfn).map { case (pab, fn) =>
+        GenT(Parser.select(pab)(fn))(genRes2.cogen)
+      }
+    }
+
   def flatMapped(ga: Gen[GenT[Parser]]): Gen[GenT[Parser]] =
     Gen.zip(ga, pures).flatMap { case (parser, genRes) =>
       val genPR: Gen[Parser[genRes.A]] = {
@@ -311,6 +337,32 @@ object ParserGen {
         .map { case (init, fn) =>
           GenT(FlatMap[Parser1].tailRecM(init)(fn))(genRes2.cogen)
         }
+    }
+
+  def selected1(ga1: Gen[GenT[Parser1]], ga0: Gen[GenT[Parser]]): Gen[GenT[Parser1]] =
+    Gen.zip(pures, pures).flatMap { case (genRes1, genRes2) =>
+      val genPR1: Gen[Parser1[Either[genRes1.A, genRes2.A]]] = {
+        ga1.flatMap { init =>
+          val mapFn: Gen[init.A => Either[genRes1.A, genRes2.A]] =
+            Gen.function1(Gen.either(genRes1.fa, genRes2.fa))(init.cogen)
+          mapFn.map { fn =>
+            init.fa.map(fn)
+          }
+        }
+      }
+
+      val gfn: Gen[Parser[genRes1.A => genRes2.A]] =
+        ga0.flatMap { init =>
+          val mapFn: Gen[init.A => (genRes1.A => genRes2.A)] =
+            Gen.function1(Gen.function1(genRes2.fa)(genRes1.cogen))(init.cogen)
+          mapFn.map { fn =>
+            init.fa.map(fn)
+          }
+        }
+
+      Gen.zip(genPR1, gfn).map { case (pab, fn) =>
+        GenT(Parser.select1(pab)(fn))(genRes2.cogen)
+      }
     }
 
   def flatMapped1(ga: Gen[GenT[Parser]], ga1: Gen[GenT[Parser1]]): Gen[GenT[Parser1]] =
@@ -403,6 +455,7 @@ object ParserGen {
       (1, rec.map { gen => GenT(!gen.fa) }),
       (1, Gen.lzy(gen1.map(rep(_)))),
       (1, rec.flatMap(mapped(_))),
+      (1, rec.flatMap(selected(_))),
       (1, tailRecM(Gen.lzy(gen1))),
       (1, Gen.choose(0, 10).map { l => GenT(Parser.length(l)) }),
       (1, flatMapped(rec)),
@@ -426,6 +479,7 @@ object ParserGen {
       (2, rec.map(backtrack1(_))),
       (1, rec.map(defer1(_))),
       (1, rec.map(rep1(_))),
+      (1, selected1(rec, gen)),
       (1, rec.flatMap(mapped1(_))),
       (1, flatMapped1(gen, rec)),
       (1, tailRecM1(rec)),
@@ -1561,4 +1615,36 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  /*
+  property("select(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, genRes, str) =>
+      val pa = genP.fa
+      val pf = null: Parser[genP.A => genRes.A]
+      assertEquals(Parser.select(pa.map(Left(_)))(pf).parse(str), pf.ap(pa).parse(str))
+    }
+  }
+   */
+
+  property("select(pa.map(Right(_)))(pf) == pa") {
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, genRes, str) =>
+      val pa = genRes.fa
+      val pf: Parser[genP.A => genRes.A] = Parser.fail
+      assertEquals(Parser.select(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
+    }
+  }
+
+  property("p.filter(_ => true) == p") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+      val res0 = genP.fa.filter(_ => true).parse(str)
+      val res1 = genP.fa.parse(str)
+      assertEquals(res0, res1)
+    }
+  }
+
+  property("p.filter(_ => false) fails") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+      val res = genP.fa.filter(_ => false).parse(str)
+      assert(res.isLeft)
+    }
+  }
 }

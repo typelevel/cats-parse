@@ -189,6 +189,21 @@ sealed abstract class Parser[+A] {
   def map[B](fn: A => B): Parser[B] =
     Parser.map(this)(fn)
 
+  /** If the predicate is not true, fail
+    * you may want .filter(fn).backtrack so if the filter fn
+    * fails you can fall through in an oneOf or orElse
+    *
+    * Without the backtrack, a failure of the function will
+    * be an arresting failure.
+    */
+  def filter(fn: A => Boolean): Parser[A] = {
+    val leftUnit = Left(())
+    Parser.select(this.map { a =>
+      if (fn(a)) Right(a)
+      else leftUnit
+    })(Parser.Fail)
+  }
+
   /** Dynamically construct the next parser based on the previously
     * parsed value.
     *
@@ -295,6 +310,16 @@ sealed abstract class Parser[+A] {
   * what kind of parsing failures it can return.
   */
 sealed abstract class Parser1[+A] extends Parser[A] {
+
+  /** This method overrides `Parser#filter` to refine the return type.
+    */
+  override def filter(fn: A => Boolean): Parser1[A] = {
+    val leftUnit = Left(())
+    Parser.select1(this.map { a =>
+      if (fn(a)) Right(a)
+      else leftUnit
+    })(Parser.Fail)
+  }
 
   /** This method overrides `Parser#void` to refine the return type.
     */
@@ -911,6 +936,22 @@ object Parser extends ParserInstances {
       case _ => Impl.Map1(p, fn)
     }
 
+  def select[A, B](p: Parser[Either[A, B]])(fn: Parser[A => B]): Parser[B] =
+    Impl
+      .Select(p, fn)
+      .map {
+        case Left((a, fn)) => fn(a)
+        case Right(b) => b
+      }
+
+  def select1[A, B](p: Parser1[Either[A, B]])(fn: Parser[A => B]): Parser1[B] =
+    Impl
+      .Select1(p, fn)
+      .map {
+        case Left((a, fn)) => fn(a)
+        case Right(b) => b
+      }
+
   /** Standard monadic flatMap
     *  Avoid this function if possible. If you can
     *  instead use product, ~, *>, or <* use that.
@@ -1257,6 +1298,9 @@ object Parser extends ParserInstances {
           case later => map2(pa, defer(later.value))(fn)
         })
 
+      override def ap[A, B](pf: Parser1[A => B])(pa: Parser1[A]): Parser1[B] =
+        map(product(pf, pa)) { case (fn, a) => fn(a) }
+
       def tailRecM[A, B](init: A)(fn: A => Parser1[Either[A, B]]): Parser1[B] =
         tailRecM1(init)(fn)
 
@@ -1331,6 +1375,8 @@ object Parser extends ParserInstances {
         case Map(p, _) =>
           // we discard any allocations done by fn
           unmap(p)
+        case Select(p, fn) =>
+          Select(p, unmap(fn))
         case StringP(s) =>
           // StringP is added privately, and only after unmap
           s
@@ -1406,6 +1452,8 @@ object Parser extends ParserInstances {
         case Map1(p, _) =>
           // we discard any allocations done by fn
           unmap1(p)
+        case Select1(p, fn) =>
+          Select1(p, unmap(fn))
         case StringP1(s) =>
           // StringP is added privately, and only after unmap
           s
@@ -1720,6 +1768,41 @@ object Parser extends ParserInstances {
 
     case class Map1[A, B](parser: Parser1[A], fn: A => B) extends Parser1[B] {
       override def parseMut(state: State): B = Impl.map(parser, fn, state)
+    }
+
+    final def select[A, B, C](
+        pab: Parser[Either[A, B]],
+        pc: Parser[C],
+        state: State
+    ): Either[(A, C), B] = {
+      val cap = state.capture
+      state.capture = true
+      val either = pab.parseMut(state)
+      state.capture = cap
+      if (state.error eq null)
+        either match {
+          case Left(a) =>
+            val c = pc.parseMut(state)
+            if (cap && (state.error eq null)) {
+              Left((a, c))
+            } else {
+              null
+            }
+          case r @ Right(_) => r.leftCast
+        }
+      else null
+    }
+
+    case class Select[A, B, C](pab: Parser[Either[A, B]], pc: Parser[C])
+        extends Parser[Either[(A, C), B]] {
+      override def parseMut(state: State): Either[(A, C), B] =
+        Impl.select(pab, pc, state)
+    }
+
+    case class Select1[A, B, C](pab: Parser1[Either[A, B]], pc: Parser[C])
+        extends Parser1[Either[(A, C), B]] {
+      override def parseMut(state: State): Either[(A, C), B] =
+        Impl.select(pab, pc, state)
     }
 
     final def flatMap[A, B](parser: Parser[A], fn: A => Parser[B], state: State): B = {
@@ -2086,6 +2169,9 @@ abstract class ParserInstances {
           case Now(pb) => map2(pa, pb)(fn)
           case later => map2(pa, defer(later.value))(fn)
         })
+
+      override def ap[A, B](pf: Parser[A => B])(pa: Parser[A]): Parser[B] =
+        map(product(pf, pa)) { case (fn, a) => fn(a) }
 
       def flatMap[A, B](fa: Parser[A])(fn: A => Parser[B]): Parser[B] =
         Parser.flatMap(fa)(fn)
