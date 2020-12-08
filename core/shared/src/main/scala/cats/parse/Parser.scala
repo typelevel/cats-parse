@@ -311,7 +311,7 @@ sealed abstract class Parser[+A] {
   */
 sealed abstract class Parser1[+A] extends Parser[A] {
 
-  /** This method overrides `Parser#void` to refine the return type.
+  /** This method overrides `Parser#filter` to refine the return type.
     */
   override def filter(fn: A => Boolean): Parser1[A] = {
     val leftUnit = Left(())
