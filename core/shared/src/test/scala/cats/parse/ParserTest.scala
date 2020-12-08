@@ -339,6 +339,32 @@ object ParserGen {
         }
     }
 
+  def selected1(ga1: Gen[GenT[Parser1]], ga0: Gen[GenT[Parser]]): Gen[GenT[Parser1]] =
+    Gen.zip(pures, pures).flatMap { case (genRes1, genRes2) =>
+      val genPR1: Gen[Parser1[Either[genRes1.A, genRes2.A]]] = {
+        ga1.flatMap { init =>
+          val mapFn: Gen[init.A => Either[genRes1.A, genRes2.A]] =
+            Gen.function1(Gen.either(genRes1.fa, genRes2.fa))(init.cogen)
+          mapFn.map { fn =>
+            init.fa.map(fn)
+          }
+        }
+      }
+
+      val gfn: Gen[Parser[genRes1.A => genRes2.A]] =
+        ga0.flatMap { init =>
+          val mapFn: Gen[init.A => (genRes1.A => genRes2.A)] =
+            Gen.function1(Gen.function1(genRes2.fa)(genRes1.cogen))(init.cogen)
+          mapFn.map { fn =>
+            init.fa.map(fn)
+          }
+        }
+
+      Gen.zip(genPR1, gfn).map { case (pab, fn) =>
+        GenT(Parser.select1(pab)(fn))(genRes2.cogen)
+      }
+    }
+
   def flatMapped1(ga: Gen[GenT[Parser]], ga1: Gen[GenT[Parser1]]): Gen[GenT[Parser1]] =
     Gen.zip(ga, ga1, pures).flatMap { case (parser, parser1, genRes) =>
       val genPR: Gen[Parser1[genRes.A]] = {
@@ -453,6 +479,7 @@ object ParserGen {
       (2, rec.map(backtrack1(_))),
       (1, rec.map(defer1(_))),
       (1, rec.map(rep1(_))),
+      (1, selected1(rec, gen)),
       (1, rec.flatMap(mapped1(_))),
       (1, flatMapped1(gen, rec)),
       (1, tailRecM1(rec)),
@@ -1588,19 +1615,21 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("select(pa.map(Left(_)))(pf) == pf.ap(pa)") {
-    forAll(ParserGen.gen, ParserGen.gen) { (genP, genRes) =>
+  /*
+  property("select(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, genRes, str) =>
       val pa = genP.fa
       val pf = null: Parser[genP.A => genRes.A]
-      assertEquals(Parser.select(pa.map(Left(_)))(pf), pf.ap(pa))
+      assertEquals(Parser.select(pa.map(Left(_)))(pf).parse(str), pf.ap(pa).parse(str))
     }
   }
+   */
 
   property("select(pa.map(Right(_)))(pf) == pa") {
-    forAll(ParserGen.gen, ParserGen.gen) { (genP, genRes) =>
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, genRes, str) =>
       val pa = genRes.fa
-      val pf = null: Parser[genP.A => genRes.A]
-      assertEquals(Parser.select(pa.map(Right(_)))(pf), pa)
+      val pf: Parser[genP.A => genRes.A] = Parser.fail
+      assertEquals(Parser.select(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
     }
   }
 
