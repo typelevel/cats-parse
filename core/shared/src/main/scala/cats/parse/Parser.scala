@@ -936,6 +936,12 @@ object Parser extends ParserInstances {
       case _ => Impl.Map1(p, fn)
     }
 
+  /** Parse p and if we get the Left side, parse fn
+    *  This function name comes from seletive functors.
+    *  This should be more efficient than flatMap since
+    *  the fn Parser is evaluated once, not on every item
+    *  parsed
+    */
   def select[A, B](p: Parser[Either[A, B]])(fn: Parser[A => B]): Parser[B] =
     Impl
       .Select(p, fn)
@@ -944,6 +950,8 @@ object Parser extends ParserInstances {
         case Right(b) => b
       }
 
+  /** Parser1 version of select
+    */
   def select1[A, B](p: Parser1[Either[A, B]])(fn: Parser[A => B]): Parser1[B] =
     Impl
       .Select1(p, fn)
@@ -1318,6 +1326,27 @@ object Parser extends ParserInstances {
 
       override def productR[A, B](pa: Parser1[A])(pb: Parser1[B]): Parser1[B] =
         map(product(pa.void, pb)) { case (_, b) => b }
+
+      override def productLEval[A, B](fa: Parser1[A])(fb: Eval[Parser1[B]]): Parser1[A] = {
+        val pb =
+          fb match {
+            case Now(pb) => pb
+            case notNow => defer(notNow.value)
+          }
+
+        productL(fa)(pb)
+      }
+
+      override def productREval[A, B](fa: Parser1[A])(fb: Eval[Parser1[B]]): Parser1[B] = {
+        val pb =
+          fb match {
+            case Now(pb) => pb
+            case notNow => defer(notNow.value)
+          }
+
+        productR(fa)(pb)
+      }
+
     }
 
   private object Impl {
@@ -2193,5 +2222,26 @@ abstract class ParserInstances {
 
       override def productR[A, B](pa: Parser[A])(pb: Parser[B]): Parser[B] =
         map(product(pa.void, pb)) { case (_, b) => b }
+
+      override def productLEval[A, B](fa: Parser[A])(fb: Eval[Parser[B]]): Parser[A] = {
+        val pb =
+          fb match {
+            case Now(pb) => pb
+            case notNow => defer(notNow.value)
+          }
+
+        productL(fa)(pb)
+      }
+
+      override def productREval[A, B](fa: Parser[A])(fb: Eval[Parser[B]]): Parser[B] = {
+        val pb =
+          fb match {
+            case Now(pb) => pb
+            case notNow => defer(notNow.value)
+          }
+
+        productR(fa)(pb)
+      }
+
     }
 }
