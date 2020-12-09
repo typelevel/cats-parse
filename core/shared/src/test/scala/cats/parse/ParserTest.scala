@@ -1647,4 +1647,28 @@ class ParserTest extends munit.ScalaCheckSuite {
       assert(res.isLeft)
     }
   }
+
+  property("select on pure values works as expected") {
+    forAll { (left: Option[Either[Int, String]], right: Option[Int => String], str: String) =>
+      val pleft = left match {
+        case Some(e) => Parser.pure(e)
+        case None => Parser.fail
+      }
+
+      val pright = right match {
+        case Some(f) => Parser.pure(f)
+        case None => Parser.fail
+      }
+
+      assertEquals(
+        Parser.select(pleft)(pright).parse(str).toOption.map(_._2),
+        left.flatMap {
+          case Left(i) => right.map(_(i))
+          case Right(s) =>
+            // here even if right is None we have a result
+            Some(s)
+        }
+      )
+    }
+  }
 }
