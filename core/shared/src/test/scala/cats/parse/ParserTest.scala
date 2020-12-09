@@ -496,9 +496,28 @@ object ParserGen {
     )
   }
 
+  def genParser[A](genA: Gen[A]): Gen[Parser[A]] =
+    for {
+      genT <- gen
+      fn <- Gen.function1(genA)(genT.cogen)
+    } yield genT.fa.map(fn)
+
+  def genParser1[A](genA: Gen[A]): Gen[Parser1[A]] =
+    for {
+      genT <- gen1
+      fn <- Gen.function1(genA)(genT.cogen)
+    } yield genT.fa.map(fn)
+
+  implicit def arbParser[A: Arbitrary]: Arbitrary[Parser[A]] =
+    Arbitrary(genParser(Arbitrary.arbitrary[A]))
+
+  implicit def arbParser1[A: Arbitrary]: Arbitrary[Parser1[A]] =
+    Arbitrary(genParser1(Arbitrary.arbitrary[A]))
 }
 
 class ParserTest extends munit.ScalaCheckSuite {
+
+  import ParserGen.{arbParser, arbParser1}
 
   val tests: Int = if (BitSetUtil.isScalaJs) 50 else 2000
 
@@ -1517,6 +1536,20 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("a.backtrack.peek.orElse(b.peek) == (a.backtrack.orElse(b)).peek") {
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
+      val pa = a.fa.backtrack
+      val pb = b.fa
+
+      val left = pa.peek.orElse(pb.peek)
+      val right = pa.orElse(pb).peek
+
+      val leftRes = left.parse(str).toOption
+      val rightRes = right.parse(str).toOption
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
   property("a.peek == a.peek *> a.peek") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa = a.fa.peek
@@ -1580,6 +1613,28 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("!fail == unit") {
+    forAll { (str: String) =>
+      val left = !Parser.fail
+      val right = Parser.unit
+
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
+  property("!pure(_) == fail") {
+    forAll { (str: String, i: Int) =>
+      val left = !Parser.pure(i)
+      val right = Parser.fail
+
+      val leftRes = left.parse(str).toOption
+      val rightRes = right.parse(str).toOption
+      assertEquals(leftRes, rightRes)
+    }
+  }
+
   property("anyChar.repAs[String] parses the whole string") {
     forAll { (str: String) =>
       assertEquals(Parser.anyChar.repAs[String].parse(str), Right(("", str)))
@@ -1615,21 +1670,33 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  /*
   property("select(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, genRes, str) =>
-      val pa = genP.fa
-      val pf = null: Parser[genP.A => genRes.A]
-      assertEquals(Parser.select(pa.map(Left(_)))(pf).parse(str), pf.ap(pa).parse(str))
+    forAll { (pa: Parser[Int], pf: Parser[Int => String], str: String) =>
+      assertEquals(
+        Parser.select(pa.map(Left(_)))(pf).parse(str),
+        (pa, pf).mapN((a, f) => f(a)).parse(str)
+      )
     }
   }
-   */
+
+  property("select1(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
+    forAll { (pa: Parser1[Int], pf: Parser[Int => String], str: String) =>
+      assertEquals(
+        Parser.select(pa.map(Left(_)))(pf).parse(str),
+        (pa, pf).mapN((a, f) => f(a)).parse(str)
+      )
+    }
+  }
 
   property("select(pa.map(Right(_)))(pf) == pa") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, genRes, str) =>
-      val pa = genRes.fa
-      val pf: Parser[genP.A => genRes.A] = Parser.fail
+    forAll { (pa: Parser[String], pf: Parser[Int => String], str: String) =>
       assertEquals(Parser.select(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
+    }
+  }
+
+  property("select1(pa.map(Right(_)))(pf) == pa") {
+    forAll { (pa: Parser1[String], pf: Parser[Int => String], str: String) =>
+      assertEquals(Parser.select1(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
     }
   }
 
@@ -1669,6 +1736,24 @@ class ParserTest extends munit.ScalaCheckSuite {
             Some(s)
         }
       )
+    }
+  }
+
+  property("mapOrFail is the same as filter + map") {
+    forAll { (pa: Parser[Int], fn: Int => Option[String], str: String) =>
+      val left = pa.mapOrFail(fn)
+      val right = pa.map(fn).filter(_.isDefined).map(_.get)
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("mapOrFail is the same as filter + map Parser1") {
+    forAll { (pa: Parser1[Int], fn: Int => Option[String], str: String) =>
+      val left = pa.mapOrFail(fn)
+      val right = pa.map(fn).filter(_.isDefined).map(_.get)
+
+      assertEquals(left.parse(str), right.parse(str))
     }
   }
 }

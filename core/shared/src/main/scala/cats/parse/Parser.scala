@@ -189,6 +189,24 @@ sealed abstract class Parser[+A] {
   def map[B](fn: A => B): Parser[B] =
     Parser.map(this)(fn)
 
+  /** Transform parsed values using the given function, or fail on None
+    *
+    * When the function return None, this parser fails
+    * This is implemented with select, which makes it more efficient
+    * than using flatMap
+    */
+  def mapOrFail[B](fn: A => Option[B]): Parser[B] = {
+    val leftUnit = Left(())
+
+    val first = map { a =>
+      fn(a) match {
+        case Some(b) => Right(b)
+        case None => leftUnit
+      }
+    }
+    Parser.select(first)(Parser.Fail)
+  }
+
   /** If the predicate is not true, fail
     * you may want .filter(fn).backtrack so if the filter fn
     * fails you can fall through in an oneOf or orElse
@@ -361,6 +379,20 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     */
   override def map[B](fn: A => B): Parser1[B] =
     Parser.map1(this)(fn)
+
+  /** This method overrides `Parser#mapOrFail` to refine the return type.
+    */
+  override def mapOrFail[B](fn: A => Option[B]): Parser1[B] = {
+    val leftUnit = Left(())
+
+    val first = map { a =>
+      fn(a) match {
+        case Some(b) => Right(b)
+        case None => leftUnit
+      }
+    }
+    Parser.select1(first)(Parser.Fail)
+  }
 
   /** This method overrides `Parser#flatMap` to refine the return type.
     */
