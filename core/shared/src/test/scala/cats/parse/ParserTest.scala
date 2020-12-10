@@ -1739,18 +1739,40 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("mapOrFail is the same as filter + map") {
+  property("mapFilter is the same as filter + map") {
     forAll { (pa: Parser[Int], fn: Int => Option[String], str: String) =>
-      val left = pa.mapOrFail(fn)
+      val left = pa.mapFilter(fn)
       val right = pa.map(fn).filter(_.isDefined).map(_.get)
 
       assertEquals(left.parse(str), right.parse(str))
     }
   }
 
-  property("mapOrFail is the same as filter + map Parser1") {
+  property("mapFilter is the same as filter + map Parser1") {
     forAll { (pa: Parser1[Int], fn: Int => Option[String], str: String) =>
-      val left = pa.mapOrFail(fn)
+      val left = pa.mapFilter(fn)
+      val right = pa.map(fn).filter(_.isDefined).map(_.get)
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("collect is the same as filter + map") {
+    forAll { (pa: Parser[Int], fn: Int => Option[String], str: String) =>
+      val left = pa.collect {
+        case i if fn(i).isDefined => fn(i).get
+      }
+      val right = pa.map(fn).filter(_.isDefined).map(_.get)
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("collect is the same as filter + map Parser1") {
+    forAll { (pa: Parser1[Int], fn: Int => Option[String], str: String) =>
+      val left = pa.collect {
+        case i if fn(i).isDefined => fn(i).get
+      }
       val right = pa.map(fn).filter(_.isDefined).map(_.get)
 
       assertEquals(left.parse(str), right.parse(str))

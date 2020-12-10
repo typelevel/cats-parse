@@ -21,7 +21,7 @@
 
 package cats.parse
 
-import cats.{Eval, Monad, Defer, Alternative, FlatMap, Now, MonoidK, Order}
+import cats.{Eval, FunctorFilter, Monad, Defer, Alternative, FlatMap, Now, MonoidK, Order}
 import cats.data.{AndThen, Chain, NonEmptyList}
 
 import cats.implicits._
@@ -195,7 +195,7 @@ sealed abstract class Parser[+A] {
     * This is implemented with select, which makes it more efficient
     * than using flatMap
     */
-  def mapOrFail[B](fn: A => Option[B]): Parser[B] = {
+  def mapFilter[B](fn: A => Option[B]): Parser[B] = {
     val leftUnit = Left(())
 
     val first = map { a =>
@@ -206,6 +206,15 @@ sealed abstract class Parser[+A] {
     }
     Parser.select(first)(Parser.Fail)
   }
+
+  /** Transform parsed values using the given function, or fail when not defined
+    *
+    * When the function is not defined, this parser fails
+    * This is implemented with select, which makes it more efficient
+    * than using flatMap
+    */
+  def collect[B](fn: PartialFunction[A, B]): Parser[B] =
+    mapFilter(fn.lift)
 
   /** If the predicate is not true, fail
     * you may want .filter(fn).backtrack so if the filter fn
@@ -375,14 +384,19 @@ sealed abstract class Parser1[+A] extends Parser[A] {
   def <*[B](that: Parser[B]): Parser1[A] =
     (this ~ that.void).map(_._1)
 
+  /** This method overrides `Parser#collect` to refine the return type.
+    */
+  override def collect[B](fn: PartialFunction[A, B]): Parser1[B] =
+    mapFilter(fn.lift)
+
   /** This method overrides `Parser#map` to refine the return type.
     */
   override def map[B](fn: A => B): Parser1[B] =
     Parser.map1(this)(fn)
 
-  /** This method overrides `Parser#mapOrFail` to refine the return type.
+  /** This method overrides `Parser#mapFilter` to refine the return type.
     */
-  override def mapOrFail[B](fn: A => Option[B]): Parser1[B] = {
+  override def mapFilter[B](fn: A => Option[B]): Parser1[B] = {
     val leftUnit = Left(())
 
     val first = map { a =>
@@ -1311,15 +1325,27 @@ object Parser extends ParserInstances {
       case (notSingleChar, _) => notSingleChar.map(Impl.ConstFn(b))
     }
 
-  implicit val catsInstancesParser1: FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] =
-    new FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] {
+  implicit val catsInstancesParser1
+      : FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] with FunctorFilter[Parser1] =
+    new FlatMap[Parser1] with Defer[Parser1] with MonoidK[Parser1] with FunctorFilter[Parser1] {
       def empty[A] = Fail
 
       def defer[A](pa: => Parser1[A]): Parser1[A] =
         defer1(pa)
 
+      def functor = this
+
       def map[A, B](fa: Parser1[A])(fn: A => B): Parser1[B] =
         map1(fa)(fn)
+
+      def mapFilter[A, B](fa: Parser1[A])(f: A => Option[B]): Parser1[B] =
+        fa.mapFilter(f)
+
+      override def filter[A](fa: Parser1[A])(fn: A => Boolean): Parser1[A] =
+        fa.filter(fn)
+
+      override def filterNot[A](fa: Parser1[A])(fn: A => Boolean): Parser1[A] =
+        fa.filter { a => !fn(a) }
 
       def flatMap[A, B](fa: Parser1[A])(fn: A => Parser1[B]): Parser1[B] =
         flatMap10(fa)(fn)
@@ -2207,15 +2233,27 @@ object Parser extends ParserInstances {
 }
 
 abstract class ParserInstances {
-  implicit val catInstancesParser: Monad[Parser] with Alternative[Parser] with Defer[Parser] =
-    new Monad[Parser] with Alternative[Parser] with Defer[Parser] {
+  implicit val catInstancesParser
+      : Monad[Parser] with Alternative[Parser] with Defer[Parser] with FunctorFilter[Parser] =
+    new Monad[Parser] with Alternative[Parser] with Defer[Parser] with FunctorFilter[Parser] {
       def pure[A](a: A): Parser[A] = Parser.pure(a)
 
       def defer[A](a: => Parser[A]) = Parser.defer(a)
 
       def empty[A]: Parser[A] = Parser.Fail
 
+      def functor = this
+
       override def map[A, B](fa: Parser[A])(fn: A => B): Parser[B] = Parser.map(fa)(fn)
+
+      def mapFilter[A, B](fa: Parser[A])(f: A => Option[B]): Parser[B] =
+        fa.mapFilter(f)
+
+      override def filter[A](fa: Parser[A])(fn: A => Boolean): Parser[A] =
+        fa.filter(fn)
+
+      override def filterNot[A](fa: Parser[A])(fn: A => Boolean): Parser[A] =
+        fa.filter { a => !fn(a) }
 
       override def product[A, B](fa: Parser[A], fb: Parser[B]): Parser[(A, B)] =
         Parser.product(fa, fb)
