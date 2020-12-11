@@ -501,6 +501,7 @@ object Parser extends ParserInstances {
 
   object Expectation {
     case class Str(offset: Int, str: String) extends Expectation
+    case class OneStr(offset: Int, strs: List[String]) extends Expectation
     // expected a character in a given range
     case class InRange(offset: Int, lower: Char, upper: Char) extends Expectation
     case class StartOfString(offset: Int) extends Expectation
@@ -522,22 +523,33 @@ object Parser extends ParserInstances {
             (left, right) match {
               case (Str(_, s1), Str(_, s2)) => s1.compare(s2)
               case (Str(_, _), _) => -1
-              case (InRange(_, _, _), Str(_, _)) => 1
+              case (OneStr(_, _), Str(_, _)) => 1
+              case (OneStr(_, s1), OneStr(_, s2)) =>
+                val s = s1.lengthCompare(s2.size)
+                if (s == 0) s1.compare(s2)
+                else s
+              case (OneStr(_, _), _) => -1
+              case (InRange(_, _, _), Str(_, _) | OneStr(_, _)) => 1
               case (InRange(_, l1, u1), InRange(_, l2, u2)) =>
                 val c1 = Character.compare(l1, l2)
                 if (c1 == 0) Character.compare(u1, u2)
                 else c1
               case (InRange(_, _, _), _) => -1
-              case (StartOfString(_), Str(_, _) | InRange(_, _, _)) => 1
+              case (StartOfString(_), Str(_, _) | OneStr(_, _) | InRange(_, _, _)) => 1
               case (StartOfString(_), _) =>
                 -1 // if they have the same offset, already handled above
-              case (EndOfString(_, _), Str(_, _) | InRange(_, _, _) | StartOfString(_)) => 1
+              case (
+                    EndOfString(_, _),
+                    Str(_, _) | OneStr(_, _) | InRange(_, _, _) | StartOfString(_)
+                  ) =>
+                1
               case (EndOfString(_, l1), EndOfString(_, l2)) =>
                 Integer.compare(l1, l2)
               case (EndOfString(_, _), _) => -1
               case (
                     Length(_, _, _),
-                    Str(_, _) | InRange(_, _, _) | StartOfString(_) | EndOfString(_, _)
+                    Str(_, _) | OneStr(_, _) | InRange(_, _, _) | StartOfString(_) |
+                    EndOfString(_, _)
                   ) =>
                 1
               case (Length(_, e1, a1), Length(_, e2, a2)) =>
@@ -841,6 +853,9 @@ object Parser extends ParserInstances {
       case two => Impl.OneOf(two)
     }
   }
+
+  def stringIn1(strings: List[String]): Parser1[Unit] =
+    Impl.StringIn1(strings)
 
   private[this] val emptyStringParser: Parser[String] =
     pure("")
@@ -1596,8 +1611,9 @@ object Parser extends ParserInstances {
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
         case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator.unitAccumulator)
-        case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
-            TailRecM1(_, _) | FlatMap1(_, _) =>
+        case AnyChar | CharIn(_, _, _) | Str(_) | StringIn1(_) | IgnoreCase(_) | Fail() | FailWith(
+              _
+            ) | Length(_) | TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
           pa
 
@@ -1782,6 +1798,28 @@ object Parser extends ParserInstances {
       null.asInstanceOf[A]
     }
 
+    final def stringIn1[A](radix: RadixNode, all: List[String], state: State): Unit = {
+      val startOffset = state.offset
+      var offset = state.offset
+      var tree = radix
+      var cont = true
+      while (cont && offset < state.str.size && tree.children.contains(state.str(offset))) {
+        val (prefix, child) = tree.children(state.str(offset))
+        // accept the prefix fo this character
+        if (state.str.startsWith(prefix, offset)) {
+          offset += prefix.size
+          tree = child
+        } else {
+          cont = false
+        }
+      }
+      if (!tree.word) {
+        state.error = Chain.one(Expectation.OneStr(startOffset, all))
+      } else {
+        state.offset = offset
+      }
+    }
+
     case class OneOf1[A](all: List[Parser1[A]]) extends Parser1[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary: Array[Parser[A]] = all.toArray
@@ -1794,6 +1832,15 @@ object Parser extends ParserInstances {
       private[this] val ary = all.toArray
 
       override def parseMut(state: State): A = oneOf(ary, state)
+    }
+
+    case class StringIn1(all: List[String]) extends Parser1[Unit] {
+      require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
+      require(!all.contains(""), "empty string is not allowed in alternatives")
+      private[this] val sorted = all.sorted
+      private[this] val tree = RadixNode.fromSortedStrings(NonEmptyList.fromListUnsafe(sorted))
+
+      override def parseMut(state: State): Unit = stringIn1(tree, sorted, state)
     }
 
     final def prod[A, B](pa: Parser[A], pb: Parser[B], state: State): (A, B) = {

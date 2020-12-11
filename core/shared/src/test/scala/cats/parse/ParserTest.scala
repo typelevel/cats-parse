@@ -100,6 +100,12 @@ object ParserGen {
       Gen.const(GenT(Parser.anyChar))
     )
 
+  val stringIn1: Gen[GenT[Parser1]] =
+    Arbitrary.arbitrary[List[String]].map { cs =>
+      if (cs.size < 2 || cs.exists(_.isEmpty)) GenT(Parser.fail: Parser1[Unit])
+      else GenT(Parser.stringIn1(cs))
+    }
+
   val expect1: Gen[GenT[Parser1]] =
     Arbitrary.arbitrary[String].map { str =>
       if (str.isEmpty) GenT(Parser.fail: Parser1[Unit])
@@ -473,6 +479,7 @@ object ParserGen {
       (8, expect1),
       (2, ignoreCase1),
       (8, charIn1),
+      (8, stringIn1),
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser.char(c)) }),
       (2, rec.map(void1(_))),
       (2, rec.map(string1(_))),
@@ -573,6 +580,9 @@ class ParserTest extends munit.ScalaCheckSuite {
 
     parseTest(Parser.oneOf1(fooP :: barP :: Nil), "bar", ())
     parseTest(Parser.oneOf1(fooP :: barP :: Nil), "foo", ())
+    parseTest(Parser.stringIn1(List("foo", "bar", "foobar")), "foo", ())
+    parseTest(Parser.stringIn1(List("foo", "bar", "foobar")), "bar", ())
+    parseTest(Parser.stringIn1(List("foo", "bar", "foobar")), "foobar", ())
   }
 
   test("product tests") {
