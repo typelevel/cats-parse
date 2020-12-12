@@ -379,7 +379,7 @@ sealed abstract class Parser1[+A] extends Parser[A] {
   /** Compose two parsers, ignoring the values extracted by the
     * right-hand parser.
     *
-    * `x <* y` is equivalent to `(x.void ~ y).map(_._1)`.
+    * `x <* y` is equivalent to `(x ~ y.void).map(_._1)`.
     */
   def <*[B](that: Parser[B]): Parser1[A] =
     (this ~ that.void).map(_._1)
