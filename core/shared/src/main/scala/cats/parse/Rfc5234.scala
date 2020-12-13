@@ -30,63 +30,63 @@ object Rfc5234 {
 
   /** A-Z and a-z, without diacritics
     */
-  val alpha: Parser1[Char] =
+  val alpha: Parser[Char] =
     Parser0.charIn('A' to 'Z').orElse1(Parser0.charIn('a' to 'z'))
 
   /** `0` or `1`
     */
-  val bit: Parser1[Char] =
+  val bit: Parser[Char] =
     Parser0.charIn('0' to '1')
 
   /** any 7-bit US-ASCII character, excluding NUL
     */
-  val char: Parser1[Char] =
+  val char: Parser[Char] =
     Parser0.charIn(0x01.toChar to 0x7f.toChar)
 
   /** carriage return
     */
-  val cr: Parser1[Unit] =
+  val cr: Parser[Unit] =
     Parser0.char('\r')
 
   /** linefeed
     */
-  val lf: Parser1[Unit] =
+  val lf: Parser[Unit] =
     Parser0.char('\n')
 
   /** Internet standard newline */
-  val crlf: Parser1[Unit] =
+  val crlf: Parser[Unit] =
     Parser0.string1("\r\n")
 
   /** controls */
-  val ctl: Parser1[Char] =
+  val ctl: Parser[Char] =
     Parser0.charIn(0x7f, (0x00.toChar to 0x1f.toChar): _*)
 
   /** `0` to `9`
     */
-  val digit: Parser1[Char] =
+  val digit: Parser[Char] =
     Numbers.digit
 
   /** double quote (`"`)
     */
-  val dquote: Parser1[Unit] =
+  val dquote: Parser[Unit] =
     Parser0.char('"')
 
   /** hexadecimal digit, case insensitive
     */
-  val hexdig: Parser1[Char] =
+  val hexdig: Parser[Char] =
     digit.orElse1(Parser0.ignoreCaseCharIn('A' to 'F'))
 
   /** horizontal tab
     */
-  val htab: Parser1[Unit] =
+  val htab: Parser[Unit] =
     Parser0.char('\t')
 
   /** space */
-  val sp: Parser1[Unit] =
+  val sp: Parser[Unit] =
     Parser0.char(' ')
 
   /** white space (space or horizontal tab) */
-  val wsp: Parser1[Unit] =
+  val wsp: Parser[Unit] =
     sp.orElse1(htab)
 
   /** linear white space.
@@ -103,11 +103,11 @@ object Rfc5234 {
 
   /** 8 bits of data
     */
-  val octet: Parser1[Char] =
+  val octet: Parser[Char] =
     Parser0.charIn(0x00.toChar to 0xff.toChar)
 
   /** visible (printing) characters
     */
-  val vchar: Parser1[Char] =
+  val vchar: Parser[Char] =
     Parser0.charIn(0x21.toChar to 0x7e.toChar)
 }

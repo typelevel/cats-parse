@@ -25,7 +25,7 @@ object Numbers {
 
   /** a single base 10 digit
     */
-  val digit: Parser1[Char] =
+  val digit: Parser[Char] =
     Parser0.charIn('0' to '9')
 
   /** zero or more digit chars
@@ -34,35 +34,35 @@ object Numbers {
 
   /** one or more digit chars
     */
-  val digits1: Parser1[String] = digit.rep1.string
+  val digits1: Parser[String] = digit.rep1.string
 
   /** a single base 10 digit excluding 0
     */
-  val nonZeroDigit: Parser1[Char] =
+  val nonZeroDigit: Parser[Char] =
     Parser0.charIn('1' to '9')
 
   /** A String of either 1 '0' or
     * 1 non-zero digit followed by zero or more digits
     */
-  val nonNegativeIntString: Parser1[String] =
+  val nonNegativeIntString: Parser[String] =
     (nonZeroDigit ~ digits).void
       .orElse1(Parser0.char('0'))
       .string
 
   /** A nonNegativeIntString possibly preceded by '-'
     */
-  val signedIntString: Parser1[String] =
+  val signedIntString: Parser[String] =
     (Parser0.char('-').?.with1 ~ nonNegativeIntString).string
 
   /** map a signedIntString into a BigInt
     */
-  val bigInt: Parser1[BigInt] =
+  val bigInt: Parser[BigInt] =
     signedIntString.map(BigInt(_))
 
   /** A string matching the json specification for numbers.
     * from: https://tools.ietf.org/html/rfc4627
     */
-  val jsonNumber: Parser1[String] = {
+  val jsonNumber: Parser[String] = {
     /*
      *     number = [ minus ] int [ frac ] [ exp ]
      *     decimal-point = %x2E       ; .
@@ -75,8 +75,8 @@ object Numbers {
      *     plus = %x2B                ; +
      *     zero = %x30                ; 0
      */
-    val frac: Parser1[Any] = Parser0.char('.') ~ digits1
-    val exp: Parser1[Unit] = (Parser0.charIn("eE") ~ Parser0.charIn("+-").? ~ digits1).void
+    val frac: Parser[Any] = Parser0.char('.') ~ digits1
+    val exp: Parser[Unit] = (Parser0.charIn("eE") ~ Parser0.charIn("+-").? ~ digits1).void
 
     (signedIntString ~ frac.? ~ exp.?).string
   }

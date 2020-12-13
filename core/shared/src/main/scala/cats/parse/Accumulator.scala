@@ -74,14 +74,14 @@ object Appender {
 }
 
 /** Creates an appender given the first item to be added
-  * This is used to build the result in Parser1.repAs1
+  * This is used to build the result in Parser.repAs1
   */
 trait Accumulator1[-A, +B] {
   def newAppender(first: A): Appender[A, B]
 }
 
 /** Creates an appender
-  * This is used to build the result in Parser1.repAs
+  * This is used to build the result in Parser.repAs
   */
 trait Accumulator[-A, +B] extends Accumulator1[A, B] {
   def newAppender(): Appender[A, B]
