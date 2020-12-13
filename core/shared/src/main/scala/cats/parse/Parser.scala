@@ -1055,17 +1055,17 @@ object Parser0 extends ParserInstances {
 
   /** Lazily create a Parser
     *  This is useful to create some recursive parsers
-    *  see Defer[Parser].fix
+    *  see Defer0[Parser].fix
     */
   def defer1[A](pa: => Parser[A]): Parser[A] =
-    Impl.Defer1(() => pa)
+    Impl.Defer(() => pa)
 
   /** Lazily create a Parser0
     *  This is useful to create some recursive parsers
-    *  see Defer[Parser].fix
+    *  see Defer0[Parser].fix
     */
   def defer[A](pa: => Parser0[A]): Parser0[A] =
-    Impl.Defer(() => pa)
+    Impl.Defer0(() => pa)
 
   /** A parser that always fails with an epsilon failure
     */
@@ -1511,8 +1511,8 @@ object Parser0 extends ParserInstances {
               if (u2 eq Parser0.unit) u1
               else SoftProd(u1, u2)
           }
-        case Defer(fn) =>
-          Defer(() => unmap(compute0(fn)))
+        case Defer0(fn) =>
+          Defer0(() => unmap(compute0(fn)))
         case Rep(p, _) => Rep(unmap1(p), Accumulator0.unitAccumulator0)
         case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
@@ -1593,8 +1593,8 @@ object Parser0 extends ParserInstances {
               if (u2 eq Parser0.unit) expect1(u1)
               else SoftProd1(u1, u2)
           }
-        case Defer1(fn) =>
-          Defer1(() => unmap1(compute(fn)))
+        case Defer(fn) =>
+          Defer(() => unmap1(compute(fn)))
         case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator0.unitAccumulator0)
         case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
@@ -1954,18 +1954,18 @@ object Parser0 extends ParserInstances {
     @annotation.tailrec
     final def compute0[A](fn: () => Parser0[A]): Parser0[A] =
       fn() match {
-        case Defer1(f) => compute(f)
-        case Defer(f) => compute0(f)
-        case notDefer => notDefer
+        case Defer(f) => compute(f)
+        case Defer0(f) => compute0(f)
+        case notDefer0 => notDefer0
       }
     @annotation.tailrec
     final def compute[A](fn: () => Parser[A]): Parser[A] =
       fn() match {
-        case Defer1(f) => compute(f)
-        case notDefer => notDefer
+        case Defer(f) => compute(f)
+        case notDefer0 => notDefer0
       }
 
-    case class Defer1[A](fn: () => Parser[A]) extends Parser[A] {
+    case class Defer[A](fn: () => Parser[A]) extends Parser[A] {
       private[this] var computed: Parser0[A] = null
       override def parseMut(state: State): A = {
 
@@ -1982,7 +1982,7 @@ object Parser0 extends ParserInstances {
       }
     }
 
-    case class Defer[A](fn: () => Parser0[A]) extends Parser0[A] {
+    case class Defer0[A](fn: () => Parser0[A]) extends Parser0[A] {
       private[this] var computed: Parser0[A] = null
       override def parseMut(state: State): A = {
 
