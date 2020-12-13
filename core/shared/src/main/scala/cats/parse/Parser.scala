@@ -1179,7 +1179,7 @@ object Parser0 extends ParserInstances {
       case p1: Parser[_] => void1(p1)
       case s if Impl.alwaysSucceeds(s) => unit
       case _ =>
-        Impl.unmap(pa) match {
+        Impl.unmap0(pa) match {
           case Impl.StartParser0 => Impl.StartParser0
           case Impl.EndParser0 => Impl.EndParser0
           case n @ Impl.Not(_) => n
@@ -1198,7 +1198,7 @@ object Parser0 extends ParserInstances {
     pa match {
       case v @ Impl.Void1(_) => v
       case _ =>
-        Impl.unmap1(pa) match {
+        Impl.unmap(pa) match {
           case f @ (Impl.Fail() | Impl.FailWith(_)) =>
             // these are really Parser[Nothing]
             // but scala can't see that, so we cast
@@ -1216,7 +1216,7 @@ object Parser0 extends ParserInstances {
       case str @ Impl.StringP(_) => str
       case s1: Parser[_] => string1(s1)
       case _ =>
-        Impl.unmap(pa) match {
+        Impl.unmap0(pa) match {
           case Impl.Pure(_) | Impl.Index => emptyStringParser0
           case notEmpty => Impl.StringP(notEmpty)
         }
@@ -1229,7 +1229,7 @@ object Parser0 extends ParserInstances {
     pa match {
       case str @ Impl.StringP1(_) => str
       case _ =>
-        Impl.unmap1(pa) match {
+        Impl.unmap(pa) match {
           case len @ Impl.Length(_) => len
           case strP @ Impl.Str(expect) => strP.as(expect)
           case ci @ Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
@@ -1454,21 +1454,21 @@ object Parser0 extends ParserInstances {
       * at StringP or VoidP since those are markers
       * that anything below has already been transformed
       */
-    def unmap(pa: Parser0[Any]): Parser0[Any] =
+    def unmap0(pa: Parser0[Any]): Parser0[Any] =
       pa match {
-        case p1: Parser[Any] => unmap1(p1)
+        case p1: Parser[Any] => unmap(p1)
         case Pure(_) | Index => Parser0.unit
         case s if alwaysSucceeds(s) => Parser0.unit
         case Map(p, _) =>
           // we discard any allocations done by fn
-          unmap(p)
+          unmap0(p)
         case Select(p, fn) =>
-          Select(p, unmap(fn))
+          Select(p, unmap0(fn))
         case StringP(s) =>
-          // StringP is added privately, and only after unmap
+          // StringP is added privately, and only after unmap0
           s
         case Void(v) =>
-          // Void is added privately, and only after unmap
+          // Void is added privately, and only after unmap0
           v
         case n @ Not(_) =>
           // not is already voided
@@ -1477,43 +1477,43 @@ object Parser0 extends ParserInstances {
           // peek is already voided
           p
         case Backtrack(p) =>
-          // unmap may simplify enough
+          // unmap0 may simplify enough
           // to remove the backtrack wrapper
-          Parser0.backtrack(unmap(p))
-        case OneOf0(ps) => Parser0.oneOf0(ps.map(unmap))
+          Parser0.backtrack(unmap0(p))
+        case OneOf0(ps) => Parser0.oneOf0(ps.map(unmap0))
         case Prod(p1, p2) =>
-          unmap(p1) match {
+          unmap0(p1) match {
             case Prod(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              Prod(p11, unmap(Prod(Void(p12), p2)))
+              Prod(p11, unmap0(Prod(Void(p12), p2)))
             case u1 if u1 eq Parser0.unit =>
-              unmap(p2)
+              unmap0(p2)
             case u1 =>
-              val u2 = unmap(p2)
+              val u2 = unmap0(p2)
               if (u2 eq Parser0.unit) u1
               else Prod(u1, u2)
           }
         case SoftProd(p1, p2) =>
-          unmap(p1) match {
+          unmap0(p1) match {
             case SoftProd(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              SoftProd(p11, unmap(SoftProd(Void(p12), p2)))
+              SoftProd(p11, unmap0(SoftProd(Void(p12), p2)))
             case u1 if u1 eq Parser0.unit =>
-              unmap(p2)
+              unmap0(p2)
             case u1 =>
-              val u2 = unmap(p2)
+              val u2 = unmap0(p2)
               if (u2 eq Parser0.unit) u1
               else SoftProd(u1, u2)
           }
         case Defer0(fn) =>
-          Defer0(() => unmap(compute0(fn)))
-        case Rep0(p, _) => Rep0(unmap1(p), Accumulator0.unitAccumulator0)
+          Defer0(() => unmap0(compute0(fn)))
+        case Rep0(p, _) => Rep0(unmap(p), Accumulator0.unitAccumulator0)
         case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
@@ -1534,13 +1534,13 @@ object Parser0 extends ParserInstances {
       * at StringP or VoidP since those are markers
       * that anything below has already been transformed
       */
-    def unmap1(pa: Parser[Any]): Parser[Any] =
+    def unmap(pa: Parser[Any]): Parser[Any] =
       pa match {
         case Map1(p, _) =>
           // we discard any allocations done by fn
-          unmap1(p)
+          unmap(p)
         case Select1(p, fn) =>
-          Select1(p, unmap(fn))
+          Select1(p, unmap0(fn))
         case StringP1(s) =>
           // StringP is added privately, and only after unmap
           s
@@ -1550,52 +1550,52 @@ object Parser0 extends ParserInstances {
         case Backtrack1(p) =>
           // unmap may simplify enough
           // to remove the backtrack wrapper
-          Parser0.backtrack1(unmap1(p))
-        case OneOf(ps) => Parser0.oneOf(ps.map(unmap1))
+          Parser0.backtrack1(unmap(p))
+        case OneOf(ps) => Parser0.oneOf(ps.map(unmap))
         case Prod1(p1, p2) =>
-          unmap(p1) match {
+          unmap0(p1) match {
             case Prod(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              Prod1(p11, unmap(Parser0.product(p12.void, p2)))
+              Prod1(p11, unmap0(Parser0.product(p12.void, p2)))
             case Prod1(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // we wrap with Void to prevent n^2 cost
-              Prod1(p11, unmap(Parser0.product(p12.void, p2)))
+              Prod1(p11, unmap0(Parser0.product(p12.void, p2)))
             case u1 if u1 eq Parser0.unit =>
-              // if unmap(u1) is unit, p2 must be a Parser
-              unmap1(expect1(p2))
+              // if unmap0(u1) is unit, p2 must be a Parser
+              unmap(expect1(p2))
             case u1 =>
-              val u2 = unmap(p2)
+              val u2 = unmap0(p2)
               if (u2 eq Parser0.unit) expect1(u1)
               else Prod1(u1, u2)
           }
         case SoftProd1(p1, p2) =>
-          unmap(p1) match {
+          unmap0(p1) match {
             case SoftProd(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // we wrap with Void to prevent n^2 cost
-              SoftProd1(p11, unmap(Parser0.softProduct(p12.void, p2)))
+              SoftProd1(p11, unmap0(Parser0.softProduct(p12.void, p2)))
             case SoftProd1(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // we wrap with Void to prevent n^2 cost
-              SoftProd1(p11, unmap(Parser0.softProduct(p12.void, p2)))
+              SoftProd1(p11, unmap0(Parser0.softProduct(p12.void, p2)))
             case u1 if u1 eq Parser0.unit =>
-              // if unmap(u1) is unit, p2 must be a Parser
-              unmap1(expect1(p2))
+              // if unmap0(u1) is unit, p2 must be a Parser
+              unmap(expect1(p2))
             case u1 =>
-              val u2 = unmap(p2)
+              val u2 = unmap0(p2)
               if (u2 eq Parser0.unit) expect1(u1)
               else SoftProd1(u1, u2)
           }
         case Defer(fn) =>
-          Defer(() => unmap1(compute(fn)))
-        case Rep(p, m, _) => Rep(unmap1(p), m, Accumulator0.unitAccumulator0)
+          Defer(() => unmap(compute(fn)))
+        case Rep(p, m, _) => Rep(unmap(p), m, Accumulator0.unitAccumulator0)
         case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
