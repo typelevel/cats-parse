@@ -138,10 +138,10 @@ object ParserGen {
   def backtrack1(g: GenT[Parser]): GenT[Parser] =
     GenT(g.fa.backtrack)(g.cogen)
 
-  def defer(g: GenT[Parser0]): GenT[Parser0] =
+  def defer0(g: GenT[Parser0]): GenT[Parser0] =
     GenT(Defer[Parser0].defer(g.fa))(g.cogen)
 
-  def defer1(g: GenT[Parser]): GenT[Parser] =
+  def defer(g: GenT[Parser]): GenT[Parser] =
     GenT(Defer[Parser].defer(g.fa))(g.cogen)
 
   def rep0(g: GenT[Parser]): GenT[Parser0] = {
@@ -451,7 +451,7 @@ object ParserGen {
       (1, rec.map(void(_))),
       (1, rec.map(string(_))),
       (1, rec.map(backtrack(_))),
-      (1, rec.map(defer(_))),
+      (1, rec.map(defer0(_))),
       (1, rec.map { gen => GenT(!gen.fa) }),
       (1, Gen.lzy(gen1.map(rep0(_)))),
       (1, rec.flatMap(mapped(_))),
@@ -477,7 +477,7 @@ object ParserGen {
       (2, rec.map(void1(_))),
       (2, rec.map(string1(_))),
       (2, rec.map(backtrack1(_))),
-      (1, rec.map(defer1(_))),
+      (1, rec.map(defer(_))),
       (1, rec.map(rep(_))),
       (1, selected1(rec, gen)),
       (1, rec.flatMap(mapped1(_))),

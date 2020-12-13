@@ -1057,14 +1057,14 @@ object Parser0 extends ParserInstances {
     *  This is useful to create some recursive parsers
     *  see Defer0[Parser].fix
     */
-  def defer1[A](pa: => Parser[A]): Parser[A] =
+  def defer[A](pa: => Parser[A]): Parser[A] =
     Impl.Defer(() => pa)
 
   /** Lazily create a Parser0
     *  This is useful to create some recursive parsers
     *  see Defer0[Parser].fix
     */
-  def defer[A](pa: => Parser0[A]): Parser0[A] =
+  def defer0[A](pa: => Parser0[A]): Parser0[A] =
     Impl.Defer0(() => pa)
 
   /** A parser that always fails with an epsilon failure
@@ -1331,7 +1331,7 @@ object Parser0 extends ParserInstances {
       def empty[A] = Fail
 
       def defer[A](pa: => Parser[A]): Parser[A] =
-        defer1(pa)
+        Parser0.this.defer(pa)
 
       def functor = this
 
@@ -2238,7 +2238,7 @@ abstract class ParserInstances {
     new Monad[Parser0] with Alternative[Parser0] with Defer[Parser0] with FunctorFilter[Parser0] {
       def pure[A](a: A): Parser0[A] = Parser0.pure(a)
 
-      def defer[A](a: => Parser0[A]) = Parser0.defer(a)
+      def defer[A](a: => Parser0[A]) = Parser0.defer0(a)
 
       def empty[A]: Parser0[A] = Parser0.Fail
 
