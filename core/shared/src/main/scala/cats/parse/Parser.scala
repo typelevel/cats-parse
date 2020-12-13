@@ -793,7 +793,7 @@ object Parser0 extends ParserInstances {
     def flatten(ls: List[Parser[A]], acc: ListBuffer[Parser[A]]): List[Parser[A]] =
       ls match {
         case Nil => acc.toList.distinct
-        case Impl.OneOf1(ps) :: rest =>
+        case Impl.OneOf(ps) :: rest =>
           flatten(ps ::: rest, acc)
         case Impl.Fail() :: rest =>
           flatten(rest, acc)
@@ -805,7 +805,7 @@ object Parser0 extends ParserInstances {
     Impl.mergeCharIn[A, Parser[A]](flat) match {
       case Nil => fail
       case p :: Nil => p
-      case two => Impl.OneOf1(two)
+      case two => Impl.OneOf(two)
     }
   }
 
@@ -820,9 +820,9 @@ object Parser0 extends ParserInstances {
     def flatten(ls: List[Parser0[A]], acc: ListBuffer[Parser0[A]]): List[Parser0[A]] =
       ls match {
         case Nil => acc.toList.distinct
-        case Impl.OneOf(ps) :: rest =>
+        case Impl.OneOf0(ps) :: rest =>
           flatten(ps ::: rest, acc)
-        case Impl.OneOf1(ps) :: rest =>
+        case Impl.OneOf(ps) :: rest =>
           flatten(ps ::: rest, acc)
         case Impl.Fail() :: rest =>
           flatten(rest, acc)
@@ -838,7 +838,7 @@ object Parser0 extends ParserInstances {
     Impl.mergeCharIn[A, Parser0[A]](flat) match {
       case Nil => fail
       case p :: Nil => p
-      case two => Impl.OneOf(two)
+      case two => Impl.OneOf0(two)
     }
   }
 
@@ -1480,7 +1480,7 @@ object Parser0 extends ParserInstances {
           // unmap may simplify enough
           // to remove the backtrack wrapper
           Parser0.backtrack(unmap(p))
-        case OneOf(ps) => Parser0.oneOf(ps.map(unmap))
+        case OneOf0(ps) => Parser0.oneOf(ps.map(unmap))
         case Prod(p1, p2) =>
           unmap(p1) match {
             case Prod(p11, p12) =>
@@ -1551,7 +1551,7 @@ object Parser0 extends ParserInstances {
           // unmap may simplify enough
           // to remove the backtrack wrapper
           Parser0.backtrack1(unmap1(p))
-        case OneOf1(ps) => Parser0.oneOf1(ps.map(unmap1))
+        case OneOf(ps) => Parser0.oneOf1(ps.map(unmap1))
         case Prod1(p1, p2) =>
           unmap(p1) match {
             case Prod(p11, p12) =>
@@ -1782,14 +1782,14 @@ object Parser0 extends ParserInstances {
       null.asInstanceOf[A]
     }
 
-    case class OneOf1[A](all: List[Parser[A]]) extends Parser[A] {
+    case class OneOf[A](all: List[Parser[A]]) extends Parser[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary: Array[Parser0[A]] = all.toArray
 
       override def parseMut(state: State): A = oneOf(ary, state)
     }
 
-    case class OneOf[A](all: List[Parser0[A]]) extends Parser0[A] {
+    case class OneOf0[A](all: List[Parser0[A]]) extends Parser0[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary = all.toArray
 
