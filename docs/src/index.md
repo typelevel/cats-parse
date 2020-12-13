@@ -37,43 +37,43 @@ import cats.parse.bench.self.JsonStringUtil
 ```
 
 ```scala mdoc
-import cats.parse.{Parser0 => P, Parser, Numbers}
+import cats.parse.{Parser0 => P0, Parser, Numbers}
 import org.typelevel.jawn.ast._
 
 object Json {
-  private[this] val whitespace: Parser[Unit] = P.charIn(" \t\r\n").void
-  private[this] val whitespaces0: P[Unit] = whitespace.rep.void
+  private[this] val whitespace: Parser[Unit] = P0.charIn(" \t\r\n").void
+  private[this] val whitespaces0: P0[Unit] = whitespace.rep.void
 
   val parser: Parser[JValue] = {
-    val recurse = P.defer1(parser)
-    val pnull = P.string1("null").as(JNull)
-    val bool = P.string1("true").as(JBool.True).orElse1(P.string1("false").as(JBool.False))
+    val recurse = P0.defer1(parser)
+    val pnull = P0.string1("null").as(JNull)
+    val bool = P0.string1("true").as(JBool.True).orElse1(P0.string1("false").as(JBool.False))
     val justStr = JsonStringUtil.escapedString('"')
     val str = justStr.map(JString(_))
     val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: Parser[Unit] =
-      P.char(',').surroundedBy(whitespaces0).void
+      P0.char(',').surroundedBy(whitespaces0).void
 
-    def rep[A](pa: Parser[A]): P[List[A]] =
-      P.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
+    def rep[A](pa: Parser[A]): P0[List[A]] =
+      P0.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
 
     val list = rep(recurse).with1
-      .between(P.char('['), P.char(']'))
+      .between(P0.char('['), P0.char(']'))
       .map { vs => JArray.fromSeq(vs) }
 
     val kv: Parser[(String, JValue)] =
-      justStr ~ (P.char(':').surroundedBy(whitespaces0) *> recurse)
+      justStr ~ (P0.char(':').surroundedBy(whitespaces0) *> recurse)
 
     val obj = rep(kv).with1
-      .between(P.char('{'), P.char('}'))
+      .between(P0.char('{'), P0.char('}'))
       .map { vs => JObject.fromSeq(vs) }
 
-    P.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
+    P0.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
   }
 
   // any whitespace followed by json followed by whitespace followed by end
-  val parserFile: Parser[JValue] = whitespaces0.with1 *> parser <* (whitespaces0 ~ P.end)
+  val parserFile: Parser[JValue] = whitespaces0.with1 *> parser <* (whitespaces0 ~ P0.end)
 }
 ```
 

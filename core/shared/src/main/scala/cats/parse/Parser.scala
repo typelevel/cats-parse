@@ -174,7 +174,7 @@ sealed abstract class Parser0[+A] {
     * one to pick up after any error, resetting any state that was
     * modified by the left parser.
     */
-  def orElse[A1 >: A](that: Parser0[A1]): Parser0[A1] =
+  def orElse0[A1 >: A](that: Parser0[A1]): Parser0[A1] =
     Parser0.oneOf(this :: that :: Nil)
 
   /** Transform parsed values using the given function.
@@ -425,7 +425,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * are known to be Parser values, the result is known to be a
     * Parser as well.
     */
-  def orElse1[A1 >: A](that: Parser[A1]): Parser[A1] =
+  def orElse[A1 >: A](that: Parser[A1]): Parser[A1] =
     Parser0.oneOf1(this :: that :: Nil)
 
   /** Use this parser to parse zero-or-more values.
@@ -786,7 +786,7 @@ object Parser0 extends ParserInstances {
     *  as long as they are epsilon failures (don't advance)
     *  see @backtrack if you want to do backtracking.
     *
-    *  This is the same as parsers.foldLeft(fail)(_.orElse1(_))
+    *  This is the same as parsers.foldLeft(fail)(_.orElse(_))
     */
   def oneOf1[A](parsers: List[Parser[A]]): Parser[A] = {
     @annotation.tailrec
@@ -813,7 +813,7 @@ object Parser0 extends ParserInstances {
     *  as long as they are epsilon failures (don't advance)
     *  see @backtrack if you want to do backtracking.
     *
-    *  This is the same as parsers.foldLeft(fail)(_.orElse(_))
+    *  This is the same as parsers.foldLeft(fail)(_.orElse0(_))
     */
   def oneOf[A](ps: List[Parser0[A]]): Parser0[A] = {
     @annotation.tailrec
@@ -2111,13 +2111,13 @@ object Parser0 extends ParserInstances {
     /*
      * Merge CharIn bitsets
      */
-    def mergeCharIn[A, P <: Parser0[A]](ps: List[P]): List[P] = {
+    def mergeCharIn[A, P0 <: Parser0[A]](ps: List[P0]): List[P0] = {
       @annotation.tailrec
-      def loop(ps: List[P], front: List[(Int, BitSetUtil.Tpe)], result: Chain[P]): Chain[P] = {
+      def loop(ps: List[P0], front: List[(Int, BitSetUtil.Tpe)], result: Chain[P0]): Chain[P0] = {
         @inline
-        def frontRes: Chain[P] =
+        def frontRes: Chain[P0] =
           if (front.isEmpty) Chain.nil
-          else Chain.one(Parser0.charIn(BitSetUtil.union(front)).asInstanceOf[P])
+          else Chain.one(Parser0.charIn(BitSetUtil.union(front)).asInstanceOf[P0])
 
         ps match {
           case Nil => result ++ frontRes
@@ -2125,7 +2125,7 @@ object Parser0 extends ParserInstances {
             // AnyChar is bigger than all subsequent CharIn:
             // and any direct prefix CharIns
             val tail1 = tail.filterNot(_.isInstanceOf[CharIn])
-            (result :+ AnyChar.asInstanceOf[P]) ++ Chain.fromSeq(tail1)
+            (result :+ AnyChar.asInstanceOf[P0]) ++ Chain.fromSeq(tail1)
           case CharIn(m, bs, _) :: tail =>
             loop(tail, (m, bs) :: front, result)
           case h :: tail =>

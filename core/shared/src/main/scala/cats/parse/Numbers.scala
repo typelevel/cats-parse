@@ -46,7 +46,7 @@ object Numbers {
     */
   val nonNegativeIntString: Parser[String] =
     (nonZeroDigit ~ digits).void
-      .orElse1(Parser0.char('0'))
+      .orElse(Parser0.char('0'))
       .string
 
   /** A nonNegativeIntString possibly preceded by '-'
