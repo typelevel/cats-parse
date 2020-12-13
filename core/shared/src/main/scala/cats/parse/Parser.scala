@@ -110,7 +110,7 @@ sealed abstract class Parser0[+A] {
     * will still fail.
     */
   def ? : Parser0[Option[A]] =
-    Parser0.oneOf(Parser0.map(this)(Some(_)) :: Parser0.Impl.optTail)
+    Parser0.oneOf0(Parser0.map(this)(Some(_)) :: Parser0.Impl.optTail)
 
   /** Parse without capturing values.
     *
@@ -175,7 +175,7 @@ sealed abstract class Parser0[+A] {
     * modified by the left parser.
     */
   def orElse0[A1 >: A](that: Parser0[A1]): Parser0[A1] =
-    Parser0.oneOf(this :: that :: Nil)
+    Parser0.oneOf0(this :: that :: Nil)
 
   /** Transform parsed values using the given function.
     *
@@ -218,7 +218,7 @@ sealed abstract class Parser0[+A] {
 
   /** If the predicate is not true, fail
     * you may want .filter(fn).backtrack so if the filter fn
-    * fails you can fall through in an oneOf or orElse
+    * fails you can fall through in an oneOf0 or orElse
     *
     * Without the backtrack, a failure of the function will
     * be an arresting failure.
@@ -426,7 +426,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * Parser as well.
     */
   def orElse[A1 >: A](that: Parser[A1]): Parser[A1] =
-    Parser0.oneOf1(this :: that :: Nil)
+    Parser0.oneOf(this :: that :: Nil)
 
   /** Use this parser to parse zero-or-more values.
     *
@@ -507,7 +507,7 @@ object Parser0 extends ParserInstances {
     case class EndOfString(offset: Int, length: Int) extends Expectation
     case class Length(offset: Int, expected: Int, actual: Int) extends Expectation
     case class ExpectedFailureAt(offset: Int, matched: String) extends Expectation
-    // this is the result of oneOf(Nil) at a given location
+    // this is the result of oneOf0(Nil) at a given location
     case class Fail(offset: Int) extends Expectation
     case class FailWith(offset: Int, message: String) extends Expectation
 
@@ -788,7 +788,7 @@ object Parser0 extends ParserInstances {
     *
     *  This is the same as parsers.foldLeft(fail)(_.orElse(_))
     */
-  def oneOf1[A](parsers: List[Parser[A]]): Parser[A] = {
+  def oneOf[A](parsers: List[Parser[A]]): Parser[A] = {
     @annotation.tailrec
     def flatten(ls: List[Parser[A]], acc: ListBuffer[Parser[A]]): List[Parser[A]] =
       ls match {
@@ -815,7 +815,7 @@ object Parser0 extends ParserInstances {
     *
     *  This is the same as parsers.foldLeft(fail)(_.orElse0(_))
     */
-  def oneOf[A](ps: List[Parser0[A]]): Parser0[A] = {
+  def oneOf0[A](ps: List[Parser0[A]]): Parser0[A] = {
     @annotation.tailrec
     def flatten(ls: List[Parser0[A]], acc: ListBuffer[Parser0[A]]): List[Parser0[A]] =
       ls match {
@@ -1371,7 +1371,7 @@ object Parser0 extends ParserInstances {
         tailRecM1(init)(fn)
 
       def combineK[A](pa: Parser[A], pb: Parser[A]): Parser[A] =
-        Parser0.oneOf1(pa :: pb :: Nil)
+        Parser0.oneOf(pa :: pb :: Nil)
 
       override def void[A](pa: Parser[A]): Parser[Unit] =
         pa.void
@@ -1435,7 +1435,7 @@ object Parser0 extends ParserInstances {
 
     // does this parser always succeed?
     // note: a parser1 does not always succeed
-    // and by construction, a oneOf never always succeeds
+    // and by construction, a oneOf0 never always succeeds
     final def alwaysSucceeds(p: Parser0[Any]): Boolean =
       p match {
         case Index | Pure(_) => true
@@ -1480,7 +1480,7 @@ object Parser0 extends ParserInstances {
           // unmap may simplify enough
           // to remove the backtrack wrapper
           Parser0.backtrack(unmap(p))
-        case OneOf0(ps) => Parser0.oneOf(ps.map(unmap))
+        case OneOf0(ps) => Parser0.oneOf0(ps.map(unmap))
         case Prod(p1, p2) =>
           unmap(p1) match {
             case Prod(p11, p12) =>
@@ -1551,7 +1551,7 @@ object Parser0 extends ParserInstances {
           // unmap may simplify enough
           // to remove the backtrack wrapper
           Parser0.backtrack1(unmap1(p))
-        case OneOf(ps) => Parser0.oneOf1(ps.map(unmap1))
+        case OneOf(ps) => Parser0.oneOf(ps.map(unmap1))
         case Prod1(p1, p2) =>
           unmap(p1) match {
             case Prod(p11, p12) =>
@@ -1755,7 +1755,7 @@ object Parser0 extends ParserInstances {
       }
     }
 
-    final def oneOf[A](all: Array[Parser0[A]], state: State): A = {
+    final def oneOf0[A](all: Array[Parser0[A]], state: State): A = {
       val offset = state.offset
       var errs: Chain[Expectation] = Chain.nil
       var idx = 0
@@ -1786,14 +1786,14 @@ object Parser0 extends ParserInstances {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary: Array[Parser0[A]] = all.toArray
 
-      override def parseMut(state: State): A = oneOf(ary, state)
+      override def parseMut(state: State): A = oneOf0(ary, state)
     }
 
     case class OneOf0[A](all: List[Parser0[A]]) extends Parser0[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary = all.toArray
 
-      override def parseMut(state: State): A = oneOf(ary, state)
+      override def parseMut(state: State): A = oneOf0(ary, state)
     }
 
     final def prod[A, B](pa: Parser0[A], pb: Parser0[B], state: State): (A, B) = {
@@ -2276,7 +2276,7 @@ abstract class ParserInstances {
         Parser0.flatMap(fa)(fn)
 
       def combineK[A](pa: Parser0[A], pb: Parser0[A]): Parser0[A] =
-        Parser0.oneOf(pa :: pb :: Nil)
+        Parser0.oneOf0(pa :: pb :: Nil)
 
       def tailRecM[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
         Parser0.tailRecM(init)(fn)

@@ -571,8 +571,8 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(abcCI, "C", 'C')
     parseFail(abcCI, "D")
 
-    parseTest(Parser0.oneOf1(fooP :: barP :: Nil), "bar", ())
-    parseTest(Parser0.oneOf1(fooP :: barP :: Nil), "foo", ())
+    parseTest(Parser0.oneOf(fooP :: barP :: Nil), "bar", ())
+    parseTest(Parser0.oneOf(fooP :: barP :: Nil), "foo", ())
   }
 
   test("product tests") {
@@ -688,27 +688,27 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("oneOf nesting doesn't change results") {
+  property("oneOf0 nesting doesn't change results") {
     forAll(Gen.listOf(ParserGen.gen), Gen.listOf(ParserGen.gen), Arbitrary.arbitrary[String]) {
       (genP1, genP2, str) =>
-        val oneOf1 = Parser0.oneOf((genP1 ::: genP2).map(_.fa))
-        val oneOf2 = Parser0.oneOf(genP1.map(_.fa)).orElse0(Parser0.oneOf(genP2.map(_.fa)))
+        val oneOf = Parser0.oneOf0((genP1 ::: genP2).map(_.fa))
+        val oneOf2 = Parser0.oneOf0(genP1.map(_.fa)).orElse0(Parser0.oneOf0(genP2.map(_.fa)))
 
-        assertEquals(oneOf1.parse(str), oneOf2.parse(str))
+        assertEquals(oneOf.parse(str), oneOf2.parse(str))
     }
   }
 
-  property("oneOf1 nesting doesn't change results") {
+  property("oneOf nesting doesn't change results") {
     forAll(Gen.listOf(ParserGen.gen1), Gen.listOf(ParserGen.gen1), Arbitrary.arbitrary[String]) {
       (genP1, genP2, str) =>
-        val oneOf1 = Parser0.oneOf1((genP1 ::: genP2).map(_.fa))
+        val oneOf = Parser0.oneOf((genP1 ::: genP2).map(_.fa))
         val oneOf2 = Parser0
-          .oneOf1(genP1.map(_.fa))
+          .oneOf(genP1.map(_.fa))
           .orElse(
-            Parser0.oneOf1(genP2.map(_.fa))
+            Parser0.oneOf(genP2.map(_.fa))
           )
 
-        assertEquals(oneOf1.parse(str), oneOf2.parse(str))
+        assertEquals(oneOf.parse(str), oneOf2.parse(str))
     }
   }
 
@@ -731,31 +731,31 @@ class ParserTest extends munit.ScalaCheckSuite {
       }
   }
 
-  property("oneOf composes as expected") {
+  property("oneOf0 composes as expected") {
     forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
       assertEquals(genP1.fa.orElse0(genP2.fa).parse(str), orElse(genP1.fa, genP2.fa, str))
     }
   }
 
-  property("oneOf1 composes as expected") {
+  property("oneOf composes as expected") {
     forAll(ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
       assertEquals(genP1.fa.orElse(genP2.fa).parse(str), orElse(genP1.fa, genP2.fa, str))
     }
   }
 
-  property("oneOf same as foldLeft(fail)(_.orElse0(_))") {
+  property("oneOf0 same as foldLeft(fail)(_.orElse0(_))") {
     forAll(Gen.listOf(ParserGen.gen), Arbitrary.arbitrary[String]) { (genP1, str) =>
       val oneOfImpl = genP1.foldLeft(Parser0.fail: Parser0[Any]) { (leftp, p) => leftp.orElse0(p.fa) }
 
-      assertEquals(oneOfImpl.parse(str), Parser0.oneOf(genP1.map(_.fa)).parse(str))
+      assertEquals(oneOfImpl.parse(str), Parser0.oneOf0(genP1.map(_.fa)).parse(str))
     }
   }
 
-  property("oneOf1 same as foldLeft(fail)(_.orElse(_))") {
+  property("oneOf same as foldLeft(fail)(_.orElse(_))") {
     forAll(Gen.listOf(ParserGen.gen1), Arbitrary.arbitrary[String]) { (genP1, str) =>
       val oneOfImpl = genP1.foldLeft(Parser0.fail[Any]) { (leftp, p) => leftp.orElse(p.fa) }
 
-      assertEquals(oneOfImpl.parse(str), Parser0.oneOf1(genP1.map(_.fa)).parse(str))
+      assertEquals(oneOfImpl.parse(str), Parser0.oneOf(genP1.map(_.fa)).parse(str))
     }
   }
 
@@ -1013,7 +1013,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("rep0 can be reimplemented with oneOf and defer") {
+  property("rep0 can be reimplemented with oneOf0 and defer") {
     forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
       def rep0[A](pa: Parser[A]): Parser0[List[A]] =
         Defer[Parser0].fix[List[A]] { tail =>

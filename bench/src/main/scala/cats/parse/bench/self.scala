@@ -59,7 +59,7 @@ object Json {
       .between(P0.char('{'), P0.char('}'))
       .map { vs => JObject.fromSeq(vs) }
 
-    P0.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
+    P0.oneOf(str :: num :: list :: obj :: bool :: pnull :: Nil)
   }
 
   // any whitespace followed by json followed by whitespace followed by end
@@ -108,7 +108,7 @@ abstract class GenericStringUtil {
     val hex8 = hex4 ~ hex4
     val u8 = P0.char('U') ~ hex8
 
-    val after = P0.oneOf1[Any](escapes :: octP0 :: hexP0 :: u4 :: u8 :: Nil)
+    val after = P0.oneOf[Any](escapes :: octP0 :: hexP0 :: u4 :: u8 :: Nil)
     (P0.char('\\') ~ after).void
   }
 
