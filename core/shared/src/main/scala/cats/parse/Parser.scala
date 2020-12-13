@@ -867,7 +867,7 @@ object Parser0 extends ParserInstances {
     * note: this can wind up parsing nothing
     */
   def repAs0[A, B](p1: Parser[A])(implicit acc: Accumulator0[A, B]): Parser0[B] =
-    Impl.Rep(p1, acc)
+    Impl.Rep0(p1, acc)
 
   /** Repeat this parser 1 or more times
     */
@@ -877,7 +877,7 @@ object Parser0 extends ParserInstances {
   /** Repeat this parser 1 or more times
     */
   def repAs[A, B](p1: Parser[A], min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
-    Impl.Rep1(p1, min, acc)
+    Impl.Rep(p1, min, acc)
 
   /** Repeat 1 or more times with a separator
     */
@@ -1262,7 +1262,7 @@ object Parser0 extends ParserInstances {
       case peek @ Impl.Peek(_) => peek
       case s if Impl.alwaysSucceeds(s) => unit
       case notPeek =>
-        // TODO: we can adjust Rep/Rep1 to do minimal
+        // TODO: we can adjust Rep0/Rep to do minimal
         // work since we rewind after we are sure there is
         // a match
         Impl.Peek(void(notPeek))
@@ -1513,7 +1513,7 @@ object Parser0 extends ParserInstances {
           }
         case Defer0(fn) =>
           Defer0(() => unmap(compute0(fn)))
-        case Rep(p, _) => Rep(unmap1(p), Accumulator0.unitAccumulator0)
+        case Rep0(p, _) => Rep0(unmap1(p), Accumulator0.unitAccumulator0)
         case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
@@ -1595,7 +1595,7 @@ object Parser0 extends ParserInstances {
           }
         case Defer(fn) =>
           Defer(() => unmap1(compute(fn)))
-        case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator0.unitAccumulator0)
+        case Rep(p, m, _) => Rep(unmap1(p), m, Accumulator0.unitAccumulator0)
         case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
@@ -2057,7 +2057,7 @@ object Parser0 extends ParserInstances {
       }
     }
 
-    case class Rep[A, B](p1: Parser[A], acc: Accumulator0[A, B]) extends Parser0[B] {
+    case class Rep0[A, B](p1: Parser[A], acc: Accumulator0[A, B]) extends Parser0[B] {
       private[this] val ignore: B = null.asInstanceOf[B]
 
       override def parseMut(state: State): B = {
@@ -2072,7 +2072,7 @@ object Parser0 extends ParserInstances {
       }
     }
 
-    case class Rep1[A, B](p1: Parser[A], min: Int, acc1: Accumulator[A, B]) extends Parser[B] {
+    case class Rep[A, B](p1: Parser[A], min: Int, acc1: Accumulator[A, B]) extends Parser[B] {
       if (min < 1) throw new IllegalArgumentException(s"expected min >= 1, found: $min")
 
       private[this] val ignore: B = null.asInstanceOf[B]
