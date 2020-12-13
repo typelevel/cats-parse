@@ -1512,7 +1512,7 @@ object Parser0 extends ParserInstances {
               else SoftProd(u1, u2)
           }
         case Defer(fn) =>
-          Defer(() => unmap(compute(fn)))
+          Defer(() => unmap(compute0(fn)))
         case Rep(p, _) => Rep(unmap1(p), Accumulator0.unitAccumulator0)
         case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
@@ -1594,7 +1594,7 @@ object Parser0 extends ParserInstances {
               else SoftProd1(u1, u2)
           }
         case Defer1(fn) =>
-          Defer1(() => unmap1(compute1(fn)))
+          Defer1(() => unmap1(compute(fn)))
         case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator0.unitAccumulator0)
         case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
@@ -1952,16 +1952,16 @@ object Parser0 extends ParserInstances {
     }
 
     @annotation.tailrec
-    final def compute[A](fn: () => Parser0[A]): Parser0[A] =
+    final def compute0[A](fn: () => Parser0[A]): Parser0[A] =
       fn() match {
-        case Defer1(f) => compute1(f)
-        case Defer(f) => compute(f)
+        case Defer1(f) => compute(f)
+        case Defer(f) => compute0(f)
         case notDefer => notDefer
       }
     @annotation.tailrec
-    final def compute1[A](fn: () => Parser[A]): Parser[A] =
+    final def compute[A](fn: () => Parser[A]): Parser[A] =
       fn() match {
-        case Defer1(f) => compute1(f)
+        case Defer1(f) => compute(f)
         case notDefer => notDefer
       }
 
@@ -1973,7 +1973,7 @@ object Parser0 extends ParserInstances {
         val p =
           if (p0 ne null) p0
           else {
-            val res = compute1(fn)
+            val res = compute(fn)
             computed = res
             res
           }
@@ -1990,7 +1990,7 @@ object Parser0 extends ParserInstances {
         val p =
           if (p0 ne null) p0
           else {
-            val res = compute(fn)
+            val res = compute0(fn)
             computed = res
             res
           }
