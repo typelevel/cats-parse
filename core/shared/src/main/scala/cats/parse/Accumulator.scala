@@ -74,56 +74,56 @@ object Appender {
 }
 
 /** Creates an appender given the first item to be added
-  * This is used to build the result in Parser.repAs1
+  * This is used to build the result in Parser.repAs
   */
-trait Accumulator1[-A, +B] {
+trait Accumulator[-A, +B] {
   def newAppender(first: A): Appender[A, B]
 }
 
 /** Creates an appender
-  * This is used to build the result in Parser.repAs
+  * This is used to build the result in Parser.repAs0
   */
-trait Accumulator[-A, +B] extends Accumulator1[A, B] {
+trait Accumulator0[-A, +B] extends Accumulator[A, B] {
   def newAppender(): Appender[A, B]
   def newAppender(first: A): Appender[A, B] =
     newAppender().append(first)
 }
 
-object Accumulator {
-  implicit val charStringAccumulator: Accumulator[Char, String] =
-    new Accumulator[Char, String] {
+object Accumulator0 {
+  implicit val charStringAccumulator0: Accumulator0[Char, String] =
+    new Accumulator0[Char, String] {
       def newAppender() = Appender.charStringAppender()
     }
 
-  implicit val stringAccumulator: Accumulator[String, String] =
-    new Accumulator[String, String] {
+  implicit val stringAccumulator0: Accumulator0[String, String] =
+    new Accumulator0[String, String] {
       def newAppender() = Appender.stringAppender()
     }
 
-  implicit def listAccumulator[A]: Accumulator[A, List[A]] =
-    new Accumulator[A, List[A]] {
+  implicit def listAccumulator0[A]: Accumulator0[A, List[A]] =
+    new Accumulator0[A, List[A]] {
       def newAppender() = Appender.fromBuilder(List.newBuilder[A])
     }
 
-  implicit def vectorAccumulator[A]: Accumulator[A, Vector[A]] =
-    new Accumulator[A, Vector[A]] {
+  implicit def vectorAccumulator0[A]: Accumulator0[A, Vector[A]] =
+    new Accumulator0[A, Vector[A]] {
       def newAppender() = Appender.fromBuilder(Vector.newBuilder[A])
     }
 
   /** An accumulator that does nothing and returns Unit
-    * Note, this should not generally be used with repAs
+    * Note, this should not generally be used with repAs0
     * because internal allocations still happen. Instead
-    * use .rep.void
+    * use .rep0.void
     */
-  val unitAccumulator: Accumulator[Any, Unit] =
-    new Accumulator[Any, Unit] {
+  val unitAccumulator0: Accumulator0[Any, Unit] =
+    new Accumulator0[Any, Unit] {
       def newAppender() = Appender.unitAppender
     }
 }
 
-object Accumulator1 extends Priority0Accumulator1 {
-  implicit def nonEmptyListAccumulator[A]: Accumulator1[A, NonEmptyList[A]] =
-    new Accumulator1[A, NonEmptyList[A]] {
+object Accumulator extends Priority0Accumulator {
+  implicit def nonEmptyListAccumulator0[A]: Accumulator[A, NonEmptyList[A]] =
+    new Accumulator[A, NonEmptyList[A]] {
       def newAppender(first: A) =
         new Appender[A, NonEmptyList[A]] {
           val bldr = List.newBuilder[A]
@@ -136,8 +136,8 @@ object Accumulator1 extends Priority0Accumulator1 {
         }
     }
 
-  implicit def nonEmptyVectorAccumulator[A]: Accumulator1[A, NonEmptyVector[A]] =
-    new Accumulator1[A, NonEmptyVector[A]] {
+  implicit def nonEmptyVectorAccumulator0[A]: Accumulator[A, NonEmptyVector[A]] =
+    new Accumulator[A, NonEmptyVector[A]] {
       def newAppender(first: A) =
         new Appender[A, NonEmptyVector[A]] {
           val bldr = Vector.newBuilder[A]
@@ -153,6 +153,6 @@ object Accumulator1 extends Priority0Accumulator1 {
     }
 }
 
-private[parse] sealed trait Priority0Accumulator1 {
-  implicit def fromAccumulator[A, B](implicit acc: Accumulator[A, B]): Accumulator1[A, B] = acc
+private[parse] sealed trait Priority0Accumulator {
+  implicit def fromAccumulator0[A, B](implicit acc: Accumulator0[A, B]): Accumulator[A, B] = acc
 }

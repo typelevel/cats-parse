@@ -326,7 +326,7 @@ sealed abstract class Parser0[+A] {
   *
   * Since Parser is guaranteed to consume input it provides additional
   * methods which would be unsafe when used on parsers that succeed
-  * without consuming input, such as `rep`.
+  * without consuming input, such as `rep0`.
   *
   * When a Parser is composed with a Parser0 the result is usually a
   * Parser. Parser overrides many of Parser0's methods to refine the
@@ -438,41 +438,41 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * an epsilon failure, the parsed values (if any) are returned in a
     * list as a successful parse.
     */
-  def rep: Parser0[List[A]] =
-    Parser0.rep(this)
+  def rep0: Parser0[List[A]] =
+    Parser0.rep0(this)
 
   /** Use this parser to parse at least `min` values (where `min >= 0`).
     *
     * If `min` is zero, this parser may succeed without consuming
     * input in the case where zero values are parsed. If `min` is
-    * known to be greater than zero, consider using `rep1(min)`
+    * known to be greater than zero, consider using `rep(min)`
     * instead.
     *
-    * Like `rep`, arresting failures in the underlying parser will
-    * result in an arresting failure. Unlike `rep`, this method may
+    * Like `rep0`, arresting failures in the underlying parser will
+    * result in an arresting failure. Unlike `rep0`, this method may
     * also return an arresting failure if it has not parsed at least
     * `min` values (but has consumed input).
     */
-  def rep(min: Int): Parser0[List[A]] =
-    if (min == 0) rep
-    else rep1(min).map(_.toList)
+  def rep0(min: Int): Parser0[List[A]] =
+    if (min == 0) rep0
+    else rep(min).map(_.toList)
 
   /** Use this parser to parse one-or-more values.
     *
-    * This parser behaves like `rep`, except that it must produce at
+    * This parser behaves like `rep0`, except that it must produce at
     * least one value, and is guaranteed to consume input on successful
     * parses.
     */
-  def rep1: Parser[NonEmptyList[A]] =
-    Parser0.rep1(this, min = 1)
+  def rep: Parser[NonEmptyList[A]] =
+    Parser0.rep(this, min = 1)
 
   /** Use this parser to parse at least `min` values (where `min >= 1`).
     *
-    * This method behaves likes `rep1`, except that if fewer than `min`
+    * This method behaves likes `rep`, except that if fewer than `min`
     * values are produced an arresting failure will be returned.
     */
-  def rep1(min: Int): Parser[NonEmptyList[A]] =
-    Parser0.rep1(this, min = min)
+  def rep(min: Int): Parser[NonEmptyList[A]] =
+    Parser0.rep(this, min = min)
 
   /** This method overrides `Parser0#between` to refine the return type
     */
@@ -727,14 +727,14 @@ object Parser0 extends ParserInstances {
   /** Methods with complex variance type signatures due to covariance.
     */
   implicit final class ParserMethods[A](private val self: Parser[A]) extends AnyVal {
-    def repAs[B](implicit acc: Accumulator[A, B]): Parser0[B] =
-      Parser0.repAs(self)(acc)
+    def repAs0[B](implicit acc: Accumulator0[A, B]): Parser0[B] =
+      Parser0.repAs0(self)(acc)
 
-    def repAs1[B](implicit acc: Accumulator1[A, B]): Parser[B] =
-      Parser0.repAs1(self, min = 1)(acc)
+    def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
+      Parser0.repAs(self, min = 1)(acc)
 
-    def repAs1[B](min: Int)(implicit acc: Accumulator1[A, B]): Parser[B] =
-      Parser0.repAs1(self, min = min)(acc)
+    def repAs[B](min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
+      Parser0.repAs(self, min = min)(acc)
   }
 
   /** Don't advance in the parsed string, just return a
@@ -860,23 +860,23 @@ object Parser0 extends ParserInstances {
   /** Repeat this parser 0 or more times
     * note: this can wind up parsing nothing
     */
-  def rep[A](p1: Parser[A]): Parser0[List[A]] =
-    repAs[A, List[A]](p1)
+  def rep0[A](p1: Parser[A]): Parser0[List[A]] =
+    repAs0[A, List[A]](p1)
 
   /** Repeat this parser 0 or more times
     * note: this can wind up parsing nothing
     */
-  def repAs[A, B](p1: Parser[A])(implicit acc: Accumulator[A, B]): Parser0[B] =
+  def repAs0[A, B](p1: Parser[A])(implicit acc: Accumulator0[A, B]): Parser0[B] =
     Impl.Rep(p1, acc)
 
   /** Repeat this parser 1 or more times
     */
-  def rep1[A](p1: Parser[A], min: Int): Parser[NonEmptyList[A]] =
-    repAs1[A, NonEmptyList[A]](p1, min)
+  def rep[A](p1: Parser[A], min: Int): Parser[NonEmptyList[A]] =
+    repAs[A, NonEmptyList[A]](p1, min)
 
   /** Repeat this parser 1 or more times
     */
-  def repAs1[A, B](p1: Parser[A], min: Int)(implicit acc: Accumulator1[A, B]): Parser[B] =
+  def repAs[A, B](p1: Parser[A], min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
     Impl.Rep1(p1, min, acc)
 
   /** Repeat 1 or more times with a separator
@@ -884,7 +884,7 @@ object Parser0 extends ParserInstances {
   def rep1Sep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
     if (min <= 0) throw new IllegalArgumentException(s"require min > 0, found: $min")
 
-    val rest = (sep.void.with1.soft *> p1).rep(min - 1)
+    val rest = (sep.void.with1.soft *> p1).rep0(min - 1)
     (p1 ~ rest).map { case (h, t) => NonEmptyList(h, t) }
   }
 
@@ -1149,23 +1149,23 @@ object Parser0 extends ParserInstances {
   /** Parse a string while the given function is true
     */
   def charsWhile(fn: Char => Boolean): Parser0[String] =
-    charWhere(fn).rep.string
+    charWhere(fn).rep0.string
 
   /** Parse a string while the given function is true
     * parses at least one character
     */
   def charsWhile1(fn: Char => Boolean): Parser[String] =
-    charWhere(fn).rep1.string
+    charWhere(fn).rep.string
 
   /** parse zero or more characters as long as they don't match p
     */
   def until(p: Parser0[Any]): Parser0[String] =
-    (not(p).with1 ~ anyChar).rep.string
+    (not(p).with1 ~ anyChar).rep0.string
 
   /** parse one or more characters as long as they don't match p
     */
   def until1(p: Parser0[Any]): Parser[String] =
-    (not(p).with1 ~ anyChar).rep1.string
+    (not(p).with1 ~ anyChar).rep.string
 
   /** discard the value in a Parser0.
     *  This is an optimization because we remove trailing
@@ -1513,7 +1513,7 @@ object Parser0 extends ParserInstances {
           }
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
-        case Rep(p, _) => Rep(unmap1(p), Accumulator.unitAccumulator)
+        case Rep(p, _) => Rep(unmap1(p), Accumulator0.unitAccumulator0)
         case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
@@ -1595,7 +1595,7 @@ object Parser0 extends ParserInstances {
           }
         case Defer1(fn) =>
           Defer1(() => unmap1(compute1(fn)))
-        case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator.unitAccumulator)
+        case Rep1(p, m, _) => Rep1(unmap1(p), m, Accumulator0.unitAccumulator0)
         case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM1(_, _) | FlatMap1(_, _) =>
           // we can't transform this significantly
@@ -2057,7 +2057,7 @@ object Parser0 extends ParserInstances {
       }
     }
 
-    case class Rep[A, B](p1: Parser[A], acc: Accumulator[A, B]) extends Parser0[B] {
+    case class Rep[A, B](p1: Parser[A], acc: Accumulator0[A, B]) extends Parser0[B] {
       private[this] val ignore: B = null.asInstanceOf[B]
 
       override def parseMut(state: State): B = {
@@ -2072,7 +2072,7 @@ object Parser0 extends ParserInstances {
       }
     }
 
-    case class Rep1[A, B](p1: Parser[A], min: Int, acc1: Accumulator1[A, B]) extends Parser[B] {
+    case class Rep1[A, B](p1: Parser[A], min: Int, acc1: Accumulator[A, B]) extends Parser[B] {
       if (min < 1) throw new IllegalArgumentException(s"expected min >= 1, found: $min")
 
       private[this] val ignore: B = null.asInstanceOf[B]

@@ -28,7 +28,7 @@ import org.typelevel.jawn.ast._
 /* Based on https://github.com/johnynek/bosatsu/blob/7f4b75356c207b0e0eb2ab7d39f646e04b4004ca/core/src/main/scala/org/bykn/bosatsu/Json.scala */
 object Json {
   private[this] val whitespace: P[Unit] = P0.charIn(" \t\r\n").void
-  private[this] val whitespaces0: P0[Unit] = whitespace.rep.void
+  private[this] val whitespaces0: P0[Unit] = whitespace.rep0.void
 
   /** This doesn't have to be super fast (but is fairly fast) since we use it in places
     * where speed won't matter: feeding it into a program that will convert it to bosatsu
@@ -45,17 +45,17 @@ object Json {
     val listSep: P[Unit] =
       P0.char(',').surroundedBy(whitespaces0).void
 
-    def rep[A](pa: P[A]): P0[List[A]] =
+    def rep0[A](pa: P[A]): P0[List[A]] =
       P0.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
 
-    val list = rep(recurse).with1
+    val list = rep0(recurse).with1
       .between(P0.char('['), P0.char(']'))
       .map { vs => JArray.fromSeq(vs) }
 
     val kv: P[(String, JValue)] =
       justStr ~ (P0.char(':').surroundedBy(whitespaces0) *> recurse)
 
-    val obj = rep(kv).with1
+    val obj = rep0(kv).with1
       .between(P0.char('{'), P0.char('}'))
       .map { vs => JObject.fromSeq(vs) }
 
@@ -117,7 +117,7 @@ abstract class GenericStringUtil {
   def undelimitedString1(endP0: P[Unit]): P[String] =
     escapedToken.backtrack
       .orElse((!endP0).with1 ~ P0.anyChar)
-      .rep1
+      .rep
       .string
       .flatMap { str =>
         unescape(str) match {

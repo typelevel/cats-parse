@@ -42,7 +42,7 @@ object SemVer {
 
   val identifierChar: Parser[Char] = Numbers.digit.orElse(nonDigit)
 
-  val identifierChars: Parser[String] = identifierChar.rep1.string
+  val identifierChars: Parser[String] = identifierChar.rep.string
 
   def numericIdentifier: Parser[String] = Numbers.nonNegativeIntString
 
