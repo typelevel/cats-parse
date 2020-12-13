@@ -37,7 +37,7 @@ import cats.parse.bench.self.JsonStringUtil
 ```
 
 ```scala mdoc
-import cats.parse.{Parser => P, Parser1, Numbers}
+import cats.parse.{Parser00 => P, Parser1, Numbers}
 import org.typelevel.jawn.ast._
 
 object Json {
@@ -121,7 +121,7 @@ is written, but these results suggest that this library is already quite competi
 You should find all the Fastparse methods you are used to. If not, feel free to open an issue.
 There are a few things to keep in mind:
 
-1. In fastparse, you wrap a parser in `P(...)` to make the interior lazy. Following cats, to get a lazily constructed parser use `Parser.defer` or `cats.Defer[Parser].defer`.
+1. In fastparse, you wrap a parser in `P(...)` to make the interior lazy. Following cats, to get a lazily constructed parser use `Parser0.defer` or `cats.Defer[Parser].defer`.
 2. In fastparse the `~` operator does tuple concatenation. This can be nice, but also complex to see what the resulting type is. In cats-parse, `~` always returns a Tuple2 containing the parsed values from the left and right. To recover fastparse-like behavior, use cats syntax `(pa, pb, pc...).tupled`.
 3. In fastparse, backtracking is opt-out by using cuts. In cats-parse, backtracking is opt-in using `.backtrack`. Put another way, normal product operations in cats-parse are like `~/` in fastparse.
 4. In cats-parse, using `*>`, `<*`, and `.void` methods can be a significant optimization: if you don't need a result, communicate that to the library with those methods.

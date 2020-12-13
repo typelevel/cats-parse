@@ -74,79 +74,79 @@ object ParserGen {
   val pures: Gen[GenT[Gen]] =
     Gen.oneOf(arbGen[Int], arbGen[Boolean], arbGen[String], arbGen[(Int, Int)])
 
-  val expect0: Gen[GenT[Parser]] =
+  val expect0: Gen[GenT[Parser0]] =
     Arbitrary.arbitrary[String].map { str =>
-      GenT(Parser.string(str))
+      GenT(Parser0.string(str))
     }
 
-  val ignoreCase: Gen[GenT[Parser]] =
+  val ignoreCase: Gen[GenT[Parser0]] =
     Arbitrary.arbitrary[String].map { str =>
-      GenT(Parser.ignoreCase(str))
+      GenT(Parser0.ignoreCase(str))
     }
 
-  val charIn: Gen[GenT[Parser]] =
+  val charIn: Gen[GenT[Parser0]] =
     Gen.oneOf(
       Arbitrary.arbitrary[List[Char]].map { cs =>
-        GenT(Parser.charIn(cs): Parser[Char])
+        GenT(Parser0.charIn(cs): Parser0[Char])
       },
-      Gen.const(GenT(Parser.anyChar: Parser[Char]))
+      Gen.const(GenT(Parser0.anyChar: Parser0[Char]))
     )
 
   val charIn1: Gen[GenT[Parser1]] =
     Gen.oneOf(
       Arbitrary.arbitrary[List[Char]].map { cs =>
-        GenT(Parser.charIn(cs))
+        GenT(Parser0.charIn(cs))
       },
-      Gen.const(GenT(Parser.anyChar))
+      Gen.const(GenT(Parser0.anyChar))
     )
 
   val expect1: Gen[GenT[Parser1]] =
     Arbitrary.arbitrary[String].map { str =>
-      if (str.isEmpty) GenT(Parser.fail: Parser1[Unit])
-      else GenT(Parser.string1(str))
+      if (str.isEmpty) GenT(Parser0.fail: Parser1[Unit])
+      else GenT(Parser0.string1(str))
     }
 
   val ignoreCase1: Gen[GenT[Parser1]] =
     Arbitrary.arbitrary[String].map { str =>
-      if (str.isEmpty) GenT(Parser.fail: Parser1[Unit])
-      else GenT(Parser.ignoreCase1(str))
+      if (str.isEmpty) GenT(Parser0.fail: Parser1[Unit])
+      else GenT(Parser0.ignoreCase1(str))
     }
 
-  val fail: Gen[GenT[Parser]] =
-    Gen.const(GenT(Parser.fail: Parser[Unit]))
+  val fail: Gen[GenT[Parser0]] =
+    Gen.const(GenT(Parser0.fail: Parser0[Unit]))
 
-  val failWith: Gen[GenT[Parser]] =
+  val failWith: Gen[GenT[Parser0]] =
     Arbitrary.arbitrary[String].map { str =>
-      GenT(Parser.failWith[Unit](str))
+      GenT(Parser0.failWith[Unit](str))
     }
 
-  def void(g: GenT[Parser]): GenT[Parser] =
-    GenT(Parser.void(g.fa))
+  def void(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Parser0.void(g.fa))
 
   def void1(g: GenT[Parser1]): GenT[Parser1] =
-    GenT(Parser.void1(g.fa))
+    GenT(Parser0.void1(g.fa))
 
-  def string(g: GenT[Parser]): GenT[Parser] =
-    GenT(Parser.string(g.fa))
+  def string(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Parser0.string(g.fa))
 
   def string1(g: GenT[Parser1]): GenT[Parser1] =
-    GenT(Parser.string1(g.fa))
+    GenT(Parser0.string1(g.fa))
 
-  def backtrack(g: GenT[Parser]): GenT[Parser] =
+  def backtrack(g: GenT[Parser0]): GenT[Parser0] =
     GenT(g.fa.backtrack)(g.cogen)
 
   def backtrack1(g: GenT[Parser1]): GenT[Parser1] =
     GenT(g.fa.backtrack)(g.cogen)
 
-  def defer(g: GenT[Parser]): GenT[Parser] =
-    GenT(Defer[Parser].defer(g.fa))(g.cogen)
+  def defer(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Defer[Parser0].defer(g.fa))(g.cogen)
 
   def defer1(g: GenT[Parser1]): GenT[Parser1] =
     GenT(Defer[Parser1].defer(g.fa))(g.cogen)
 
-  def rep(g: GenT[Parser1]): GenT[Parser] = {
+  def rep(g: GenT[Parser1]): GenT[Parser0] = {
     implicit val cg = g.cogen
-    GenT[Parser, List[g.A]](g.fa.rep)
+    GenT[Parser0, List[g.A]](g.fa.rep)
   }
 
   def rep1(g: GenT[Parser1]): GenT[Parser1] = {
@@ -154,22 +154,22 @@ object ParserGen {
     GenT[Parser1, List[g.A]](g.fa.rep1.map(_.toList))
   }
 
-  def product(ga: GenT[Parser], gb: GenT[Parser]): Gen[GenT[Parser]] = {
+  def product(ga: GenT[Parser0], gb: GenT[Parser0]): Gen[GenT[Parser0]] = {
     implicit val ca: Cogen[ga.A] = ga.cogen
     implicit val cb: Cogen[gb.A] = gb.cogen
     Gen.oneOf(
-      GenT[Parser, (ga.A, gb.A)](FlatMap[Parser].product(ga.fa, gb.fa)),
-      GenT[Parser, (ga.A, gb.A)](FlatMap[Parser].map2(ga.fa, gb.fa)((_, _))),
-      GenT[Parser, (ga.A, gb.A)](FlatMap[Parser].map2Eval(ga.fa, Eval.later(gb.fa))((_, _)).value),
-      GenT[Parser, (ga.A, gb.A)](FlatMap[Parser].map2Eval(ga.fa, Eval.now(gb.fa))((_, _)).value)
+      GenT[Parser0, (ga.A, gb.A)](FlatMap[Parser0].product(ga.fa, gb.fa)),
+      GenT[Parser0, (ga.A, gb.A)](FlatMap[Parser0].map2(ga.fa, gb.fa)((_, _))),
+      GenT[Parser0, (ga.A, gb.A)](FlatMap[Parser0].map2Eval(ga.fa, Eval.later(gb.fa))((_, _)).value),
+      GenT[Parser0, (ga.A, gb.A)](FlatMap[Parser0].map2Eval(ga.fa, Eval.now(gb.fa))((_, _)).value)
     )
   }
 
-  def softProduct(ga: GenT[Parser], gb: GenT[Parser]): Gen[GenT[Parser]] = {
+  def softProduct(ga: GenT[Parser0], gb: GenT[Parser0]): Gen[GenT[Parser0]] = {
     implicit val ca: Cogen[ga.A] = ga.cogen
     implicit val cb: Cogen[gb.A] = gb.cogen
     Gen.const(
-      GenT[Parser, (ga.A, gb.A)](ga.fa.soft ~ gb.fa)
+      GenT[Parser0, (ga.A, gb.A)](ga.fa.soft ~ gb.fa)
     )
   }
 
@@ -186,18 +186,18 @@ object ParserGen {
     )
   }
 
-  def product10(ga: GenT[Parser1], gb: GenT[Parser]): Gen[GenT[Parser1]] = {
+  def product10(ga: GenT[Parser1], gb: GenT[Parser0]): Gen[GenT[Parser1]] = {
     implicit val ca: Cogen[ga.A] = ga.cogen
     implicit val cb: Cogen[gb.A] = gb.cogen
     Gen.oneOf(
-      GenT[Parser1, (ga.A, gb.A)](Parser.product10(ga.fa, gb.fa)),
+      GenT[Parser1, (ga.A, gb.A)](Parser0.product10(ga.fa, gb.fa)),
       GenT[Parser1, ga.A](ga.fa <* gb.fa),
       GenT[Parser1, gb.A](ga.fa *> gb.fa),
-      GenT[Parser1, (ga.A, ga.A)](Parser.product10(ga.fa, ga.fa))
+      GenT[Parser1, (ga.A, ga.A)](Parser0.product10(ga.fa, ga.fa))
     )
   }
 
-  def softProduct1(ga: GenT[Parser1], gb: GenT[Parser]): Gen[GenT[Parser1]] = {
+  def softProduct1(ga: GenT[Parser1], gb: GenT[Parser0]): Gen[GenT[Parser1]] = {
     implicit val ca: Cogen[ga.A] = ga.cogen
     implicit val cb: Cogen[gb.A] = gb.cogen
     Gen.oneOf(
@@ -210,7 +210,7 @@ object ParserGen {
     )
   }
 
-  def mapped(ga: GenT[Parser]): Gen[GenT[Parser]] = {
+  def mapped(ga: GenT[Parser0]): Gen[GenT[Parser0]] = {
     pures.flatMap { genRes =>
       implicit val ca: Cogen[ga.A] = ga.cogen
       implicit val cb: Cogen[genRes.A] = genRes.cogen
@@ -218,7 +218,7 @@ object ParserGen {
       fnGen.flatMap { fn =>
         Gen.oneOf(
           GenT(ga.fa.map(fn)),
-          GenT(FlatMap[Parser].map(ga.fa)(fn))
+          GenT(FlatMap[Parser0].map(ga.fa)(fn))
         )
       }
     }
@@ -244,9 +244,9 @@ object ParserGen {
     val fn: A => F[B]
   }
 
-  def selected(ga: Gen[GenT[Parser]]): Gen[GenT[Parser]] =
+  def selected(ga: Gen[GenT[Parser0]]): Gen[GenT[Parser0]] =
     Gen.zip(pures, pures).flatMap { case (genRes1, genRes2) =>
-      val genPR: Gen[Parser[Either[genRes1.A, genRes2.A]]] = {
+      val genPR: Gen[Parser0[Either[genRes1.A, genRes2.A]]] = {
         ga.flatMap { init =>
           val mapFn: Gen[init.A => Either[genRes1.A, genRes2.A]] =
             Gen.function1(Gen.either(genRes1.fa, genRes2.fa))(init.cogen)
@@ -256,7 +256,7 @@ object ParserGen {
         }
       }
 
-      val gfn: Gen[Parser[genRes1.A => genRes2.A]] =
+      val gfn: Gen[Parser0[genRes1.A => genRes2.A]] =
         ga.flatMap { init =>
           val mapFn: Gen[init.A => (genRes1.A => genRes2.A)] =
             Gen.function1(Gen.function1(genRes2.fa)(genRes1.cogen))(init.cogen)
@@ -266,13 +266,13 @@ object ParserGen {
         }
 
       Gen.zip(genPR, gfn).map { case (pab, fn) =>
-        GenT(Parser.select(pab)(fn))(genRes2.cogen)
+        GenT(Parser0.select(pab)(fn))(genRes2.cogen)
       }
     }
 
-  def flatMapped(ga: Gen[GenT[Parser]]): Gen[GenT[Parser]] =
+  def flatMapped(ga: Gen[GenT[Parser0]]): Gen[GenT[Parser0]] =
     Gen.zip(ga, pures).flatMap { case (parser, genRes) =>
-      val genPR: Gen[Parser[genRes.A]] = {
+      val genPR: Gen[Parser0[genRes.A]] = {
         ga.flatMap { init =>
           val mapFn: Gen[init.A => genRes.A] =
             Gen.function1(genRes.fa)(init.cogen)
@@ -283,21 +283,21 @@ object ParserGen {
         }
       }
 
-      val gfn: Gen[parser.A => Parser[genRes.A]] =
+      val gfn: Gen[parser.A => Parser0[genRes.A]] =
         Gen.function1(genPR)(parser.cogen)
 
       gfn.flatMap { fn =>
         Gen.oneOf(
           GenT(parser.fa.flatMap(fn))(genRes.cogen),
-          GenT(FlatMap[Parser].flatMap(parser.fa)(fn))(genRes.cogen)
+          GenT(FlatMap[Parser0].flatMap(parser.fa)(fn))(genRes.cogen)
         )
       }
     }
 
-  // if we use a Parser here, we could loop forever parsing nothing
-  def tailRecM(ga: Gen[GenT[Parser1]]): Gen[GenT[Parser]] =
+  // if we use a Parser0 here, we could loop forever parsing nothing
+  def tailRecM(ga: Gen[GenT[Parser1]]): Gen[GenT[Parser0]] =
     Gen.zip(pures, pures).flatMap { case (genRes1, genRes2) =>
-      val genPR: Gen[Parser[Either[genRes1.A, genRes2.A]]] = {
+      val genPR: Gen[Parser0[Either[genRes1.A, genRes2.A]]] = {
         ga.flatMap { init =>
           val mapFn: Gen[init.A => Either[genRes1.A, genRes2.A]] =
             Gen.function1(Gen.either(genRes1.fa, genRes2.fa))(init.cogen)
@@ -313,7 +313,7 @@ object ParserGen {
       Gen
         .zip(genRes1.fa, gfn)
         .map { case (init, fn) =>
-          GenT(Monad[Parser].tailRecM(init)(fn))(genRes2.cogen)
+          GenT(Monad[Parser0].tailRecM(init)(fn))(genRes2.cogen)
         }
     }
 
@@ -339,7 +339,7 @@ object ParserGen {
         }
     }
 
-  def selected1(ga1: Gen[GenT[Parser1]], ga0: Gen[GenT[Parser]]): Gen[GenT[Parser1]] =
+  def selected1(ga1: Gen[GenT[Parser1]], ga0: Gen[GenT[Parser0]]): Gen[GenT[Parser1]] =
     Gen.zip(pures, pures).flatMap { case (genRes1, genRes2) =>
       val genPR1: Gen[Parser1[Either[genRes1.A, genRes2.A]]] = {
         ga1.flatMap { init =>
@@ -351,7 +351,7 @@ object ParserGen {
         }
       }
 
-      val gfn: Gen[Parser[genRes1.A => genRes2.A]] =
+      val gfn: Gen[Parser0[genRes1.A => genRes2.A]] =
         ga0.flatMap { init =>
           val mapFn: Gen[init.A => (genRes1.A => genRes2.A)] =
             Gen.function1(Gen.function1(genRes2.fa)(genRes1.cogen))(init.cogen)
@@ -361,11 +361,11 @@ object ParserGen {
         }
 
       Gen.zip(genPR1, gfn).map { case (pab, fn) =>
-        GenT(Parser.select1(pab)(fn))(genRes2.cogen)
+        GenT(Parser0.select1(pab)(fn))(genRes2.cogen)
       }
     }
 
-  def flatMapped1(ga: Gen[GenT[Parser]], ga1: Gen[GenT[Parser1]]): Gen[GenT[Parser1]] =
+  def flatMapped1(ga: Gen[GenT[Parser0]], ga1: Gen[GenT[Parser1]]): Gen[GenT[Parser1]] =
     Gen.zip(ga, ga1, pures).flatMap { case (parser, parser1, genRes) =>
       val genPR: Gen[Parser1[genRes.A]] = {
         ga1.flatMap { init =>
@@ -403,7 +403,7 @@ object ParserGen {
       )
     }
 
-  def orElse(ga: GenT[Parser], gb: GenT[Parser], res: GenT[Gen]): Gen[GenT[Parser]] = {
+  def orElse(ga: GenT[Parser0], gb: GenT[Parser0], res: GenT[Gen]): Gen[GenT[Parser0]] = {
     val genFn1: Gen[ga.A => res.A] = Gen.function1(res.fa)(ga.cogen)
     val genFn2: Gen[gb.A => res.A] = Gen.function1(res.fa)(gb.cogen)
     implicit val cogenResA: Cogen[res.A] = res.cogen
@@ -411,7 +411,7 @@ object ParserGen {
     Gen.zip(genFn1, genFn2).flatMap { case (f1, f2) =>
       Gen.oneOf(
         GenT(ga.fa.map(f1).orElse(gb.fa.map(f2))),
-        GenT(MonoidK[Parser].combineK(ga.fa.map(f1), gb.fa.map(f2)))
+        GenT(MonoidK[Parser0].combineK(ga.fa.map(f1), gb.fa.map(f2)))
       )
     }
   }
@@ -430,7 +430,7 @@ object ParserGen {
   }
 
   // Generate a random parser
-  lazy val gen: Gen[GenT[Parser]] = {
+  lazy val gen: Gen[GenT[Parser0]] = {
     val rec = Gen.lzy(gen)
 
     Gen.frequency(
@@ -438,14 +438,14 @@ object ParserGen {
         3,
         pures
           .flatMap(_.toId)
-          .map(_.transform(new FunctionK[Id, Parser] {
-            def apply[A](g: Id[A]): Parser[A] = Parser.pure(g)
+          .map(_.transform(new FunctionK[Id, Parser0] {
+            def apply[A](g: Id[A]): Parser0[A] = Parser0.pure(g)
           }))
       ),
       (5, expect0),
       (1, ignoreCase),
       (5, charIn),
-      (1, Gen.oneOf(GenT(Parser.start), GenT(Parser.end), GenT(Parser.index))),
+      (1, Gen.oneOf(GenT(Parser0.start), GenT(Parser0.end), GenT(Parser0.index))),
       (1, fail),
       (1, failWith),
       (1, rec.map(void(_))),
@@ -457,7 +457,7 @@ object ParserGen {
       (1, rec.flatMap(mapped(_))),
       (1, rec.flatMap(selected(_))),
       (1, tailRecM(Gen.lzy(gen1))),
-      (1, Gen.choose(0, 10).map { l => GenT(Parser.length(l)) }),
+      (1, Gen.choose(0, 10).map { l => GenT(Parser0.length(l)) }),
       (1, flatMapped(rec)),
       (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => product(g1, g2) }),
       (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => softProduct(g1, g2) }),
@@ -473,7 +473,7 @@ object ParserGen {
       (8, expect1),
       (2, ignoreCase1),
       (8, charIn1),
-      (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser.char(c)) }),
+      (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser0.char(c)) }),
       (2, rec.map(void1(_))),
       (2, rec.map(string1(_))),
       (2, rec.map(backtrack1(_))),
@@ -483,7 +483,7 @@ object ParserGen {
       (1, rec.flatMap(mapped1(_))),
       (1, flatMapped1(gen, rec)),
       (1, tailRecM1(rec)),
-      (1, Gen.choose(1, 10).map { l => GenT(Parser.length1(l)) }),
+      (1, Gen.choose(1, 10).map { l => GenT(Parser0.length1(l)) }),
       (
         2,
         Gen.frequency(
@@ -496,7 +496,7 @@ object ParserGen {
     )
   }
 
-  def genParser[A](genA: Gen[A]): Gen[Parser[A]] =
+  def genParser0[A](genA: Gen[A]): Gen[Parser0[A]] =
     for {
       genT <- gen
       fn <- Gen.function1(genA)(genT.cogen)
@@ -508,8 +508,8 @@ object ParserGen {
       fn <- Gen.function1(genA)(genT.cogen)
     } yield genT.fa.map(fn)
 
-  implicit def arbParser[A: Arbitrary]: Arbitrary[Parser[A]] =
-    Arbitrary(genParser(Arbitrary.arbitrary[A]))
+  implicit def arbParser0[A: Arbitrary]: Arbitrary[Parser0[A]] =
+    Arbitrary(genParser0(Arbitrary.arbitrary[A]))
 
   implicit def arbParser1[A: Arbitrary]: Arbitrary[Parser1[A]] =
     Arbitrary(genParser1(Arbitrary.arbitrary[A]))
@@ -517,7 +517,7 @@ object ParserGen {
 
 class ParserTest extends munit.ScalaCheckSuite {
 
-  import ParserGen.{arbParser, arbParser1}
+  import ParserGen.{arbParser0, arbParser1}
 
   val tests: Int = if (BitSetUtil.isScalaJs) 50 else 2000
 
@@ -526,7 +526,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       .withMinSuccessfulTests(tests)
       .withMaxDiscardRatio(10)
 
-  def parseTest[A: Eq](p: Parser[A], str: String, a: A) =
+  def parseTest[A: Eq](p: Parser0[A], str: String, a: A) =
     p.parse(str) match {
       case Right((_, res)) =>
         assert(Eq[A].eqv(a, res), s"expected: $a got $res")
@@ -534,7 +534,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         assert(false, errs.toString)
     }
 
-  def parseFail[A: Eq](p: Parser[A], str: String) =
+  def parseFail[A: Eq](p: Parser0[A], str: String) =
     p.parse(str) match {
       case Right(res) =>
         assert(false, s"expected to not parse, but found: $res")
@@ -543,15 +543,15 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
 
   test("pure works") {
-    parseTest(Parser.pure(42), "anything", 42)
+    parseTest(Parser0.pure(42), "anything", 42)
   }
 
-  val fooP = Parser.string1("foo")
-  val barP = Parser.string1("bar")
-  val fooCIP = Parser.ignoreCase1("foo")
-  val cCIP = Parser.ignoreCase1("a")
-  val cCIP1 = Parser.ignoreCaseChar('a')
-  val abcCI = Parser.ignoreCaseCharIn('a', 'b', 'c')
+  val fooP = Parser0.string1("foo")
+  val barP = Parser0.string1("bar")
+  val fooCIP = Parser0.ignoreCase1("foo")
+  val cCIP = Parser0.ignoreCase1("a")
+  val cCIP1 = Parser0.ignoreCaseChar('a')
+  val abcCI = Parser0.ignoreCaseCharIn('a', 'b', 'c')
 
   test("string tests") {
     parseTest(fooP, "foobar", ())
@@ -571,17 +571,17 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(abcCI, "C", 'C')
     parseFail(abcCI, "D")
 
-    parseTest(Parser.oneOf1(fooP :: barP :: Nil), "bar", ())
-    parseTest(Parser.oneOf1(fooP :: barP :: Nil), "foo", ())
+    parseTest(Parser0.oneOf1(fooP :: barP :: Nil), "bar", ())
+    parseTest(Parser0.oneOf1(fooP :: barP :: Nil), "foo", ())
   }
 
   test("product tests") {
-    parseTest(Parser.product01(fooP, barP), "foobar", ((), ()))
-    parseTest(Parser.product10(fooP, barP), "foobar", ((), ()))
-    parseTest(Parser.product(fooP, barP), "foobar", ((), ()))
+    parseTest(Parser0.product01(fooP, barP), "foobar", ((), ()))
+    parseTest(Parser0.product10(fooP, barP), "foobar", ((), ()))
+    parseTest(Parser0.product(fooP, barP), "foobar", ((), ()))
   }
 
-  property("Parser on success replaces parsed value") {
+  property("Parser0 on success replaces parsed value") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.as("something").parse(str)
       res0 match {
@@ -591,19 +591,19 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Parser.start and end work") {
+  property("Parser0.start and end work") {
     forAll { (s: String) =>
       if (s.isEmpty) {
         intercept[IllegalArgumentException] {
-          Parser.string1(s)
+          Parser0.string1(s)
         }
       } else {
-        val pa = Parser.string1(s)
-        assertEquals((Parser.start ~ pa ~ Parser.end).void.parse(s), Right(("", ())))
-        assert((pa ~ Parser.start).parse(s).isLeft)
-        assert((Parser.end ~ pa).parse(s).isLeft)
+        val pa = Parser0.string1(s)
+        assertEquals((Parser0.start ~ pa ~ Parser0.end).void.parse(s), Right(("", ())))
+        assert((pa ~ Parser0.start).parse(s).isLeft)
+        assert((Parser0.end ~ pa).parse(s).isLeft)
         assertEquals(
-          (Parser.index ~ pa ~ Parser.index).map { case ((s, _), e) => e - s }.parse(s),
+          (Parser0.index ~ pa ~ Parser0.index).map { case ((s, _), e) => e - s }.parse(s),
           Right(("", s.length))
         )
       }
@@ -612,16 +612,16 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Parser.length succeeds when the string is long enough") {
+  property("Parser0.length succeeds when the string is long enough") {
     forAll { (s: String, len: Int) =>
       if (len < 1) {
         intercept[IllegalArgumentException] {
-          Parser.length1(len)
+          Parser0.length1(len)
         }
-        assertEquals(Parser.length(len).parse(s), Right((s, "")))
+        assertEquals(Parser0.length(len).parse(s), Right((s, "")))
       } else {
-        val pa = Parser.length(len)
-        val pa1 = Parser.length1(len)
+        val pa = Parser0.length(len)
+        val pa1 = Parser0.length1(len)
 
         val res = pa.parse(s)
         val res1 = pa1.parse(s)
@@ -634,7 +634,7 @@ class ParserTest extends munit.ScalaCheckSuite {
               assertEquals(s.take(len), first)
               assertEquals(s.drop(len), rest)
             } else fail(s"expected to not parse: $rest, $first")
-          case Left(Parser.Error(0, NonEmptyList(Parser.Expectation.Length(off, l, a), Nil))) =>
+          case Left(Parser0.Error(0, NonEmptyList(Parser0.Expectation.Length(off, l, a), Nil))) =>
             assertEquals(off, 0)
             assertEquals(l, len)
             assertEquals(a, s.length)
@@ -651,7 +651,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val r1 = genP.fa.parse(str)
       val r2 = genP.fa.void.parse(str)
-      val r3 = FlatMap[Parser].void(genP.fa).parse(str)
+      val r3 = FlatMap[Parser0].void(genP.fa).parse(str)
       val r4 = genP.fa.as(()).parse(str)
 
       assertEquals(r2, r1.map { case (off, _) => (off, ()) })
@@ -666,7 +666,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       val r2 = genP.fa.void.parse(str)
       val r3 = FlatMap[Parser1].void(genP.fa).parse(str)
       val r4 = genP.fa.as(()).parse(str)
-      val r5 = ((genP.fa.void: Parser[Unit]) <* Monad[Parser].unit).parse(str)
+      val r5 = ((genP.fa.void: Parser0[Unit]) <* Monad[Parser0].unit).parse(str)
 
       assertEquals(r2, r1.map { case (off, _) => (off, ()) })
       assertEquals(r2, r3)
@@ -691,8 +691,8 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("oneOf nesting doesn't change results") {
     forAll(Gen.listOf(ParserGen.gen), Gen.listOf(ParserGen.gen), Arbitrary.arbitrary[String]) {
       (genP1, genP2, str) =>
-        val oneOf1 = Parser.oneOf((genP1 ::: genP2).map(_.fa))
-        val oneOf2 = Parser.oneOf(genP1.map(_.fa)).orElse(Parser.oneOf(genP2.map(_.fa)))
+        val oneOf1 = Parser0.oneOf((genP1 ::: genP2).map(_.fa))
+        val oneOf2 = Parser0.oneOf(genP1.map(_.fa)).orElse(Parser0.oneOf(genP2.map(_.fa)))
 
         assertEquals(oneOf1.parse(str), oneOf2.parse(str))
     }
@@ -701,20 +701,20 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("oneOf1 nesting doesn't change results") {
     forAll(Gen.listOf(ParserGen.gen1), Gen.listOf(ParserGen.gen1), Arbitrary.arbitrary[String]) {
       (genP1, genP2, str) =>
-        val oneOf1 = Parser.oneOf1((genP1 ::: genP2).map(_.fa))
-        val oneOf2 = Parser
+        val oneOf1 = Parser0.oneOf1((genP1 ::: genP2).map(_.fa))
+        val oneOf2 = Parser0
           .oneOf1(genP1.map(_.fa))
           .orElse1(
-            Parser.oneOf1(genP2.map(_.fa))
+            Parser0.oneOf1(genP2.map(_.fa))
           )
 
         assertEquals(oneOf1.parse(str), oneOf2.parse(str))
     }
   }
 
-  def orElse[A](p1: Parser[A], p2: Parser[A], str: String): Either[Parser.Error, (String, A)] = {
-    if (p1 == Parser.Fail) p2.parse(str)
-    else if (p2 == Parser.Fail) p1.parse(str)
+  def orElse[A](p1: Parser0[A], p2: Parser0[A], str: String): Either[Parser0.Error, (String, A)] = {
+    if (p1 == Parser0.Fail) p2.parse(str)
+    else if (p2 == Parser0.Fail) p1.parse(str)
     else
       p1.parse(str) match {
         case left @ Left(err) =>
@@ -723,7 +723,7 @@ class ParserTest extends munit.ScalaCheckSuite {
               .leftMap { err1 =>
                 if (err1.failedAtOffset == 0) {
                   val errs = err.expected ::: err1.expected
-                  Parser.Error(err1.failedAtOffset, Parser.Expectation.unify(errs))
+                  Parser0.Error(err1.failedAtOffset, Parser0.Expectation.unify(errs))
                 } else err1
               }
           } else left
@@ -745,24 +745,24 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("oneOf same as foldLeft(fail)(_.orElse(_))") {
     forAll(Gen.listOf(ParserGen.gen), Arbitrary.arbitrary[String]) { (genP1, str) =>
-      val oneOfImpl = genP1.foldLeft(Parser.fail: Parser[Any]) { (leftp, p) => leftp.orElse(p.fa) }
+      val oneOfImpl = genP1.foldLeft(Parser0.fail: Parser0[Any]) { (leftp, p) => leftp.orElse(p.fa) }
 
-      assertEquals(oneOfImpl.parse(str), Parser.oneOf(genP1.map(_.fa)).parse(str))
+      assertEquals(oneOfImpl.parse(str), Parser0.oneOf(genP1.map(_.fa)).parse(str))
     }
   }
 
   property("oneOf1 same as foldLeft(fail)(_.orElse1(_))") {
     forAll(Gen.listOf(ParserGen.gen1), Arbitrary.arbitrary[String]) { (genP1, str) =>
-      val oneOfImpl = genP1.foldLeft(Parser.fail[Any]) { (leftp, p) => leftp.orElse1(p.fa) }
+      val oneOfImpl = genP1.foldLeft(Parser0.fail[Any]) { (leftp, p) => leftp.orElse1(p.fa) }
 
-      assertEquals(oneOfImpl.parse(str), Parser.oneOf1(genP1.map(_.fa)).parse(str))
+      assertEquals(oneOfImpl.parse(str), Parser0.oneOf1(genP1.map(_.fa)).parse(str))
     }
   }
 
   property("string can be recovered with index") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val r1 = genP.fa.string.parse(str)
-      val r2 = (genP.fa ~ Parser.index).map { case (_, end) => str.substring(0, end) }.parse(str)
+      val r2 = (genP.fa ~ Parser0.index).map { case (_, end) => str.substring(0, end) }.parse(str)
 
       assertEquals(r1.toOption, r2.toOption)
     }
@@ -770,7 +770,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("backtrack orElse pure always succeeds") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
-      val p1 = genP.fa.backtrack.orElse(Parser.pure(())): Parser[Any]
+      val p1 = genP.fa.backtrack.orElse(Parser0.pure(())): Parser0[Any]
 
       assert(p1.parse(str).isRight)
     }
@@ -798,7 +798,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       val composed = p1.fa ~ p2.fa
       val cres = composed.parse(str)
 
-      val composed1 = Monad[Parser].product(p1.fa, p2.fa)
+      val composed1 = Monad[Parser0].product(p1.fa, p2.fa)
       composed1.parse(str)
 
       val sequence =
@@ -808,7 +808,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = (Parser.length(off) ~ p2.fa).map(_._2)
+          p3 = (Parser0.length(off) ~ p2.fa).map(_._2)
           pair2 <- p3.parse(sfix)
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -822,7 +822,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       val composed = p1.fa ~ p2.fa
       val cres = composed.parse(str)
 
-      val composed1 = FlatMap[Parser].product(p1.fa, p2.fa)
+      val composed1 = FlatMap[Parser0].product(p1.fa, p2.fa)
       val cres1 = composed1.parse(str)
       assertEquals(cres, cres1)
 
@@ -833,7 +833,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = Parser.length(off) *> p2.fa
+          p3 = Parser0.length(off) *> p2.fa
           pair2 <- p3.parse(sfix)
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -854,7 +854,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = Parser.length(off) *> p2.fa
+          p3 = Parser0.length(off) *> p2.fa
           pair2 <- p3.parse(sfix)
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -875,9 +875,9 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = (Parser.length(off) ~ p2.fa).map(_._2)
+          p3 = (Parser0.length(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
-            case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
+            case Parser0.Error(fidx, errs) if (fidx == off) => Parser0.Error(0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -899,9 +899,9 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = (Parser.length(off) ~ p2.fa).map(_._2)
+          p3 = (Parser0.length(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
-            case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
+            case Parser0.Error(fidx, errs) if (fidx == off) => Parser0.Error(0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -923,9 +923,9 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = (Parser.length(off) ~ p2.fa).map(_._2)
+          p3 = (Parser0.length(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
-            case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
+            case Parser0.Error(fidx, errs) if (fidx == off) => Parser0.Error(0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -936,16 +936,16 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   test("range messages seem to work") {
-    val pa = Parser.charIn('0' to '9')
+    val pa = Parser0.charIn('0' to '9')
     assertEquals(pa.parse("z").toString, "Left(Error(0,NonEmptyList(InRange(0,0,9))))")
   }
 
   test("partial parse fails in rep") {
-    val partial = Parser.length1(1) ~ Parser.fail
+    val partial = Parser0.length1(1) ~ Parser0.fail
     // we can't return empty list here
     assert(partial.rep.parse("foo").isLeft)
 
-    val p2 = Parser.string1("f").orElse1((Parser.string1("boo") ~ Parser.string1("p")).void)
+    val p2 = Parser0.string1("f").orElse1((Parser0.string1("boo") ~ Parser0.string1("p")).void)
     assert(p2.rep1.parse("fboop").isRight)
     assert(p2.rep1(2).parse("fboop").isRight)
     assert(p2.rep1(3).parse("fboop").isLeft)
@@ -954,9 +954,9 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   test("defer does not run eagerly") {
     var cnt = 0
-    val res = Defer[Parser].defer {
+    val res = Defer[Parser0].defer {
       cnt += 1
-      Parser.string1("foo")
+      Parser0.string1("foo")
     }
     assert(cnt == 0)
     assert(res.parse("foo") == Right(("", ())))
@@ -969,7 +969,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     var cnt = 0
     val res = Defer[Parser1].defer {
       cnt += 1
-      Parser.string1("foo")
+      Parser0.string1("foo")
     }
     assert(cnt == 0)
     assert(res.parse("foo") == Right(("", ())))
@@ -981,8 +981,8 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("charIn matches charWhere") {
     forAll { (cs: List[Char], str: String) =>
       val cset = cs.toSet
-      val p1 = Parser.charIn(cs)
-      val p2 = Parser.charWhere(cset)
+      val p1 = Parser0.charIn(cs)
+      val p2 = Parser0.charWhere(cset)
 
       assertEquals(p1.parse(str), p2.parse(str))
     }
@@ -991,20 +991,20 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("charIn matches charIn varargs") {
     forAll { (c0: Char, cs0: List[Char], str: String) =>
       val cs = c0 :: cs0
-      val p1 = Parser.charIn(cs)
-      val p2 = Parser.charIn(c0, cs0: _*)
+      val p1 = Parser0.charIn(cs)
+      val p2 = Parser0.charIn(c0, cs0: _*)
 
       assertEquals(p1.parse(str), p2.parse(str))
     }
   }
 
-  property("Parser.end gives the right error") {
+  property("Parser0.end gives the right error") {
     forAll { (str: String) =>
-      Parser.end.parse(str) match {
+      Parser0.end.parse(str) match {
         case Right((rest, _)) =>
           assertEquals(str, "")
           assertEquals(rest, "")
-        case Left(Parser.Error(0, NonEmptyList(Parser.Expectation.EndOfString(off, len), Nil))) =>
+        case Left(Parser0.Error(0, NonEmptyList(Parser0.Expectation.EndOfString(off, len), Nil))) =>
           assertEquals(off, 0)
           assertEquals(len, str.length)
         case other =>
@@ -1015,11 +1015,11 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("rep can be reimplemented with oneOf and defer") {
     forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
-      def rep[A](pa: Parser1[A]): Parser[List[A]] =
-        Defer[Parser].fix[List[A]] { tail =>
+      def rep[A](pa: Parser1[A]): Parser0[List[A]] =
+        Defer[Parser0].fix[List[A]] { tail =>
           (pa ~ tail)
             .map { case (h, t) => h :: t }
-            .orElse(Parser.pure(Nil))
+            .orElse(Parser0.pure(Nil))
         }
 
       val lst1 = rep(genP.fa)
@@ -1038,8 +1038,8 @@ class ParserTest extends munit.ScalaCheckSuite {
           .rep1(min)
           .map(_.toList)
           .orElse(
-            if (min == 0) Parser.pure(Nil)
-            else Parser.fail
+            if (min == 0) Parser0.pure(Nil)
+            else Parser0.fail
           )
 
         assertEquals(repA.parse(str), repB.parse(str))
@@ -1050,13 +1050,13 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen1, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
       (genP, min0, str) =>
         val min = min0 & Int.MaxValue
-        val p1a = Parser.repSep(genP.fa, min = min, sep = Parser.unit)
+        val p1a = Parser0.repSep(genP.fa, min = min, sep = Parser0.unit)
         val p1b = genP.fa.rep(min = min)
 
         assertEquals(p1a.parse(str), p1b.parse(str))
 
         val min1 = if (min < 1) 1 else min
-        val p2a = Parser.rep1Sep(genP.fa, min = min1, sep = Parser.unit)
+        val p2a = Parser0.rep1Sep(genP.fa, min = min1, sep = Parser0.unit)
         val p2b = genP.fa.rep1(min = min1)
 
         assertEquals(p2a.parse(str), p2b.parse(str))
@@ -1067,7 +1067,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
       assertEquals(
         genP.fa.parse(str),
-        Parser.rep1Sep(genP.fa, 1, Parser.fail).parse(str).map { case (rest, nel) =>
+        Parser0.rep1Sep(genP.fa, 1, Parser0.fail).parse(str).map { case (rest, nel) =>
           (rest, nel.head)
         }
       )
@@ -1080,26 +1080,26 @@ class ParserTest extends munit.ScalaCheckSuite {
       Arbitrary.arbitrary[String]
     ) { (chars, str) =>
       val pred = chars.toSet
-      val p1a = Parser.charsWhile(pred)
-      val p1b = Parser.charWhere(pred).rep.string
+      val p1a = Parser0.charsWhile(pred)
+      val p1b = Parser0.charWhere(pred).rep.string
       assertEquals(p1a.parse(str), p1b.parse(str))
 
-      val p2a = Parser.charsWhile1(pred)
-      val p2b = Parser.charWhere(pred).rep1.string
+      val p2a = Parser0.charsWhile1(pred)
+      val p2b = Parser0.charWhere(pred).rep1.string
       assertEquals(p2a.parse(str), p2b.parse(str))
     }
   }
 
-  property("MonoidK[Parser].empty never succeeds") {
+  property("MonoidK[Parser0].empty never succeeds") {
     forAll { (str: String) =>
-      assert(MonoidK[Parser].empty.parse(str).isLeft)
+      assert(MonoidK[Parser0].empty.parse(str).isLeft)
       assert(MonoidK[Parser1].empty.parse(str).isLeft)
     }
   }
 
   property("Monad.pure is an identity function") {
     forAll { (i: Int, str: String) =>
-      assertEquals(Monad[Parser].pure(i).parse(str), Right((str, i)))
+      assertEquals(Monad[Parser0].pure(i).parse(str), Right((str, i)))
     }
   }
 
@@ -1154,7 +1154,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   test("charWhere(_ => true) == anyChar") {
-    assertEquals(Parser.charWhere(_ => true), Parser.anyChar)
+    assertEquals(Parser0.charWhere(_ => true), Parser0.anyChar)
   }
 
   property("with1 *> and with1 <* work as expected") {
@@ -1173,11 +1173,11 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       assertEquals(
         (p1.fa *> p2.fa).parse(str),
-        Parser.product10(p1.fa.void, p2.fa).map(_._2).parse(str)
+        Parser0.product10(p1.fa.void, p2.fa).map(_._2).parse(str)
       )
       assertEquals(
         (p1.fa <* p2.fa).parse(str),
-        Parser.product10(p1.fa, p2.fa.void).map(_._1).parse(str)
+        Parser0.product10(p1.fa, p2.fa.void).map(_._1).parse(str)
       )
     }
   }
@@ -1281,15 +1281,15 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("(a.soft ~ b) == softProduct(a, b)") {
     forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val left = a.fa.soft ~ b.fa
-      val right = Parser.softProduct(a.fa, b.fa)
+      val right = Parser0.softProduct(a.fa, b.fa)
       assertEquals(left.parse(str), right.parse(str))
       assertEquals(
         (a.fa.soft *> b.fa).parse(str),
-        Parser.softProduct(a.fa.void, b.fa).map(_._2).parse(str)
+        Parser0.softProduct(a.fa.void, b.fa).map(_._2).parse(str)
       )
       assertEquals(
         (a.fa.soft <* b.fa).parse(str),
-        Parser.softProduct(a.fa, b.fa.void).map(_._1).parse(str)
+        Parser0.softProduct(a.fa, b.fa.void).map(_._1).parse(str)
       )
     }
   }
@@ -1297,33 +1297,33 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("(a1.soft ~ b) == softProduct10(a, b)") {
     forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val left1 = a.fa.soft ~ b.fa
-      val right1 = Parser.softProduct10(a.fa, b.fa)
+      val right1 = Parser0.softProduct10(a.fa, b.fa)
       assertEquals(left1.parse(str), right1.parse(str))
 
       val left2 = b.fa.soft ~ a.fa
-      val right2 = Parser.softProduct01(b.fa, a.fa)
+      val right2 = Parser0.softProduct01(b.fa, a.fa)
       assertEquals(left2.parse(str), right2.parse(str))
 
       assertEquals(
         (a.fa.soft *> b.fa).parse(str),
-        Parser.softProduct10(a.fa.void, b.fa).map(_._2).parse(str)
+        Parser0.softProduct10(a.fa.void, b.fa).map(_._2).parse(str)
       )
       assertEquals(
         (b.fa.with1.soft <* a.fa).parse(str),
-        Parser.softProduct01(b.fa, a.fa.void).map(_._1).parse(str)
+        Parser0.softProduct01(b.fa, a.fa.void).map(_._1).parse(str)
       )
       assertEquals(
         (b.fa.with1.soft *> a.fa).parse(str),
-        Parser.softProduct01(b.fa.void, a.fa).map(_._2).parse(str)
+        Parser0.softProduct01(b.fa.void, a.fa).map(_._2).parse(str)
       )
     }
   }
 
-  property("Parser.until is like a search") {
+  property("Parser0.until is like a search") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
-      val p = Parser.until(a.fa) *> a.fa
+      val p = Parser0.until(a.fa) *> a.fa
       def loopMatch(cnt: Int): Option[(String, a.A)] =
-        (Parser.length(cnt) *> a.fa).parse(str) match {
+        (Parser0.length(cnt) *> a.fa).parse(str) match {
           case Right(res) => Some(res)
           case Left(_) if cnt > str.length => None
           case _ => loopMatch(cnt + 1)
@@ -1335,7 +1335,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("parseAll law") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
-      val pall = (a.fa <* Parser.end).parse(str).map(_._2)
+      val pall = (a.fa <* Parser0.end).parse(str).map(_._2)
 
       assertEquals(a.fa.parseAll(str), pall)
     }
@@ -1459,15 +1459,15 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("failWith returns the given error message") {
     forAll { (str: String, mes: String) =>
       assertEquals(
-        Parser.failWith(mes).parse(str),
-        Left(Parser.Error(0, NonEmptyList.of(Parser.Expectation.FailWith(0, mes))))
+        Parser0.failWith(mes).parse(str),
+        Left(Parser0.Error(0, NonEmptyList.of(Parser0.Expectation.FailWith(0, mes))))
       )
     }
   }
 
   property("failWith.? returns None") {
     forAll { (str: String, mes: String) =>
-      assertEquals(Parser.failWith(mes).?.parse(str), Right((str, None)))
+      assertEquals(Parser0.failWith(mes).?.parse(str), Right((str, None)))
     }
   }
 
@@ -1604,8 +1604,8 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("!anyChar == end") {
     forAll { (str: String) =>
-      val left = !Parser.anyChar
-      val right = Parser.end
+      val left = !Parser0.anyChar
+      val right = Parser0.end
 
       val leftRes = left.parse(str).toOption
       val rightRes = right.parse(str).toOption
@@ -1615,8 +1615,8 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("!fail == unit") {
     forAll { (str: String) =>
-      val left = !Parser.fail
-      val right = Parser.unit
+      val left = !Parser0.fail
+      val right = Parser0.unit
 
       val leftRes = left.parse(str)
       val rightRes = right.parse(str)
@@ -1626,8 +1626,8 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("!pure(_) == fail") {
     forAll { (str: String, i: Int) =>
-      val left = !Parser.pure(i)
-      val right = Parser.fail
+      val left = !Parser0.pure(i)
+      val right = Parser0.fail
 
       val leftRes = left.parse(str).toOption
       val rightRes = right.parse(str).toOption
@@ -1637,14 +1637,14 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("anyChar.repAs[String] parses the whole string") {
     forAll { (str: String) =>
-      assertEquals(Parser.anyChar.repAs[String].parse(str), Right(("", str)))
+      assertEquals(Parser0.anyChar.repAs[String].parse(str), Right(("", str)))
     }
   }
 
   property("string.soft ~ string is the same as concatenating the string") {
     forAll { (str1: String, str2: String, content: String) =>
-      val left = (Parser.string(str1).soft ~ Parser.string(str2)).void
-      val right = Parser.string(str1 + str2)
+      val left = (Parser0.string(str1).soft ~ Parser0.string(str2)).void
+      val right = Parser0.string(str1 + str2)
 
       val leftRes = left.parse(content).toOption
       val rightRes = right.parse(content).toOption
@@ -1653,50 +1653,50 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Parser.string(f).string == Parser.string(f).as(f)") {
+  property("Parser0.string(f).string == Parser0.string(f).as(f)") {
     forAll { (f: String) =>
       if (f.length > 1)
-        assertEquals(Parser.string(f).string, Parser.string(f).as(f))
+        assertEquals(Parser0.string(f).string, Parser0.string(f).as(f))
 
     }
   }
 
   property("char(c).as(c) == charIn(c)") {
     forAll { (c: Char) =>
-      assertEquals(Parser.char(c).as(c.toString), Parser.char(c).string)
-      assertEquals(Parser.char(c).as(c), Parser.charIn(c))
-      assertEquals(Parser.char(c).void.as(c), Parser.charIn(c))
-      assertEquals(Parser.char(c).string.as(c), Parser.charIn(c))
+      assertEquals(Parser0.char(c).as(c.toString), Parser0.char(c).string)
+      assertEquals(Parser0.char(c).as(c), Parser0.charIn(c))
+      assertEquals(Parser0.char(c).void.as(c), Parser0.charIn(c))
+      assertEquals(Parser0.char(c).string.as(c), Parser0.charIn(c))
     }
   }
 
   property("select(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
-    forAll { (pa: Parser[Int], pf: Parser[Int => String], str: String) =>
+    forAll { (pa: Parser0[Int], pf: Parser0[Int => String], str: String) =>
       assertEquals(
-        Parser.select(pa.map(Left(_)))(pf).parse(str),
+        Parser0.select(pa.map(Left(_)))(pf).parse(str),
         (pa, pf).mapN((a, f) => f(a)).parse(str)
       )
     }
   }
 
   property("select1(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
-    forAll { (pa: Parser1[Int], pf: Parser[Int => String], str: String) =>
+    forAll { (pa: Parser1[Int], pf: Parser0[Int => String], str: String) =>
       assertEquals(
-        Parser.select(pa.map(Left(_)))(pf).parse(str),
+        Parser0.select(pa.map(Left(_)))(pf).parse(str),
         (pa, pf).mapN((a, f) => f(a)).parse(str)
       )
     }
   }
 
   property("select(pa.map(Right(_)))(pf) == pa") {
-    forAll { (pa: Parser[String], pf: Parser[Int => String], str: String) =>
-      assertEquals(Parser.select(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
+    forAll { (pa: Parser0[String], pf: Parser0[Int => String], str: String) =>
+      assertEquals(Parser0.select(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
     }
   }
 
   property("select1(pa.map(Right(_)))(pf) == pa") {
-    forAll { (pa: Parser1[String], pf: Parser[Int => String], str: String) =>
-      assertEquals(Parser.select1(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
+    forAll { (pa: Parser1[String], pf: Parser0[Int => String], str: String) =>
+      assertEquals(Parser0.select1(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
     }
   }
 
@@ -1718,17 +1718,17 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("select on pure values works as expected") {
     forAll { (left: Option[Either[Int, String]], right: Option[Int => String], str: String) =>
       val pleft = left match {
-        case Some(e) => Parser.pure(e)
-        case None => Parser.fail
+        case Some(e) => Parser0.pure(e)
+        case None => Parser0.fail
       }
 
       val pright = right match {
-        case Some(f) => Parser.pure(f)
-        case None => Parser.fail
+        case Some(f) => Parser0.pure(f)
+        case None => Parser0.fail
       }
 
       assertEquals(
-        Parser.select(pleft)(pright).parse(str).toOption.map(_._2),
+        Parser0.select(pleft)(pright).parse(str).toOption.map(_._2),
         left.flatMap {
           case Left(i) => right.map(_(i))
           case Right(s) =>
@@ -1740,7 +1740,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("mapFilter is the same as filter + map") {
-    forAll { (pa: Parser[Int], fn: Int => Option[String], str: String) =>
+    forAll { (pa: Parser0[Int], fn: Int => Option[String], str: String) =>
       val left = pa.mapFilter(fn)
       val right = pa.map(fn).filter(_.isDefined).map(_.get)
 
@@ -1758,7 +1758,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("collect is the same as filter + map") {
-    forAll { (pa: Parser[Int], fn: Int => Option[String], str: String) =>
+    forAll { (pa: Parser0[Int], fn: Int => Option[String], str: String) =>
       val left = pa.collect {
         case i if fn(i).isDefined => fn(i).get
       }

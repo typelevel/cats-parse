@@ -27,7 +27,7 @@ import cats.data.{AndThen, Chain, NonEmptyList}
 import cats.implicits._
 import scala.collection.mutable.ListBuffer
 
-/** Parser[A] attempts to extract an `A` value from the given input,
+/** Parser0[A] attempts to extract an `A` value from the given input,
   * potentially moving its offset forward in the process.
   *
   * When calling `parse`, one of three outcomes occurs:
@@ -56,7 +56,7 @@ import scala.collection.mutable.ListBuffer
   * Rewinding tends to make error reporting more difficult and can lead
   * to exponential parser behavior it is not the default behavior.
   */
-sealed abstract class Parser[+A] {
+sealed abstract class Parser0[+A] {
 
   /** Attempt to parse an `A` value out of `str`.
     *
@@ -65,14 +65,14 @@ sealed abstract class Parser[+A] {
     *
     * To require the entire input to be consumed, see `parseAll`.
     */
-  final def parse(str: String): Either[Parser.Error, (String, A)] = {
-    val state = new Parser.Impl.State(str)
+  final def parse(str: String): Either[Parser0.Error, (String, A)] = {
+    val state = new Parser0.Impl.State(str)
     val result = parseMut(state)
     val err = state.error
     val offset = state.offset
     if (err eq null) Right((str.substring(offset), result))
     else
-      Left(Parser.Error(offset, Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.toList))))
+      Left(Parser0.Error(offset, Parser0.Expectation.unify(NonEmptyList.fromListUnsafe(err.toList))))
   }
 
   /** Attempt to parse all of the input `str` into an `A` value.
@@ -80,10 +80,10 @@ sealed abstract class Parser[+A] {
     * This method will return a failure unless all of `str` is consumed
     * during parsing.
     *
-    * `p.parseAll(s)` is equivalent to `(p <* Parser.end).parse(s).map(_._2)`.
+    * `p.parseAll(s)` is equivalent to `(p <* Parser0.end).parse(s).map(_._2)`.
     */
-  final def parseAll(str: String): Either[Parser.Error, A] = {
-    val state = new Parser.Impl.State(str)
+  final def parseAll(str: String): Either[Parser0.Error, A] = {
+    val state = new Parser0.Impl.State(str)
     val result = parseMut(state)
     val err = state.error
     val offset = state.offset
@@ -91,13 +91,13 @@ sealed abstract class Parser[+A] {
       if (offset == str.length) Right(result)
       else
         Left(
-          Parser.Error(
+          Parser0.Error(
             offset,
-            NonEmptyList(Parser.Expectation.EndOfString(offset, str.length), Nil)
+            NonEmptyList(Parser0.Expectation.EndOfString(offset, str.length), Nil)
           )
         )
     } else
-      Left(Parser.Error(offset, Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.toList))))
+      Left(Parser0.Error(offset, Parser0.Expectation.unify(NonEmptyList.fromListUnsafe(err.toList))))
   }
 
   /** Convert epsilon failures into None values.
@@ -109,8 +109,8 @@ sealed abstract class Parser[+A] {
     * If the underlying parser failed with other errors, this parser
     * will still fail.
     */
-  def ? : Parser[Option[A]] =
-    Parser.oneOf(Parser.map(this)(Some(_)) :: Parser.Impl.optTail)
+  def ? : Parser0[Option[A]] =
+    Parser0.oneOf(Parser0.map(this)(Some(_)) :: Parser0.Impl.optTail)
 
   /** Parse without capturing values.
     *
@@ -121,8 +121,8 @@ sealed abstract class Parser[+A] {
     * discard allocations, since they will ignore the original parsed
     * result.
     */
-  def void: Parser[Unit] =
-    Parser.void(this)
+  def void: Parser0[Unit] =
+    Parser0.void(this)
 
   /** Return the string matched by this parser.
     *
@@ -134,8 +134,8 @@ sealed abstract class Parser[+A] {
     * This method is very efficient: similarly to `void`, we can avoid
     * allocating results to return.
     */
-  def string: Parser[String] =
-    Parser.string(this)
+  def string: Parser0[String] =
+    Parser0.string(this)
 
   /** If this parser fails to match, rewind the offset to the starting
     * point before moving on to other parser.
@@ -148,8 +148,8 @@ sealed abstract class Parser[+A] {
     * as `orElse`, `~`, or `flatMap` which involve a subsequent parser
     * picking up where this one left off.
     */
-  def backtrack: Parser[A] =
-    Parser.backtrack(this)
+  def backtrack: Parser0[A] =
+    Parser0.backtrack(this)
 
   /** Sequence another parser after this one, combining both results
     * into a tuple.
@@ -161,8 +161,8 @@ sealed abstract class Parser[+A] {
     * If either parser produces an error the result is an error.
     * Otherwise both extracted values are combined into a tuple.
     */
-  def ~[B](that: Parser[B]): Parser[(A, B)] =
-    Parser.product(this, that)
+  def ~[B](that: Parser0[B]): Parser0[(A, B)] =
+    Parser0.product(this, that)
 
   /** If this parser fails to parse its input with an epsilon error,
     * try the given parser instead.
@@ -174,8 +174,8 @@ sealed abstract class Parser[+A] {
     * one to pick up after any error, resetting any state that was
     * modified by the left parser.
     */
-  def orElse[A1 >: A](that: Parser[A1]): Parser[A1] =
-    Parser.oneOf(this :: that :: Nil)
+  def orElse[A1 >: A](that: Parser0[A1]): Parser0[A1] =
+    Parser0.oneOf(this :: that :: Nil)
 
   /** Transform parsed values using the given function.
     *
@@ -186,8 +186,8 @@ sealed abstract class Parser[+A] {
     * If the underlying value is ignored (e.g. `map(_ => ...)`) calling
     * `void` before `map` will improve the efficiency of the parser.
     */
-  def map[B](fn: A => B): Parser[B] =
-    Parser.map(this)(fn)
+  def map[B](fn: A => B): Parser0[B] =
+    Parser0.map(this)(fn)
 
   /** Transform parsed values using the given function, or fail on None
     *
@@ -195,7 +195,7 @@ sealed abstract class Parser[+A] {
     * This is implemented with select, which makes it more efficient
     * than using flatMap
     */
-  def mapFilter[B](fn: A => Option[B]): Parser[B] = {
+  def mapFilter[B](fn: A => Option[B]): Parser0[B] = {
     val leftUnit = Left(())
 
     val first = map { a =>
@@ -204,7 +204,7 @@ sealed abstract class Parser[+A] {
         case None => leftUnit
       }
     }
-    Parser.select(first)(Parser.Fail)
+    Parser0.select(first)(Parser0.Fail)
   }
 
   /** Transform parsed values using the given function, or fail when not defined
@@ -213,7 +213,7 @@ sealed abstract class Parser[+A] {
     * This is implemented with select, which makes it more efficient
     * than using flatMap
     */
-  def collect[B](fn: PartialFunction[A, B]): Parser[B] =
+  def collect[B](fn: PartialFunction[A, B]): Parser0[B] =
     mapFilter(fn.lift)
 
   /** If the predicate is not true, fail
@@ -223,12 +223,12 @@ sealed abstract class Parser[+A] {
     * Without the backtrack, a failure of the function will
     * be an arresting failure.
     */
-  def filter(fn: A => Boolean): Parser[A] = {
+  def filter(fn: A => Boolean): Parser0[A] = {
     val leftUnit = Left(())
-    Parser.select(this.map { a =>
+    Parser0.select(this.map { a =>
       if (fn(a)) Right(a)
       else leftUnit
-    })(Parser.Fail)
+    })(Parser0.Fail)
   }
 
   /** Dynamically construct the next parser based on the previously
@@ -238,33 +238,33 @@ sealed abstract class Parser[+A] {
     * prefer to use methods such as `~`, `*>`, or `<*` when possible,
     * since these are much more efficient.
     */
-  def flatMap[B](fn: A => Parser[B]): Parser[B] =
-    Parser.flatMap(this)(fn)
+  def flatMap[B](fn: A => Parser0[B]): Parser0[B] =
+    Parser0.flatMap(this)(fn)
 
   /** Replaces parsed values with the given value.
     */
-  def as[B](b: B): Parser[B] =
-    Parser.as(this, b)
+  def as[B](b: B): Parser0[B] =
+    Parser0.as(this, b)
 
   /** Wrap this parser in a helper class, enabling better composition
     * with `Parser1` values.
     *
-    * For example, with `p: Parser[Int]` and `p1: Parser[Double]`:
+    * For example, with `p: Parser0[Int]` and `p1: Parser0[Double]`:
     *
-    *     val a1: Parser[(Int, Double)]  = p ~ p1
+    *     val a1: Parser0[(Int, Double)]  = p ~ p1
     *     val a2: Parser1[(Int, Double)] = p.with1 ~ p1
     *
-    *     val b1: Parser[Double]  = p *> p1
+    *     val b1: Parser0[Double]  = p *> p1
     *     val b2: Parser1[Double] = p.with1 *> p1
     *
-    *     val c1: Parser[Int]  = p <* p1
+    *     val c1: Parser0[Int]  = p <* p1
     *     val c2: Parser1[Int] = p.with1 <* p1
     *
-    * Without using `with1`, these methods will return `Parser` values
+    * Without using `with1`, these methods will return `Parser0` values
     * since they are not known to return `Parser1` values instead.
     */
-  def with1: Parser.With1[A] =
-    new Parser.With1(this)
+  def with1: Parser0.With1[A] =
+    new Parser0.With1(this)
 
   /** Wrap this parser in a helper class, to enable backtracking during
     * composition.
@@ -278,8 +278,8 @@ sealed abstract class Parser[+A] {
     * y)`, if `x` parses successfully, and `y` returns an epsilon
     * failure, the parser will "rewind" to the point before `x` began.
     */
-  def soft: Parser.Soft[A] =
-    new Parser.Soft(this)
+  def soft: Parser0.Soft[A] =
+    new Parser0.Soft(this)
 
   /** Return a parser that succeeds (consuming nothing, and extracting
     * nothing) if the current parser would fail.
@@ -287,8 +287,8 @@ sealed abstract class Parser[+A] {
     * This parser expects the underlying parser to fail, and will
     * unconditionally backtrack after running it.
     */
-  def unary_! : Parser[Unit] =
-    Parser.not(this)
+  def unary_! : Parser0[Unit] =
+    Parser0.not(this)
 
   /** Return a parser that succeeds (consuming nothing and extracting
     * nothing) if the current parser would also succeed.
@@ -296,84 +296,84 @@ sealed abstract class Parser[+A] {
     * This parser expects the underlying parser to succeed, and will
     * unconditionally backtrack after running it.
     */
-  def peek: Parser[Unit] =
-    Parser.peek(this)
+  def peek: Parser0[Unit] =
+    Parser0.peek(this)
 
   /** Use this parser to parse between values.
     *
     * Parses `b` followed by `this` and `c`.
     * Returns only the values extracted by `this` parser.
     */
-  def between(b: Parser[Any], c: Parser[Any]): Parser[A] =
+  def between(b: Parser0[Any], c: Parser0[Any]): Parser0[A] =
     (b.void ~ (this ~ c.void)).map { case (_, (a, _)) => a }
 
   /** Use this parser to parse surrounded by values.
     *
     * This is the same as `between(b, b)`
     */
-  def surroundedBy(b: Parser[Any]): Parser[A] =
+  def surroundedBy(b: Parser0[Any]): Parser0[A] =
     between(b, b)
 
   /** Internal (mutable) parsing method.
     *
     * This method should only be called internally by parser instances.
     */
-  protected def parseMut(state: Parser.Impl.State): A
+  protected def parseMut(state: Parser0.Impl.State): A
 }
 
-/** Parser1[A] is a Parser[A] that will always consume one-or-more
+/** Parser1[A] is a Parser0[A] that will always consume one-or-more
   * characters on a successful parse.
   *
   * Since Parser1 is guaranteed to consume input it provides additional
   * methods which would be unsafe when used on parsers that succeed
   * without consuming input, such as `rep`.
   *
-  * When a Parser1 is composed with a Parser the result is usually a
-  * Parser1. Parser1 overrides many of Parser's methods to refine the
+  * When a Parser1 is composed with a Parser0 the result is usually a
+  * Parser1. Parser1 overrides many of Parser0's methods to refine the
   * return type. In other cases, callers may need to use the `with1`
   * helper method to refine the type of their expressions.
   *
-  * Parser1 doesn't provide any additional guarantees over Parser on
+  * Parser1 doesn't provide any additional guarantees over Parser0 on
   * what kind of parsing failures it can return.
   */
-sealed abstract class Parser1[+A] extends Parser[A] {
+sealed abstract class Parser1[+A] extends Parser0[A] {
 
-  /** This method overrides `Parser#filter` to refine the return type.
+  /** This method overrides `Parser0#filter` to refine the return type.
     */
   override def filter(fn: A => Boolean): Parser1[A] = {
     val leftUnit = Left(())
-    Parser.select1(this.map { a =>
+    Parser0.select1(this.map { a =>
       if (fn(a)) Right(a)
       else leftUnit
-    })(Parser.Fail)
+    })(Parser0.Fail)
   }
 
-  /** This method overrides `Parser#void` to refine the return type.
+  /** This method overrides `Parser0#void` to refine the return type.
     */
   override def void: Parser1[Unit] =
-    Parser.void1(this)
+    Parser0.void1(this)
 
-  /** This method overrides `Parser#string` to refine the return type.
+  /** This method overrides `Parser0#string` to refine the return type.
     */
   override def string: Parser1[String] =
-    Parser.string1(this)
+    Parser0.string1(this)
 
-  /** This method overrides `Parser#backtrack` to refine the return type.
+  /** This method overrides `Parser0#backtrack` to refine the return type.
     */
   override def backtrack: Parser1[A] =
-    Parser.backtrack1(this)
+    Parser0.backtrack1(this)
 
-  /** This method overrides `Parser#~` to refine the return type.
+  /** This method overrides `Parser0#~` to refine the return type.
     */
-  override def ~[B](that: Parser[B]): Parser1[(A, B)] =
-    Parser.product10(this, that)
+  override def ~[B](that: Parser0[B]): Parser1[(A, B)] =
+    Parser0.product10(this, that)
 
   /** Compose two parsers, ignoring the values extracted by the
     * left-hand parser.
     *
     * `x *> y` is equivalent to `(x.void ~ y).map(_._2)`.
     */
-  def *>[B](that: Parser[B]): Parser1[B] =
+  def *>[B](that: Parser0[B]): Parser1[B] =
     (void ~ that).map(_._2)
 
   /** Compose two parsers, ignoring the values extracted by the
@@ -381,20 +381,20 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     *
     * `x <* y` is equivalent to `(x ~ y.void).map(_._1)`.
     */
-  def <*[B](that: Parser[B]): Parser1[A] =
+  def <*[B](that: Parser0[B]): Parser1[A] =
     (this ~ that.void).map(_._1)
 
-  /** This method overrides `Parser#collect` to refine the return type.
+  /** This method overrides `Parser0#collect` to refine the return type.
     */
   override def collect[B](fn: PartialFunction[A, B]): Parser1[B] =
     mapFilter(fn.lift)
 
-  /** This method overrides `Parser#map` to refine the return type.
+  /** This method overrides `Parser0#map` to refine the return type.
     */
   override def map[B](fn: A => B): Parser1[B] =
-    Parser.map1(this)(fn)
+    Parser0.map1(this)(fn)
 
-  /** This method overrides `Parser#mapFilter` to refine the return type.
+  /** This method overrides `Parser0#mapFilter` to refine the return type.
     */
   override def mapFilter[B](fn: A => Option[B]): Parser1[B] = {
     val leftUnit = Left(())
@@ -405,28 +405,28 @@ sealed abstract class Parser1[+A] extends Parser[A] {
         case None => leftUnit
       }
     }
-    Parser.select1(first)(Parser.Fail)
+    Parser0.select1(first)(Parser0.Fail)
   }
 
-  /** This method overrides `Parser#flatMap` to refine the return type.
+  /** This method overrides `Parser0#flatMap` to refine the return type.
     */
-  override def flatMap[B](fn: A => Parser[B]): Parser1[B] =
-    Parser.flatMap10(this)(fn)
+  override def flatMap[B](fn: A => Parser0[B]): Parser1[B] =
+    Parser0.flatMap10(this)(fn)
 
-  /** This method overrides `Parser#as` to refine the return type.
+  /** This method overrides `Parser0#as` to refine the return type.
     */
   override def as[B](b: B): Parser1[B] =
-    Parser.as1(this, b)
+    Parser0.as1(this, b)
 
   /** If this parser fails to parse its input with an epsilon error,
     * try the given parser instead.
     *
-    * This method is similar to Parser#orElse, but since both arguments
+    * This method is similar to Parser0#orElse, but since both arguments
     * are known to be Parser1 values, the result is known to be a
     * Parser1 as well.
     */
   def orElse1[A1 >: A](that: Parser1[A1]): Parser1[A1] =
-    Parser.oneOf1(this :: that :: Nil)
+    Parser0.oneOf1(this :: that :: Nil)
 
   /** Use this parser to parse zero-or-more values.
     *
@@ -438,8 +438,8 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     * an epsilon failure, the parsed values (if any) are returned in a
     * list as a successful parse.
     */
-  def rep: Parser[List[A]] =
-    Parser.rep(this)
+  def rep: Parser0[List[A]] =
+    Parser0.rep(this)
 
   /** Use this parser to parse at least `min` values (where `min >= 0`).
     *
@@ -453,7 +453,7 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     * also return an arresting failure if it has not parsed at least
     * `min` values (but has consumed input).
     */
-  def rep(min: Int): Parser[List[A]] =
+  def rep(min: Int): Parser0[List[A]] =
     if (min == 0) rep
     else rep1(min).map(_.toList)
 
@@ -464,7 +464,7 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     * parses.
     */
   def rep1: Parser1[NonEmptyList[A]] =
-    Parser.rep1(this, min = 1)
+    Parser0.rep1(this, min = 1)
 
   /** Use this parser to parse at least `min` values (where `min >= 1`).
     *
@@ -472,25 +472,25 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     * values are produced an arresting failure will be returned.
     */
   def rep1(min: Int): Parser1[NonEmptyList[A]] =
-    Parser.rep1(this, min = min)
+    Parser0.rep1(this, min = min)
 
-  /** This method overrides `Parser#between` to refine the return type
+  /** This method overrides `Parser0#between` to refine the return type
     */
-  override def between(b: Parser[Any], c: Parser[Any]): Parser1[A] =
+  override def between(b: Parser0[Any], c: Parser0[Any]): Parser1[A] =
     (b.void.with1 ~ (this ~ c.void)).map { case (_, (a, _)) => a }
 
-  /** This method overrides `Parser#surroundedBy` to refine the return type
+  /** This method overrides `Parser0#surroundedBy` to refine the return type
     */
-  override def surroundedBy(b: Parser[Any]): Parser1[A] =
+  override def surroundedBy(b: Parser0[Any]): Parser1[A] =
     between(b, b)
 
-  /** This method overrides `Parser#soft` to refine the return type.
+  /** This method overrides `Parser0#soft` to refine the return type.
     */
-  override def soft: Parser.Soft10[A] =
-    new Parser.Soft10(this)
+  override def soft: Parser0.Soft10[A] =
+    new Parser0.Soft10(this)
 }
 
-object Parser extends ParserInstances {
+object Parser0 extends ParserInstances {
 
   /** An expectation reports the kind or parsing error
     * and where it occured.
@@ -561,7 +561,7 @@ object Parser extends ParserInstances {
       }
 
     /** Sort, dedup and unify ranges for the errors accumulated
-      * This is called just before finally returning an error in Parser.parse
+      * This is called just before finally returning an error in Parser0.parse
       */
     def unify(errors: NonEmptyList[Expectation]): NonEmptyList[Expectation] = {
       val el = errors.toList
@@ -615,15 +615,15 @@ object Parser extends ParserInstances {
 
   /** Enables syntax to access product01, product10 and flatMap01
     *  This helps us build Parser1 instances when starting from
-    *  a Parser
+    *  a Parser0
     */
-  final class With1[+A](val parser: Parser[A]) extends AnyVal {
+  final class With1[+A](val parser: Parser0[A]) extends AnyVal {
 
     /** parser then that.
       *  Since that is a Parser1 the result is
       */
     def ~[B](that: Parser1[B]): Parser1[(A, B)] =
-      Parser.product01(parser, that)
+      Parser0.product01(parser, that)
 
     /** This is the usual monadic composition, but you
       * should much prefer to use ~ or Apply.product, *>, <*, etc
@@ -633,7 +633,7 @@ object Parser extends ParserInstances {
       * the case for ~
       */
     def flatMap[B](fn: A => Parser1[B]): Parser1[B] =
-      Parser.flatMap01(parser)(fn)
+      Parser0.flatMap01(parser)(fn)
 
     /** parser then that.
       *  Since that is a Parser1 the result is
@@ -673,14 +673,14 @@ object Parser extends ParserInstances {
     * before this without consuming.
     * If either consume 1 or more, do not rewind
     */
-  sealed class Soft[+A](parser: Parser[A]) {
-    def ~[B](that: Parser[B]): Parser[(A, B)] =
+  sealed class Soft[+A](parser: Parser0[A]) {
+    def ~[B](that: Parser0[B]): Parser0[(A, B)] =
       softProduct(parser, that)
 
-    def *>[B](that: Parser[B]): Parser[B] =
+    def *>[B](that: Parser0[B]): Parser0[B] =
       softProduct(void(parser), that).map(_._2)
 
-    def <*[B](that: Parser[B]): Parser[A] =
+    def <*[B](that: Parser0[B]): Parser0[A] =
       softProduct(parser, void(that)).map(_._1)
 
     /** If we can parse this then that, do so,
@@ -698,13 +698,13 @@ object Parser extends ParserInstances {
     * If either consume 1 or more, do not rewind
     */
   final class Soft10[+A](parser: Parser1[A]) extends Soft(parser) {
-    override def ~[B](that: Parser[B]): Parser1[(A, B)] =
+    override def ~[B](that: Parser0[B]): Parser1[(A, B)] =
       softProduct10(parser, that)
 
-    override def *>[B](that: Parser[B]): Parser1[B] =
+    override def *>[B](that: Parser0[B]): Parser1[B] =
       softProduct10(void1(parser), that).map(_._2)
 
-    override def <*[B](that: Parser[B]): Parser1[A] =
+    override def <*[B](that: Parser0[B]): Parser1[A] =
       softProduct10(parser, void(that)).map(_._1)
   }
 
@@ -713,7 +713,7 @@ object Parser extends ParserInstances {
     * before this without consuming.
     * If either consume 1 or more, do not rewind
     */
-  final class Soft01[+A](val parser: Parser[A]) extends AnyVal {
+  final class Soft01[+A](val parser: Parser0[A]) extends AnyVal {
     def ~[B](that: Parser1[B]): Parser1[(A, B)] =
       softProduct01(parser, that)
 
@@ -727,20 +727,20 @@ object Parser extends ParserInstances {
   /** Methods with complex variance type signatures due to covariance.
     */
   implicit final class Parser1Methods[A](private val self: Parser1[A]) extends AnyVal {
-    def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
-      Parser.repAs(self)(acc)
+    def repAs[B](implicit acc: Accumulator[A, B]): Parser0[B] =
+      Parser0.repAs(self)(acc)
 
     def repAs1[B](implicit acc: Accumulator1[A, B]): Parser1[B] =
-      Parser.repAs1(self, min = 1)(acc)
+      Parser0.repAs1(self, min = 1)(acc)
 
     def repAs1[B](min: Int)(implicit acc: Accumulator1[A, B]): Parser1[B] =
-      Parser.repAs1(self, min = min)(acc)
+      Parser0.repAs1(self, min = min)(acc)
   }
 
   /** Don't advance in the parsed string, just return a
     *  This is used by the Applicative typeclass.
     */
-  def pure[A](a: A): Parser[A] =
+  def pure[A](a: A): Parser0[A] =
     Impl.Pure(a)
 
   /** Parse a given string, in a case-insensitive manner,
@@ -771,14 +771,14 @@ object Parser extends ParserInstances {
   /** Parse a potentially empty string or
     * fail. This backtracks on failure
     */
-  def string(str: String): Parser[Unit] =
+  def string(str: String): Parser0[Unit] =
     if (str.length == 0) unit
     else string1(str)
 
   /** Parse a potentially empty string, in a case-insensitive manner,
     * or fail. This backtracks on failure
     */
-  def ignoreCase(str: String): Parser[Unit] =
+  def ignoreCase(str: String): Parser0[Unit] =
     if (str.length == 0) unit
     else ignoreCase1(str)
 
@@ -815,9 +815,9 @@ object Parser extends ParserInstances {
     *
     *  This is the same as parsers.foldLeft(fail)(_.orElse(_))
     */
-  def oneOf[A](ps: List[Parser[A]]): Parser[A] = {
+  def oneOf[A](ps: List[Parser0[A]]): Parser0[A] = {
     @annotation.tailrec
-    def flatten(ls: List[Parser[A]], acc: ListBuffer[Parser[A]]): List[Parser[A]] =
+    def flatten(ls: List[Parser0[A]], acc: ListBuffer[Parser0[A]]): List[Parser0[A]] =
       ls match {
         case Nil => acc.toList.distinct
         case Impl.OneOf(ps) :: rest =>
@@ -835,21 +835,21 @@ object Parser extends ParserInstances {
       }
 
     val flat = flatten(ps, new ListBuffer)
-    Impl.mergeCharIn[A, Parser[A]](flat) match {
+    Impl.mergeCharIn[A, Parser0[A]](flat) match {
       case Nil => fail
       case p :: Nil => p
       case two => Impl.OneOf(two)
     }
   }
 
-  private[this] val emptyStringParser: Parser[String] =
+  private[this] val emptyStringParser0: Parser0[String] =
     pure("")
 
   /** if len < 1, the same as pure("")
     * else length1(len)
     */
-  def length(len: Int): Parser[String] =
-    if (len > 0) length1(len) else emptyStringParser
+  def length(len: Int): Parser0[String] =
+    if (len > 0) length1(len) else emptyStringParser0
 
   /** Parse the next len characters where len > 0
     * if (len < 1) throw IllegalArgumentException
@@ -860,13 +860,13 @@ object Parser extends ParserInstances {
   /** Repeat this parser 0 or more times
     * note: this can wind up parsing nothing
     */
-  def rep[A](p1: Parser1[A]): Parser[List[A]] =
+  def rep[A](p1: Parser1[A]): Parser0[List[A]] =
     repAs[A, List[A]](p1)
 
   /** Repeat this parser 0 or more times
     * note: this can wind up parsing nothing
     */
-  def repAs[A, B](p1: Parser1[A])(implicit acc: Accumulator[A, B]): Parser[B] =
+  def repAs[A, B](p1: Parser1[A])(implicit acc: Accumulator[A, B]): Parser0[B] =
     Impl.Rep(p1, acc)
 
   /** Repeat this parser 1 or more times
@@ -881,7 +881,7 @@ object Parser extends ParserInstances {
 
   /** Repeat 1 or more times with a separator
     */
-  def rep1Sep[A](p1: Parser1[A], min: Int, sep: Parser[Any]): Parser1[NonEmptyList[A]] = {
+  def rep1Sep[A](p1: Parser1[A], min: Int, sep: Parser0[Any]): Parser1[NonEmptyList[A]] = {
     if (min <= 0) throw new IllegalArgumentException(s"require min > 0, found: $min")
 
     val rest = (sep.void.with1.soft *> p1).rep(min - 1)
@@ -890,7 +890,7 @@ object Parser extends ParserInstances {
 
   /** Repeat 0 or more times with a separator
     */
-  def repSep[A](p1: Parser1[A], min: Int, sep: Parser[Any]): Parser[List[A]] = {
+  def repSep[A](p1: Parser1[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] = {
     if (min <= 0) rep1Sep(p1, 1, sep).?.map {
       case None => Nil
       case Some(nel) => nel.toList
@@ -900,7 +900,7 @@ object Parser extends ParserInstances {
 
   /** parse first then second
     */
-  def product[A, B](first: Parser[A], second: Parser[B]): Parser[(A, B)] =
+  def product[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
       case f1: Parser1[A] => product10(f1, second)
       case _ =>
@@ -913,12 +913,12 @@ object Parser extends ParserInstances {
 
   /** product with the first argument being a Parser1
     */
-  def product10[A, B](first: Parser1[A], second: Parser[B]): Parser1[(A, B)] =
+  def product10[A, B](first: Parser1[A], second: Parser0[B]): Parser1[(A, B)] =
     Impl.Prod1(first, second)
 
   /** product with the second argument being a Parser1
     */
-  def product01[A, B](first: Parser[A], second: Parser1[B]): Parser1[(A, B)] =
+  def product01[A, B](first: Parser0[A], second: Parser1[B]): Parser1[(A, B)] =
     Impl.Prod1(first, second)
 
   /** softProduct, a variant of product
@@ -926,9 +926,9 @@ object Parser extends ParserInstances {
     *  is an epsilon-failure. By contrast product will be a failure in
     *  that case
     *
-    *  see @Parser.soft
+    *  see @Parser0.soft
     */
-  def softProduct[A, B](first: Parser[A], second: Parser[B]): Parser[(A, B)] =
+  def softProduct[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
       case f1: Parser1[A] => softProduct10(f1, second)
       case _ =>
@@ -944,9 +944,9 @@ object Parser extends ParserInstances {
     *  is an epsilon-failure. By contrast product will be a failure in
     *  that case
     *
-    *  see @Parser.soft
+    *  see @Parser0.soft
     */
-  def softProduct10[A, B](first: Parser1[A], second: Parser[B]): Parser1[(A, B)] =
+  def softProduct10[A, B](first: Parser1[A], second: Parser0[B]): Parser1[(A, B)] =
     Impl.SoftProd1(first, second)
 
   /** softProduct with the second argument being a Parser1
@@ -954,14 +954,14 @@ object Parser extends ParserInstances {
     *  is an epsilon-failure. By contrast product will be a failure in
     *  that case
     *
-    *  see @Parser.soft
+    *  see @Parser0.soft
     */
-  def softProduct01[A, B](first: Parser[A], second: Parser1[B]): Parser1[(A, B)] =
+  def softProduct01[A, B](first: Parser0[A], second: Parser1[B]): Parser1[(A, B)] =
     Impl.SoftProd1(first, second)
 
-  /** transform a Parser result
+  /** transform a Parser0 result
     */
-  def map[A, B](p: Parser[A])(fn: A => B): Parser[B] =
+  def map[A, B](p: Parser0[A])(fn: A => B): Parser0[B] =
     p match {
       case p1: Parser1[A] => map1(p1)(fn)
       case Impl.Map(p0, f0) =>
@@ -985,10 +985,10 @@ object Parser extends ParserInstances {
   /** Parse p and if we get the Left side, parse fn
     *  This function name comes from seletive functors.
     *  This should be more efficient than flatMap since
-    *  the fn Parser is evaluated once, not on every item
+    *  the fn Parser0 is evaluated once, not on every item
     *  parsed
     */
-  def select[A, B](p: Parser[Either[A, B]])(fn: Parser[A => B]): Parser[B] =
+  def select[A, B](p: Parser0[Either[A, B]])(fn: Parser0[A => B]): Parser0[B] =
     Impl
       .Select(p, fn)
       .map {
@@ -998,7 +998,7 @@ object Parser extends ParserInstances {
 
   /** Parser1 version of select
     */
-  def select1[A, B](p: Parser1[Either[A, B]])(fn: Parser[A => B]): Parser1[B] =
+  def select1[A, B](p: Parser1[Either[A, B]])(fn: Parser0[A => B]): Parser1[B] =
     Impl
       .Select1(p, fn)
       .map {
@@ -1012,7 +1012,7 @@ object Parser extends ParserInstances {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def flatMap[A, B](pa: Parser[A])(fn: A => Parser[B]): Parser[B] =
+  def flatMap[A, B](pa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
     Impl.FlatMap(pa, fn)
 
   /** Standard monadic flatMap where you start with a Parser1
@@ -1021,7 +1021,7 @@ object Parser extends ParserInstances {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def flatMap10[A, B](pa: Parser1[A])(fn: A => Parser[B]): Parser1[B] =
+  def flatMap10[A, B](pa: Parser1[A])(fn: A => Parser0[B]): Parser1[B] =
     Impl.FlatMap1(pa, fn)
 
   /** Standard monadic flatMap where you end with a Parser1
@@ -1030,7 +1030,7 @@ object Parser extends ParserInstances {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def flatMap01[A, B](pa: Parser[A])(fn: A => Parser1[B]): Parser1[B] =
+  def flatMap01[A, B](pa: Parser0[A])(fn: A => Parser1[B]): Parser1[B] =
     Impl.FlatMap1(pa, fn)
 
   /** tail recursive monadic flatMaps
@@ -1040,7 +1040,7 @@ object Parser extends ParserInstances {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def tailRecM[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
+  def tailRecM[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
     Impl.TailRecM(init, fn)
 
   /** tail recursive monadic flatMaps on Parser1
@@ -1060,11 +1060,11 @@ object Parser extends ParserInstances {
   def defer1[A](pa: => Parser1[A]): Parser1[A] =
     Impl.Defer1(() => pa)
 
-  /** Lazily create a Parser
+  /** Lazily create a Parser0
     *  This is useful to create some recursive parsers
     *  see Defer[Parser1].fix
     */
-  def defer[A](pa: => Parser[A]): Parser[A] =
+  def defer[A](pa: => Parser0[A]): Parser0[A] =
     Impl.Defer(() => pa)
 
   /** A parser that always fails with an epsilon failure
@@ -1086,7 +1086,7 @@ object Parser extends ParserInstances {
 
   /** A parser that returns unit
     */
-  val unit: Parser[Unit] = pure(())
+  val unit: Parser0[Unit] = pure(())
 
   /** Parse 1 character from the string
     */
@@ -1148,7 +1148,7 @@ object Parser extends ParserInstances {
 
   /** Parse a string while the given function is true
     */
-  def charsWhile(fn: Char => Boolean): Parser[String] =
+  def charsWhile(fn: Char => Boolean): Parser0[String] =
     charWhere(fn).rep.string
 
   /** Parse a string while the given function is true
@@ -1159,29 +1159,29 @@ object Parser extends ParserInstances {
 
   /** parse zero or more characters as long as they don't match p
     */
-  def until(p: Parser[Any]): Parser[String] =
+  def until(p: Parser0[Any]): Parser0[String] =
     (not(p).with1 ~ anyChar).rep.string
 
   /** parse one or more characters as long as they don't match p
     */
-  def until1(p: Parser[Any]): Parser1[String] =
+  def until1(p: Parser0[Any]): Parser1[String] =
     (not(p).with1 ~ anyChar).rep1.string
 
-  /** discard the value in a Parser.
+  /** discard the value in a Parser0.
     *  This is an optimization because we remove trailing
     *  map operations and don't allocate internal data structures
     *  This function is called internal to Functor.as and Apply.*>
     *  and Apply.<* so those are good uses.
     */
-  def void(pa: Parser[Any]): Parser[Unit] =
+  def void(pa: Parser0[Any]): Parser0[Unit] =
     pa match {
       case v @ Impl.Void(_) => v
       case p1: Parser1[_] => void1(p1)
       case s if Impl.alwaysSucceeds(s) => unit
       case _ =>
         Impl.unmap(pa) match {
-          case Impl.StartParser => Impl.StartParser
-          case Impl.EndParser => Impl.EndParser
+          case Impl.StartParser0 => Impl.StartParser0
+          case Impl.EndParser0 => Impl.EndParser0
           case n @ Impl.Not(_) => n
           case p @ Impl.Peek(_) => p
           case other => Impl.Void(other)
@@ -1211,13 +1211,13 @@ object Parser extends ParserInstances {
   /** Discard the result A and instead capture the matching string
     *  this is optimized to avoid internal allocations
     */
-  def string(pa: Parser[Any]): Parser[String] =
+  def string(pa: Parser0[Any]): Parser0[String] =
     pa match {
       case str @ Impl.StringP(_) => str
       case s1: Parser1[_] => string1(s1)
       case _ =>
         Impl.unmap(pa) match {
-          case Impl.Pure(_) | Impl.Index => emptyStringParser
+          case Impl.Pure(_) | Impl.Index => emptyStringParser0
           case notEmpty => Impl.StringP(notEmpty)
         }
     }
@@ -1248,7 +1248,7 @@ object Parser extends ParserInstances {
     * current parser fails.
     * Note, this parser backtracks (never returns an arresting failure)
     */
-  def not(pa: Parser[Any]): Parser[Unit] =
+  def not(pa: Parser0[Any]): Parser0[Unit] =
     void(pa) match {
       case Impl.Fail() | Impl.FailWith(_) => unit
       case notFail => Impl.Not(notFail)
@@ -1257,7 +1257,7 @@ object Parser extends ParserInstances {
   /** a parser that consumes nothing when
     * it succeeds, basically rewind on success
     */
-  def peek(pa: Parser[Any]): Parser[Unit] =
+  def peek(pa: Parser0[Any]): Parser0[Unit] =
     pa match {
       case peek @ Impl.Peek(_) => peek
       case s if Impl.alwaysSucceeds(s) => unit
@@ -1272,22 +1272,22 @@ object Parser extends ParserInstances {
     * we are parsing. This lets you record position information
     * in your ASTs you are parsing
     */
-  def index: Parser[Int] = Impl.Index
+  def index: Parser0[Int] = Impl.Index
 
   /** succeeds when we are at the start
     */
-  def start: Parser[Unit] = Impl.StartParser
+  def start: Parser0[Unit] = Impl.StartParser0
 
   /** succeeds when we are at the end
     */
-  def end: Parser[Unit] = Impl.EndParser
+  def end: Parser0[Unit] = Impl.EndParser0
 
   /** If we fail, rewind the offset back so that
     * we can try other branches. This tends
     * to harm debuggability and ideally should be
     * minimized
     */
-  def backtrack[A](pa: Parser[A]): Parser[A] =
+  def backtrack[A](pa: Parser0[A]): Parser0[A] =
     pa match {
       case p1: Parser1[A] => backtrack1(p1)
       case pa if Impl.doesBacktrack(pa) => pa
@@ -1307,7 +1307,7 @@ object Parser extends ParserInstances {
 
   /** Replaces parsed values with the given value.
     */
-  def as[A, B](pa: Parser[A], b: B): Parser[B] =
+  def as[A, B](pa: Parser0[A], b: B): Parser0[B] =
     pa match {
       case Impl.Pure(_) | Impl.Index => pure(b)
       case p1: Parser1[A] => as1(p1, b)
@@ -1371,13 +1371,13 @@ object Parser extends ParserInstances {
         tailRecM1(init)(fn)
 
       def combineK[A](pa: Parser1[A], pb: Parser1[A]): Parser1[A] =
-        Parser.oneOf1(pa :: pb :: Nil)
+        Parser0.oneOf1(pa :: pb :: Nil)
 
       override def void[A](pa: Parser1[A]): Parser1[Unit] =
         pa.void
 
       override def as[A, B](pa: Parser1[A], b: B): Parser1[B] =
-        Parser.as1(pa, b)
+        Parser0.as1(pa, b)
 
       override def productL[A, B](pa: Parser1[A])(pb: Parser1[B]): Parser1[A] =
         map(product(pa, pb.void)) { case (a, _) => a }
@@ -1411,20 +1411,20 @@ object Parser extends ParserInstances {
 
     val allChars = Char.MinValue to Char.MaxValue
 
-    val optTail: List[Parser[Option[Nothing]]] = Parser.pure(None) :: Nil
+    val optTail: List[Parser0[Option[Nothing]]] = Parser0.pure(None) :: Nil
 
     case class ConstFn[A](result: A) extends Function[Any, A] {
       def apply(any: Any) = result
     }
 
-    final def doesBacktrackCheat(p: Parser[Any]): Boolean =
+    final def doesBacktrackCheat(p: Parser0[Any]): Boolean =
       doesBacktrack(p)
 
     @annotation.tailrec
-    final def doesBacktrack(p: Parser[Any]): Boolean =
+    final def doesBacktrack(p: Parser0[Any]): Boolean =
       p match {
         case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
-            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) | Not(_) =>
+            Length(_) | StartParser0 | EndParser0 | Index | Pure(_) | Fail() | FailWith(_) | Not(_) =>
           true
         case Map(p, _) => doesBacktrack(p)
         case Map1(p, _) => doesBacktrack(p)
@@ -1436,7 +1436,7 @@ object Parser extends ParserInstances {
     // does this parser always succeed?
     // note: a parser1 does not always succeed
     // and by construction, a oneOf never always succeeds
-    final def alwaysSucceeds(p: Parser[Any]): Boolean =
+    final def alwaysSucceeds(p: Parser0[Any]): Boolean =
       p match {
         case Index | Pure(_) => true
         case Map(p, _) => alwaysSucceeds(p)
@@ -1454,11 +1454,11 @@ object Parser extends ParserInstances {
       * at StringP or VoidP since those are markers
       * that anything below has already been transformed
       */
-    def unmap(pa: Parser[Any]): Parser[Any] =
+    def unmap(pa: Parser0[Any]): Parser0[Any] =
       pa match {
         case p1: Parser1[Any] => unmap1(p1)
-        case Pure(_) | Index => Parser.unit
-        case s if alwaysSucceeds(s) => Parser.unit
+        case Pure(_) | Index => Parser0.unit
+        case s if alwaysSucceeds(s) => Parser0.unit
         case Map(p, _) =>
           // we discard any allocations done by fn
           unmap(p)
@@ -1479,8 +1479,8 @@ object Parser extends ParserInstances {
         case Backtrack(p) =>
           // unmap may simplify enough
           // to remove the backtrack wrapper
-          Parser.backtrack(unmap(p))
-        case OneOf(ps) => Parser.oneOf(ps.map(unmap))
+          Parser0.backtrack(unmap(p))
+        case OneOf(ps) => Parser0.oneOf(ps.map(unmap))
         case Prod(p1, p2) =>
           unmap(p1) match {
             case Prod(p11, p12) =>
@@ -1489,11 +1489,11 @@ object Parser extends ParserInstances {
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
               Prod(p11, unmap(Prod(Void(p12), p2)))
-            case u1 if u1 eq Parser.unit =>
+            case u1 if u1 eq Parser0.unit =>
               unmap(p2)
             case u1 =>
               val u2 = unmap(p2)
-              if (u2 eq Parser.unit) u1
+              if (u2 eq Parser0.unit) u1
               else Prod(u1, u2)
           }
         case SoftProd(p1, p2) =>
@@ -1504,22 +1504,22 @@ object Parser extends ParserInstances {
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
               SoftProd(p11, unmap(SoftProd(Void(p12), p2)))
-            case u1 if u1 eq Parser.unit =>
+            case u1 if u1 eq Parser0.unit =>
               unmap(p2)
             case u1 =>
               val u2 = unmap(p2)
-              if (u2 eq Parser.unit) u1
+              if (u2 eq Parser0.unit) u1
               else SoftProd(u1, u2)
           }
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
         case Rep(p, _) => Rep(unmap1(p), Accumulator.unitAccumulator)
-        case StartParser | EndParser | TailRecM(_, _) | FlatMap(_, _) =>
+        case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
       }
 
-    def expect1[A](p: Parser[A]): Parser1[A] =
+    def expect1[A](p: Parser0[A]): Parser1[A] =
       p match {
         case p1: Parser1[A] => p1
         case notP1 =>
@@ -1550,8 +1550,8 @@ object Parser extends ParserInstances {
         case Backtrack1(p) =>
           // unmap may simplify enough
           // to remove the backtrack wrapper
-          Parser.backtrack1(unmap1(p))
-        case OneOf1(ps) => Parser.oneOf1(ps.map(unmap1))
+          Parser0.backtrack1(unmap1(p))
+        case OneOf1(ps) => Parser0.oneOf1(ps.map(unmap1))
         case Prod1(p1, p2) =>
           unmap(p1) match {
             case Prod(p11, p12) =>
@@ -1559,18 +1559,18 @@ object Parser extends ParserInstances {
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              Prod1(p11, unmap(Parser.product(p12.void, p2)))
+              Prod1(p11, unmap(Parser0.product(p12.void, p2)))
             case Prod1(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // we wrap with Void to prevent n^2 cost
-              Prod1(p11, unmap(Parser.product(p12.void, p2)))
-            case u1 if u1 eq Parser.unit =>
+              Prod1(p11, unmap(Parser0.product(p12.void, p2)))
+            case u1 if u1 eq Parser0.unit =>
               // if unmap(u1) is unit, p2 must be a Parser1
               unmap1(expect1(p2))
             case u1 =>
               val u2 = unmap(p2)
-              if (u2 eq Parser.unit) expect1(u1)
+              if (u2 eq Parser0.unit) expect1(u1)
               else Prod1(u1, u2)
           }
         case SoftProd1(p1, p2) =>
@@ -1579,18 +1579,18 @@ object Parser extends ParserInstances {
               // right associate so
               // we can check matches a bit faster
               // we wrap with Void to prevent n^2 cost
-              SoftProd1(p11, unmap(Parser.softProduct(p12.void, p2)))
+              SoftProd1(p11, unmap(Parser0.softProduct(p12.void, p2)))
             case SoftProd1(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // we wrap with Void to prevent n^2 cost
-              SoftProd1(p11, unmap(Parser.softProduct(p12.void, p2)))
-            case u1 if u1 eq Parser.unit =>
+              SoftProd1(p11, unmap(Parser0.softProduct(p12.void, p2)))
+            case u1 if u1 eq Parser0.unit =>
               // if unmap(u1) is unit, p2 must be a Parser1
               unmap1(expect1(p2))
             case u1 =>
               val u2 = unmap(p2)
-              if (u2 eq Parser.unit) expect1(u1)
+              if (u2 eq Parser0.unit) expect1(u1)
               else SoftProd1(u1, u2)
           }
         case Defer1(fn) =>
@@ -1609,7 +1609,7 @@ object Parser extends ParserInstances {
       var capture: Boolean = true
     }
 
-    case class Pure[A](result: A) extends Parser[A] {
+    case class Pure[A](result: A) extends Parser0[A] {
       override def parseMut(state: State): A = result
     }
 
@@ -1630,7 +1630,7 @@ object Parser extends ParserInstances {
       }
     }
 
-    def void(pa: Parser[Any], state: State): Unit = {
+    def void(pa: Parser0[Any], state: State): Unit = {
       val s0 = state.capture
       state.capture = false
       pa.parseMut(state)
@@ -1638,7 +1638,7 @@ object Parser extends ParserInstances {
       ()
     }
 
-    case class Void[A](parser: Parser[A]) extends Parser[Unit] {
+    case class Void[A](parser: Parser0[A]) extends Parser0[Unit] {
       override def parseMut(state: State): Unit =
         Impl.void(parser, state)
     }
@@ -1648,7 +1648,7 @@ object Parser extends ParserInstances {
         Impl.void(parser, state)
     }
 
-    def string(pa: Parser[Any], state: State): String = {
+    def string(pa: Parser0[Any], state: State): String = {
       val s0 = state.capture
       state.capture = false
       val init = state.offset
@@ -1658,7 +1658,7 @@ object Parser extends ParserInstances {
       str
     }
 
-    case class StringP[A](parser: Parser[A]) extends Parser[String] {
+    case class StringP[A](parser: Parser0[A]) extends Parser0[String] {
       override def parseMut(state: State): String =
         Impl.string(parser, state)
     }
@@ -1668,7 +1668,7 @@ object Parser extends ParserInstances {
         Impl.string(parser, state)
     }
 
-    case object StartParser extends Parser[Unit] {
+    case object StartParser0 extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
         if (state.offset != 0) {
           state.error = Chain.one(Expectation.StartOfString(state.offset))
@@ -1677,7 +1677,7 @@ object Parser extends ParserInstances {
       }
     }
 
-    case object EndParser extends Parser[Unit] {
+    case object EndParser0 extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
         if (state.offset != state.str.length) {
           state.error = Chain.one(Expectation.EndOfString(state.offset, state.str.length))
@@ -1686,11 +1686,11 @@ object Parser extends ParserInstances {
       }
     }
 
-    case object Index extends Parser[Int] {
+    case object Index extends Parser0[Int] {
       override def parseMut(state: State): Int = state.offset
     }
 
-    final def backtrack[A](pa: Parser[A], state: State): A = {
+    final def backtrack[A](pa: Parser0[A], state: State): A = {
       val offset = state.offset
       val a = pa.parseMut(state)
       if (state.error ne null) {
@@ -1699,7 +1699,7 @@ object Parser extends ParserInstances {
       a
     }
 
-    case class Backtrack[A](parser: Parser[A]) extends Parser[A] {
+    case class Backtrack[A](parser: Parser0[A]) extends Parser0[A] {
       override def parseMut(state: State): A =
         Impl.backtrack(parser, state)
     }
@@ -1755,13 +1755,13 @@ object Parser extends ParserInstances {
       }
     }
 
-    final def oneOf[A](all: Array[Parser[A]], state: State): A = {
+    final def oneOf[A](all: Array[Parser0[A]], state: State): A = {
       val offset = state.offset
       var errs: Chain[Expectation] = Chain.nil
       var idx = 0
       while (idx < all.length) {
-        val thisParser = all(idx)
-        val res = thisParser.parseMut(state)
+        val thisParser0 = all(idx)
+        val res = thisParser0.parseMut(state)
         // we stop if there was no error
         // or if we consumed some input
         val err = state.error
@@ -1784,19 +1784,19 @@ object Parser extends ParserInstances {
 
     case class OneOf1[A](all: List[Parser1[A]]) extends Parser1[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
-      private[this] val ary: Array[Parser[A]] = all.toArray
+      private[this] val ary: Array[Parser0[A]] = all.toArray
 
       override def parseMut(state: State): A = oneOf(ary, state)
     }
 
-    case class OneOf[A](all: List[Parser[A]]) extends Parser[A] {
+    case class OneOf[A](all: List[Parser0[A]]) extends Parser0[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary = all.toArray
 
       override def parseMut(state: State): A = oneOf(ary, state)
     }
 
-    final def prod[A, B](pa: Parser[A], pb: Parser[B], state: State): (A, B) = {
+    final def prod[A, B](pa: Parser0[A], pb: Parser0[B], state: State): (A, B) = {
       val a = pa.parseMut(state)
       if (state.error eq null) {
         val b = pb.parseMut(state)
@@ -1806,16 +1806,16 @@ object Parser extends ParserInstances {
     }
 
     // we know that at least one of first | second is Parser1
-    case class Prod1[A, B](first: Parser[A], second: Parser[B]) extends Parser1[(A, B)] {
+    case class Prod1[A, B](first: Parser0[A], second: Parser0[B]) extends Parser1[(A, B)] {
       require(first.isInstanceOf[Parser1[_]] || second.isInstanceOf[Parser1[_]])
       override def parseMut(state: State): (A, B) = prod(first, second, state)
     }
 
-    case class Prod[A, B](first: Parser[A], second: Parser[B]) extends Parser[(A, B)] {
+    case class Prod[A, B](first: Parser0[A], second: Parser0[B]) extends Parser0[(A, B)] {
       override def parseMut(state: State): (A, B) = prod(first, second, state)
     }
 
-    final def softProd[A, B](pa: Parser[A], pb: Parser[B], state: State): (A, B) = {
+    final def softProd[A, B](pa: Parser0[A], pb: Parser0[B], state: State): (A, B) = {
       val offset = state.offset
       val a = pa.parseMut(state)
       if (state.error eq null) {
@@ -1834,22 +1834,22 @@ object Parser extends ParserInstances {
     }
 
     // we know that at least one of first | second is Parser1
-    case class SoftProd1[A, B](first: Parser[A], second: Parser[B]) extends Parser1[(A, B)] {
+    case class SoftProd1[A, B](first: Parser0[A], second: Parser0[B]) extends Parser1[(A, B)] {
       require(first.isInstanceOf[Parser1[_]] || second.isInstanceOf[Parser1[_]])
       override def parseMut(state: State): (A, B) = softProd(first, second, state)
     }
 
-    case class SoftProd[A, B](first: Parser[A], second: Parser[B]) extends Parser[(A, B)] {
+    case class SoftProd[A, B](first: Parser0[A], second: Parser0[B]) extends Parser0[(A, B)] {
       override def parseMut(state: State): (A, B) = softProd(first, second, state)
     }
 
-    final def map[A, B](parser: Parser[A], fn: A => B, state: State): B = {
+    final def map[A, B](parser: Parser0[A], fn: A => B, state: State): B = {
       val a = parser.parseMut(state)
       if ((state.error eq null) && state.capture) fn(a)
       else null.asInstanceOf[B]
     }
 
-    case class Map[A, B](parser: Parser[A], fn: A => B) extends Parser[B] {
+    case class Map[A, B](parser: Parser0[A], fn: A => B) extends Parser0[B] {
       override def parseMut(state: State): B = Impl.map(parser, fn, state)
     }
 
@@ -1858,8 +1858,8 @@ object Parser extends ParserInstances {
     }
 
     final def select[A, B, C](
-        pab: Parser[Either[A, B]],
-        pc: Parser[C],
+        pab: Parser0[Either[A, B]],
+        pc: Parser0[C],
         state: State
     ): Either[(A, C), B] = {
       val cap = state.capture
@@ -1880,19 +1880,19 @@ object Parser extends ParserInstances {
       else null
     }
 
-    case class Select[A, B, C](pab: Parser[Either[A, B]], pc: Parser[C])
-        extends Parser[Either[(A, C), B]] {
+    case class Select[A, B, C](pab: Parser0[Either[A, B]], pc: Parser0[C])
+        extends Parser0[Either[(A, C), B]] {
       override def parseMut(state: State): Either[(A, C), B] =
         Impl.select(pab, pc, state)
     }
 
-    case class Select1[A, B, C](pab: Parser1[Either[A, B]], pc: Parser[C])
+    case class Select1[A, B, C](pab: Parser1[Either[A, B]], pc: Parser0[C])
         extends Parser1[Either[(A, C), B]] {
       override def parseMut(state: State): Either[(A, C), B] =
         Impl.select(pab, pc, state)
     }
 
-    final def flatMap[A, B](parser: Parser[A], fn: A => Parser[B], state: State): B = {
+    final def flatMap[A, B](parser: Parser0[A], fn: A => Parser0[B], state: State): B = {
       // we can't void before flatMap unfortunately, because
       // we need to be able to produce the next parser
       val cap = state.capture
@@ -1905,21 +1905,21 @@ object Parser extends ParserInstances {
       } else null.asInstanceOf[B]
     }
 
-    case class FlatMap[A, B](parser: Parser[A], fn: A => Parser[B]) extends Parser[B] {
+    case class FlatMap[A, B](parser: Parser0[A], fn: A => Parser0[B]) extends Parser0[B] {
       override def parseMut(state: State): B = Impl.flatMap(parser, fn, state)
     }
 
     // at least one of the parsers needs to be a Parser1
-    case class FlatMap1[A, B](parser: Parser[A], fn: A => Parser[B]) extends Parser1[B] {
+    case class FlatMap1[A, B](parser: Parser0[A], fn: A => Parser0[B]) extends Parser1[B] {
       override def parseMut(state: State): B = Impl.flatMap(parser, fn, state)
     }
 
     final def tailRecM[A, B](
-        init: Parser[Either[A, B]],
-        fn: A => Parser[Either[A, B]],
+        init: Parser0[Either[A, B]],
+        fn: A => Parser0[Either[A, B]],
         state: State
     ): B = {
-      var p: Parser[Either[A, B]] = init
+      var p: Parser0[Either[A, B]] = init
       // we have to capture
       val c0 = state.capture
       state.capture = true
@@ -1939,7 +1939,7 @@ object Parser extends ParserInstances {
       null.asInstanceOf[B]
     }
 
-    case class TailRecM[A, B](init: A, fn: A => Parser[Either[A, B]]) extends Parser[B] {
+    case class TailRecM[A, B](init: A, fn: A => Parser0[Either[A, B]]) extends Parser0[B] {
       private[this] val p1 = fn(init)
 
       override def parseMut(state: State): B = Impl.tailRecM(p1, fn, state)
@@ -1952,7 +1952,7 @@ object Parser extends ParserInstances {
     }
 
     @annotation.tailrec
-    final def compute[A](fn: () => Parser[A]): Parser[A] =
+    final def compute[A](fn: () => Parser0[A]): Parser0[A] =
       fn() match {
         case Defer1(f) => compute1(f)
         case Defer(f) => compute(f)
@@ -1966,7 +1966,7 @@ object Parser extends ParserInstances {
       }
 
     case class Defer1[A](fn: () => Parser1[A]) extends Parser1[A] {
-      private[this] var computed: Parser[A] = null
+      private[this] var computed: Parser0[A] = null
       override def parseMut(state: State): A = {
 
         val p0 = computed
@@ -1982,8 +1982,8 @@ object Parser extends ParserInstances {
       }
     }
 
-    case class Defer[A](fn: () => Parser[A]) extends Parser[A] {
-      private[this] var computed: Parser[A] = null
+    case class Defer[A](fn: () => Parser0[A]) extends Parser0[A] {
+      private[this] var computed: Parser0[A] = null
       override def parseMut(state: State): A = {
 
         val p0 = computed
@@ -2057,7 +2057,7 @@ object Parser extends ParserInstances {
       }
     }
 
-    case class Rep[A, B](p1: Parser1[A], acc: Accumulator[A, B]) extends Parser[B] {
+    case class Rep[A, B](p1: Parser1[A], acc: Accumulator[A, B]) extends Parser0[B] {
       private[this] val ignore: B = null.asInstanceOf[B]
 
       override def parseMut(state: State): B = {
@@ -2111,13 +2111,13 @@ object Parser extends ParserInstances {
     /*
      * Merge CharIn bitsets
      */
-    def mergeCharIn[A, P <: Parser[A]](ps: List[P]): List[P] = {
+    def mergeCharIn[A, P <: Parser0[A]](ps: List[P]): List[P] = {
       @annotation.tailrec
       def loop(ps: List[P], front: List[(Int, BitSetUtil.Tpe)], result: Chain[P]): Chain[P] = {
         @inline
         def frontRes: Chain[P] =
           if (front.isEmpty) Chain.nil
-          else Chain.one(Parser.charIn(BitSetUtil.union(front)).asInstanceOf[P])
+          else Chain.one(Parser0.charIn(BitSetUtil.union(front)).asInstanceOf[P])
 
         ps match {
           case Nil => result ++ frontRes
@@ -2193,7 +2193,7 @@ object Parser extends ParserInstances {
      * If pa fails, succeed parsing nothing
      * else fail
      */
-    case class Not(under: Parser[Unit]) extends Parser[Unit] {
+    case class Not(under: Parser0[Unit]) extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
         val offset = state.offset
         under.parseMut(state)
@@ -2217,7 +2217,7 @@ object Parser extends ParserInstances {
      * succeeds if the underlying parser succeeds, but we do
      * not advance
      */
-    case class Peek(under: Parser[Unit]) extends Parser[Unit] {
+    case class Peek(under: Parser0[Unit]) extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
         val offset = state.offset
         under.parseMut(state)
@@ -2233,67 +2233,67 @@ object Parser extends ParserInstances {
 }
 
 abstract class ParserInstances {
-  implicit val catInstancesParser
-      : Monad[Parser] with Alternative[Parser] with Defer[Parser] with FunctorFilter[Parser] =
-    new Monad[Parser] with Alternative[Parser] with Defer[Parser] with FunctorFilter[Parser] {
-      def pure[A](a: A): Parser[A] = Parser.pure(a)
+  implicit val catInstancesParser0
+      : Monad[Parser0] with Alternative[Parser0] with Defer[Parser0] with FunctorFilter[Parser0] =
+    new Monad[Parser0] with Alternative[Parser0] with Defer[Parser0] with FunctorFilter[Parser0] {
+      def pure[A](a: A): Parser0[A] = Parser0.pure(a)
 
-      def defer[A](a: => Parser[A]) = Parser.defer(a)
+      def defer[A](a: => Parser0[A]) = Parser0.defer(a)
 
-      def empty[A]: Parser[A] = Parser.Fail
+      def empty[A]: Parser0[A] = Parser0.Fail
 
       def functor = this
 
-      override def map[A, B](fa: Parser[A])(fn: A => B): Parser[B] = Parser.map(fa)(fn)
+      override def map[A, B](fa: Parser0[A])(fn: A => B): Parser0[B] = Parser0.map(fa)(fn)
 
-      def mapFilter[A, B](fa: Parser[A])(f: A => Option[B]): Parser[B] =
+      def mapFilter[A, B](fa: Parser0[A])(f: A => Option[B]): Parser0[B] =
         fa.mapFilter(f)
 
-      override def filter[A](fa: Parser[A])(fn: A => Boolean): Parser[A] =
+      override def filter[A](fa: Parser0[A])(fn: A => Boolean): Parser0[A] =
         fa.filter(fn)
 
-      override def filterNot[A](fa: Parser[A])(fn: A => Boolean): Parser[A] =
+      override def filterNot[A](fa: Parser0[A])(fn: A => Boolean): Parser0[A] =
         fa.filter { a => !fn(a) }
 
-      override def product[A, B](fa: Parser[A], fb: Parser[B]): Parser[(A, B)] =
-        Parser.product(fa, fb)
+      override def product[A, B](fa: Parser0[A], fb: Parser0[B]): Parser0[(A, B)] =
+        Parser0.product(fa, fb)
 
-      override def map2[A, B, C](pa: Parser[A], pb: Parser[B])(fn: (A, B) => C): Parser[C] =
+      override def map2[A, B, C](pa: Parser0[A], pb: Parser0[B])(fn: (A, B) => C): Parser0[C] =
         map(product(pa, pb)) { case (a, b) => fn(a, b) }
 
-      override def map2Eval[A, B, C](pa: Parser[A], pb: Eval[Parser[B]])(
+      override def map2Eval[A, B, C](pa: Parser0[A], pb: Eval[Parser0[B]])(
           fn: (A, B) => C
-      ): Eval[Parser[C]] =
+      ): Eval[Parser0[C]] =
         Now(pb match {
           case Now(pb) => map2(pa, pb)(fn)
           case later => map2(pa, defer(later.value))(fn)
         })
 
-      override def ap[A, B](pf: Parser[A => B])(pa: Parser[A]): Parser[B] =
+      override def ap[A, B](pf: Parser0[A => B])(pa: Parser0[A]): Parser0[B] =
         map(product(pf, pa)) { case (fn, a) => fn(a) }
 
-      def flatMap[A, B](fa: Parser[A])(fn: A => Parser[B]): Parser[B] =
-        Parser.flatMap(fa)(fn)
+      def flatMap[A, B](fa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
+        Parser0.flatMap(fa)(fn)
 
-      def combineK[A](pa: Parser[A], pb: Parser[A]): Parser[A] =
-        Parser.oneOf(pa :: pb :: Nil)
+      def combineK[A](pa: Parser0[A], pb: Parser0[A]): Parser0[A] =
+        Parser0.oneOf(pa :: pb :: Nil)
 
-      def tailRecM[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
-        Parser.tailRecM(init)(fn)
+      def tailRecM[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
+        Parser0.tailRecM(init)(fn)
 
-      override def void[A](pa: Parser[A]): Parser[Unit] =
-        Parser.void(pa)
+      override def void[A](pa: Parser0[A]): Parser0[Unit] =
+        Parser0.void(pa)
 
-      override def as[A, B](pa: Parser[A], b: B): Parser[B] =
-        Parser.as(pa, b)
+      override def as[A, B](pa: Parser0[A], b: B): Parser0[B] =
+        Parser0.as(pa, b)
 
-      override def productL[A, B](pa: Parser[A])(pb: Parser[B]): Parser[A] =
+      override def productL[A, B](pa: Parser0[A])(pb: Parser0[B]): Parser0[A] =
         map(product(pa, pb.void)) { case (a, _) => a }
 
-      override def productR[A, B](pa: Parser[A])(pb: Parser[B]): Parser[B] =
+      override def productR[A, B](pa: Parser0[A])(pb: Parser0[B]): Parser0[B] =
         map(product(pa.void, pb)) { case (_, b) => b }
 
-      override def productLEval[A, B](fa: Parser[A])(fb: Eval[Parser[B]]): Parser[A] = {
+      override def productLEval[A, B](fa: Parser0[A])(fb: Eval[Parser0[B]]): Parser0[A] = {
         val pb =
           fb match {
             case Now(pb) => pb
@@ -2303,7 +2303,7 @@ abstract class ParserInstances {
         productL(fa)(pb)
       }
 
-      override def productREval[A, B](fa: Parser[A])(fb: Eval[Parser[B]]): Parser[B] = {
+      override def productREval[A, B](fa: Parser0[A])(fb: Eval[Parser0[B]]): Parser0[B] = {
         val pb =
           fb match {
             case Now(pb) => pb

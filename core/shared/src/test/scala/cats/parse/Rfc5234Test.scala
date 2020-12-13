@@ -28,7 +28,7 @@ import org.scalacheck.Prop.forAll
 class Rfc5234Test extends munit.ScalaCheckSuite {
   val allChars: Set[Char] = Set(Char.MinValue to Char.MaxValue: _*)
 
-  def singleCharProperties[A](name: String, rule: Parser[A], valid: Set[Char], f: Char => A) = {
+  def singleCharProperties[A](name: String, rule: Parser0[A], valid: Set[Char], f: Char => A) = {
     val genValid = Gen.oneOf(valid)
     // Bias toward the chars we tend to find in these parsers
     val genInvalid = Gen.frequency(
@@ -58,10 +58,10 @@ class Rfc5234Test extends munit.ScalaCheckSuite {
     }
   }
 
-  def singleConstCharProperties(name: String, rule: Parser[Unit], valid: Char) =
+  def singleConstCharProperties(name: String, rule: Parser0[Unit], valid: Char) =
     singleCharProperties(name, rule, Set(valid), _ => ())
 
-  def singleMultiCharProperties(name: String, rule: Parser[Char], valid: Set[Char]) =
+  def singleMultiCharProperties(name: String, rule: Parser0[Char], valid: Set[Char]) =
     singleCharProperties(name, rule, valid, identity)
 
   singleMultiCharProperties(

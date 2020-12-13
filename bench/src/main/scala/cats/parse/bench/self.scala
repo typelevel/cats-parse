@@ -22,7 +22,7 @@
 package cats.parse.bench.self
 
 import cats.implicits._
-import cats.parse.{Parser => P, Parser1 => P1, Numbers}
+import cats.parse.{Parser0 => P, Parser1 => P1, Numbers}
 import org.typelevel.jawn.ast._
 
 /* Based on https://github.com/johnynek/bosatsu/blob/7f4b75356c207b0e0eb2ab7d39f646e04b4004ca/core/src/main/scala/org/bykn/bosatsu/Json.scala */

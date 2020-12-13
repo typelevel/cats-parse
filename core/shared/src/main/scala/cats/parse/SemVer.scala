@@ -30,11 +30,11 @@ object SemVer {
 
   case class SemVer(core: Core, preRelease: Option[String], buildMetadata: Option[String])
 
-  val dot: Parser1[Char] = Parser.charIn('.')
-  val hyphen: Parser1[Char] = Parser.charIn('-')
-  val plus: Parser1[Char] = Parser.charIn('+')
+  val dot: Parser1[Char] = Parser0.charIn('.')
+  val hyphen: Parser1[Char] = Parser0.charIn('-')
+  val plus: Parser1[Char] = Parser0.charIn('+')
 
-  val letter: Parser1[Char] = Parser.ignoreCaseCharIn('a' to 'z')
+  val letter: Parser1[Char] = Parser0.ignoreCaseCharIn('a' to 'z')
 
   def positiveDigit: Parser1[Char] = Numbers.nonZeroDigit
 
@@ -52,12 +52,12 @@ object SemVer {
 
   val preReleaseIdentifier: Parser1[String] = alphanumericIdentifier
 
-  val dotSeparatedBuildIdentifiers: Parser1[String] = Parser.rep1Sep(buildIdentifier, 1, dot).string
+  val dotSeparatedBuildIdentifiers: Parser1[String] = Parser0.rep1Sep(buildIdentifier, 1, dot).string
 
   val build: Parser1[String] = dotSeparatedBuildIdentifiers
 
   val dotSeparatedPreReleaseIdentifiers: Parser1[String] =
-    Parser.rep1Sep(preReleaseIdentifier, 1, dot).string
+    Parser0.rep1Sep(preReleaseIdentifier, 1, dot).string
 
   val preRelease: Parser1[String] = dotSeparatedPreReleaseIdentifiers
 
