@@ -36,8 +36,8 @@ object Json {
     */
   val parser: P[JValue] = {
     val recurse = P0.defer(parser)
-    val pnull = P0.string1("null").as(JNull)
-    val bool = P0.string1("true").as(JBool.True).orElse(P0.string("false").as(JBool.False))
+    val pnull = P0.string("null").as(JNull)
+    val bool = P0.string("true").as(JBool.True).orElse(P0.string("false").as(JBool.False))
     val justStr = JsonStringUtil.escapedString('"')
     val str = justStr.map(JString(_))
     val num = Numbers.jsonNumber.map(JNum(_))

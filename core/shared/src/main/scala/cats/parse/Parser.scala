@@ -122,7 +122,7 @@ sealed abstract class Parser0[+A] {
     * result.
     */
   def void: Parser0[Unit] =
-    Parser0.void(this)
+    Parser0.void0(this)
 
   /** Return the string matched by this parser.
     *
@@ -135,7 +135,7 @@ sealed abstract class Parser0[+A] {
     * allocating results to return.
     */
   def string: Parser0[String] =
-    Parser0.string(this)
+    Parser0.string0(this)
 
   /** If this parser fails to match, rewind the offset to the starting
     * point before moving on to other parser.
@@ -351,12 +351,12 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** This method overrides `Parser0#void` to refine the return type.
     */
   override def void: Parser[Unit] =
-    Parser0.void1(this)
+    Parser0.void(this)
 
   /** This method overrides `Parser0#string` to refine the return type.
     */
   override def string: Parser[String] =
-    Parser0.string1(this)
+    Parser0.string(this)
 
   /** This method overrides `Parser0#backtrack` to refine the return type.
     */
@@ -639,13 +639,13 @@ object Parser0 extends ParserInstances {
       *  Since that is a Parser the result is
       */
     def *>[B](that: Parser[B]): Parser[B] =
-      product01(void(parser), that).map(_._2)
+      product01(void0(parser), that).map(_._2)
 
     /** parser then that.
       *  Since that is a Parser the result is
       */
     def <*[B](that: Parser[B]): Parser[A] =
-      product01(parser, void1(that)).map(_._1)
+      product01(parser, void(that)).map(_._1)
 
     /** If we can parse this then that, do so,
       * if we fail that without consuming, rewind
@@ -678,10 +678,10 @@ object Parser0 extends ParserInstances {
       softProduct(parser, that)
 
     def *>[B](that: Parser0[B]): Parser0[B] =
-      softProduct(void(parser), that).map(_._2)
+      softProduct(void0(parser), that).map(_._2)
 
     def <*[B](that: Parser0[B]): Parser0[A] =
-      softProduct(parser, void(that)).map(_._1)
+      softProduct(parser, void0(that)).map(_._1)
 
     /** If we can parse this then that, do so,
       * if we fail that without consuming, rewind
@@ -702,10 +702,10 @@ object Parser0 extends ParserInstances {
       softProduct10(parser, that)
 
     override def *>[B](that: Parser0[B]): Parser[B] =
-      softProduct10(void1(parser), that).map(_._2)
+      softProduct10(void(parser), that).map(_._2)
 
     override def <*[B](that: Parser0[B]): Parser[A] =
-      softProduct10(parser, void(that)).map(_._1)
+      softProduct10(parser, void0(that)).map(_._1)
   }
 
   /** If we can parse this then that, do so,
@@ -718,10 +718,10 @@ object Parser0 extends ParserInstances {
       softProduct01(parser, that)
 
     def *>[B](that: Parser[B]): Parser[B] =
-      softProduct01(void(parser), that).map(_._2)
+      softProduct01(void0(parser), that).map(_._2)
 
     def <*[B](that: Parser[B]): Parser[A] =
-      softProduct01(parser, void1(that)).map(_._1)
+      softProduct01(parser, void(that)).map(_._1)
   }
 
   /** Methods with complex variance type signatures due to covariance.
@@ -764,16 +764,16 @@ object Parser0 extends ParserInstances {
     * fail. This backtracks on failure
     * this is an error if the string is empty
     */
-  def string1(str: String): Parser[Unit] =
+  def string(str: String): Parser[Unit] =
     if (str.length == 1) char(str.charAt(0))
     else Impl.Str(str)
 
   /** Parse a potentially empty string or
     * fail. This backtracks on failure
     */
-  def string(str: String): Parser0[Unit] =
+  def string0(str: String): Parser0[Unit] =
     if (str.length == 0) unit
-    else string1(str)
+    else string(str)
 
   /** Parse a potentially empty string, in a case-insensitive manner,
     * or fail. This backtracks on failure
@@ -1173,10 +1173,10 @@ object Parser0 extends ParserInstances {
     *  This function is called internal to Functor.as and Apply.*>
     *  and Apply.<* so those are good uses.
     */
-  def void(pa: Parser0[Any]): Parser0[Unit] =
+  def void0(pa: Parser0[Any]): Parser0[Unit] =
     pa match {
-      case v @ Impl.Void(_) => v
-      case p1: Parser[_] => void1(p1)
+      case v @ Impl.Void0(_) => v
+      case p1: Parser[_] => void(p1)
       case s if Impl.alwaysSucceeds(s) => unit
       case _ =>
         Impl.unmap0(pa) match {
@@ -1184,7 +1184,7 @@ object Parser0 extends ParserInstances {
           case Impl.EndParser0 => Impl.EndParser0
           case n @ Impl.Not(_) => n
           case p @ Impl.Peek(_) => p
-          case other => Impl.Void(other)
+          case other => Impl.Void0(other)
         }
     }
 
@@ -1194,9 +1194,9 @@ object Parser0 extends ParserInstances {
     *  This function is called internal to Functor.as and Apply.*>
     *  and Apply.<* so those are good uses.
     */
-  def void1(pa: Parser[Any]): Parser[Unit] =
+  def void(pa: Parser[Any]): Parser[Unit] =
     pa match {
-      case v @ Impl.Void1(_) => v
+      case v @ Impl.Void(_) => v
       case _ =>
         Impl.unmap(pa) match {
           case f @ (Impl.Fail() | Impl.FailWith(_)) =>
@@ -1204,17 +1204,17 @@ object Parser0 extends ParserInstances {
             // but scala can't see that, so we cast
             f.asInstanceOf[Parser[Unit]]
           case p: Impl.Str => p
-          case notVoid => Impl.Void1(notVoid)
+          case notVoid => Impl.Void(notVoid)
         }
     }
 
   /** Discard the result A and instead capture the matching string
     *  this is optimized to avoid internal allocations
     */
-  def string(pa: Parser0[Any]): Parser0[String] =
+  def string0(pa: Parser0[Any]): Parser0[String] =
     pa match {
       case str @ Impl.StringP(_) => str
-      case s1: Parser[_] => string1(s1)
+      case s1: Parser[_] => string(s1)
       case _ =>
         Impl.unmap0(pa) match {
           case Impl.Pure(_) | Impl.Index => emptyStringParser0
@@ -1225,7 +1225,7 @@ object Parser0 extends ParserInstances {
   /** Discard the result A and instead capture the matching string
     *  this is optimized to avoid internal allocations
     */
-  def string1(pa: Parser[Any]): Parser[String] =
+  def string(pa: Parser[Any]): Parser[String] =
     pa match {
       case str @ Impl.StringP1(_) => str
       case _ =>
@@ -1249,7 +1249,7 @@ object Parser0 extends ParserInstances {
     * Note, this parser backtracks (never returns an arresting failure)
     */
   def not(pa: Parser0[Any]): Parser0[Unit] =
-    void(pa) match {
+    void0(pa) match {
       case Impl.Fail() | Impl.FailWith(_) => unit
       case notFail => Impl.Not(notFail)
     }
@@ -1265,7 +1265,7 @@ object Parser0 extends ParserInstances {
         // TODO: we can adjust Rep0/Rep to do minimal
         // work since we rewind after we are sure there is
         // a match
-        Impl.Peek(void(notPeek))
+        Impl.Peek(void0(notPeek))
     }
 
   /** return the current position in the string
@@ -1318,7 +1318,7 @@ object Parser0 extends ParserInstances {
     */
   def as1[A, B](pa: Parser[A], b: B): Parser[B] =
     (pa.void, b) match {
-      case (Impl.Void1(ci @ Impl.CharIn(min, bs, _)), bc: Char)
+      case (Impl.Void(ci @ Impl.CharIn(min, bs, _)), bc: Char)
           if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
         // this is putting the character back on a singleton CharIn, just return the char in
         ci.asInstanceOf[Parser[B]]
@@ -1467,7 +1467,7 @@ object Parser0 extends ParserInstances {
         case StringP(s) =>
           // StringP is added privately, and only after unmap0
           s
-        case Void(v) =>
+        case Void0(v) =>
           // Void is added privately, and only after unmap0
           v
         case n @ Not(_) =>
@@ -1488,7 +1488,7 @@ object Parser0 extends ParserInstances {
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              Prod(p11, unmap0(Prod(Void(p12), p2)))
+              Prod(p11, unmap0(Prod(Void0(p12), p2)))
             case u1 if u1 eq Parser0.unit =>
               unmap0(p2)
             case u1 =>
@@ -1503,7 +1503,7 @@ object Parser0 extends ParserInstances {
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              SoftProd(p11, unmap0(SoftProd(Void(p12), p2)))
+              SoftProd(p11, unmap0(SoftProd(Void0(p12), p2)))
             case u1 if u1 eq Parser0.unit =>
               unmap0(p2)
             case u1 =>
@@ -1544,7 +1544,7 @@ object Parser0 extends ParserInstances {
         case StringP1(s) =>
           // StringP is added privately, and only after unmap
           s
-        case Void1(v) =>
+        case Void(v) =>
           // Void is added privately, and only after unmap
           v
         case Backtrack1(p) =>
@@ -1638,17 +1638,17 @@ object Parser0 extends ParserInstances {
       ()
     }
 
-    case class Void[A](parser: Parser0[A]) extends Parser0[Unit] {
+    case class Void0[A](parser: Parser0[A]) extends Parser0[Unit] {
       override def parseMut(state: State): Unit =
         Impl.void(parser, state)
     }
 
-    case class Void1[A](parser: Parser[A]) extends Parser[Unit] {
+    case class Void[A](parser: Parser[A]) extends Parser[Unit] {
       override def parseMut(state: State): Unit =
         Impl.void(parser, state)
     }
 
-    def string(pa: Parser0[Any], state: State): String = {
+    def string0(pa: Parser0[Any], state: State): String = {
       val s0 = state.capture
       state.capture = false
       val init = state.offset
@@ -1660,12 +1660,12 @@ object Parser0 extends ParserInstances {
 
     case class StringP[A](parser: Parser0[A]) extends Parser0[String] {
       override def parseMut(state: State): String =
-        Impl.string(parser, state)
+        Impl.string0(parser, state)
     }
 
     case class StringP1[A](parser: Parser[A]) extends Parser[String] {
       override def parseMut(state: State): String =
-        Impl.string(parser, state)
+        Impl.string0(parser, state)
     }
 
     case object StartParser0 extends Parser0[Unit] {
@@ -2282,7 +2282,7 @@ abstract class ParserInstances {
         Parser0.tailRecM(init)(fn)
 
       override def void[A](pa: Parser0[A]): Parser0[Unit] =
-        Parser0.void(pa)
+        Parser0.void0(pa)
 
       override def as[A, B](pa: Parser0[A], b: B): Parser0[B] =
         Parser0.as(pa, b)

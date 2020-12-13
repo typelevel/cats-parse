@@ -76,7 +76,7 @@ object ParserGen {
 
   val expect0: Gen[GenT[Parser0]] =
     Arbitrary.arbitrary[String].map { str =>
-      GenT(Parser0.string(str))
+      GenT(Parser0.string0(str))
     }
 
   val ignoreCase: Gen[GenT[Parser0]] =
@@ -103,7 +103,7 @@ object ParserGen {
   val expect1: Gen[GenT[Parser]] =
     Arbitrary.arbitrary[String].map { str =>
       if (str.isEmpty) GenT(Parser0.fail: Parser[Unit])
-      else GenT(Parser0.string1(str))
+      else GenT(Parser0.string(str))
     }
 
   val ignoreCase1: Gen[GenT[Parser]] =
@@ -120,17 +120,17 @@ object ParserGen {
       GenT(Parser0.failWith[Unit](str))
     }
 
-  def void(g: GenT[Parser0]): GenT[Parser0] =
+  def void0(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Parser0.void0(g.fa))
+
+  def void(g: GenT[Parser]): GenT[Parser] =
     GenT(Parser0.void(g.fa))
 
-  def void1(g: GenT[Parser]): GenT[Parser] =
-    GenT(Parser0.void1(g.fa))
+  def string0(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Parser0.string0(g.fa))
 
-  def string(g: GenT[Parser0]): GenT[Parser0] =
+  def string(g: GenT[Parser]): GenT[Parser] =
     GenT(Parser0.string(g.fa))
-
-  def string1(g: GenT[Parser]): GenT[Parser] =
-    GenT(Parser0.string1(g.fa))
 
   def backtrack(g: GenT[Parser0]): GenT[Parser0] =
     GenT(g.fa.backtrack)(g.cogen)
@@ -448,8 +448,8 @@ object ParserGen {
       (1, Gen.oneOf(GenT(Parser0.start), GenT(Parser0.end), GenT(Parser0.index))),
       (1, fail),
       (1, failWith),
-      (1, rec.map(void(_))),
-      (1, rec.map(string(_))),
+      (1, rec.map(void0(_))),
+      (1, rec.map(string0(_))),
       (1, rec.map(backtrack(_))),
       (1, rec.map(defer0(_))),
       (1, rec.map { gen => GenT(!gen.fa) }),
@@ -474,8 +474,8 @@ object ParserGen {
       (2, ignoreCase1),
       (8, charIn1),
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser0.char(c)) }),
-      (2, rec.map(void1(_))),
-      (2, rec.map(string1(_))),
+      (2, rec.map(void(_))),
+      (2, rec.map(string(_))),
       (2, rec.map(backtrack1(_))),
       (1, rec.map(defer(_))),
       (1, rec.map(rep(_))),
@@ -546,8 +546,8 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(Parser0.pure(42), "anything", 42)
   }
 
-  val fooP = Parser0.string1("foo")
-  val barP = Parser0.string1("bar")
+  val fooP = Parser0.string("foo")
+  val barP = Parser0.string("bar")
   val fooCIP = Parser0.ignoreCase1("foo")
   val cCIP = Parser0.ignoreCase1("a")
   val cCIP1 = Parser0.ignoreCaseChar('a')
@@ -595,10 +595,10 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll { (s: String) =>
       if (s.isEmpty) {
         intercept[IllegalArgumentException] {
-          Parser0.string1(s)
+          Parser0.string(s)
         }
       } else {
-        val pa = Parser0.string1(s)
+        val pa = Parser0.string(s)
         assertEquals((Parser0.start ~ pa ~ Parser0.end).void.parse(s), Right(("", ())))
         assert((pa ~ Parser0.start).parse(s).isLeft)
         assert((Parser0.end ~ pa).parse(s).isLeft)
@@ -945,7 +945,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     // we can't return empty list here
     assert(partial.rep0.parse("foo").isLeft)
 
-    val p2 = Parser0.string1("f").orElse((Parser0.string1("boo") ~ Parser0.string1("p")).void)
+    val p2 = Parser0.string("f").orElse((Parser0.string("boo") ~ Parser0.string("p")).void)
     assert(p2.rep.parse("fboop").isRight)
     assert(p2.rep(2).parse("fboop").isRight)
     assert(p2.rep(3).parse("fboop").isLeft)
@@ -956,7 +956,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     var cnt = 0
     val res = Defer[Parser0].defer {
       cnt += 1
-      Parser0.string1("foo")
+      Parser0.string("foo")
     }
     assert(cnt == 0)
     assert(res.parse("foo") == Right(("", ())))
@@ -965,11 +965,11 @@ class ParserTest extends munit.ScalaCheckSuite {
     assert(cnt == 1)
   }
 
-  test("defer1 does not run eagerly") {
+  test("defer does not run eagerly") {
     var cnt = 0
     val res = Defer[Parser].defer {
       cnt += 1
-      Parser0.string1("foo")
+      Parser0.string("foo")
     }
     assert(cnt == 0)
     assert(res.parse("foo") == Right(("", ())))
@@ -1643,8 +1643,8 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("string.soft ~ string is the same as concatenating the string") {
     forAll { (str1: String, str2: String, content: String) =>
-      val left = (Parser0.string(str1).soft ~ Parser0.string(str2)).void
-      val right = Parser0.string(str1 + str2)
+      val left = (Parser0.string0(str1).soft ~ Parser0.string0(str2)).void
+      val right = Parser0.string0(str1 + str2)
 
       val leftRes = left.parse(content).toOption
       val rightRes = right.parse(content).toOption

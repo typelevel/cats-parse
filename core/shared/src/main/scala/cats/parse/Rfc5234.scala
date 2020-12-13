@@ -55,7 +55,7 @@ object Rfc5234 {
 
   /** Internet standard newline */
   val crlf: Parser[Unit] =
-    Parser0.string1("\r\n")
+    Parser0.string("\r\n")
 
   /** controls */
   val ctl: Parser[Char] =
