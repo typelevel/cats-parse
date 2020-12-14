@@ -112,6 +112,21 @@ sealed abstract class Parser[+A] {
   def ? : Parser[Option[A]] =
     Parser.oneOf(Parser.map(this)(Some(_)) :: Parser.Impl.optTail)
 
+  /** If this parser fails to parse its input with an epsilon error,
+    * try the given parser instead.
+    *
+    * If this parser fails with an arresting error, the next parser
+    * won't be tried.
+    *
+    * Backtracking may be used on the left parser to allow the right
+    * one to pick up after any error, resetting any state that was
+    * modified by the left parser.
+    *
+    * This method is similar to Parser#orElse but returns Either.
+    */
+  def or[B](pb: Parser[B]): Parser[Either[A, B]] =
+    map(Left(_)).orElse(pb.map(Right(_)))
+
   /** Parse without capturing values.
     *
     * Calling `void` on a parser can be a significant optimization --
@@ -362,6 +377,11 @@ sealed abstract class Parser1[+A] extends Parser[A] {
     */
   override def backtrack: Parser1[A] =
     Parser.backtrack1(this)
+
+  /** This method overrides `Parser#or` to refine the return type.
+    */
+  def or[B](pb: Parser1[B]): Parser1[Either[A, B]] =
+    map(Left(_)).orElse1(pb.map(Right(_)))
 
   /** This method overrides `Parser#~` to refine the return type.
     */
