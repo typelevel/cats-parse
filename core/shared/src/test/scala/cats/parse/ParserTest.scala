@@ -457,7 +457,7 @@ object ParserGen {
       (1, rec.flatMap(mapped(_))),
       (1, rec.flatMap(selected(_))),
       (1, tailRecM(Gen.lzy(gen))),
-      (1, Gen.choose(0, 10).map { l => GenT(Parser0.length(l)) }),
+      (1, Gen.choose(0, 10).map { l => GenT(Parser0.length0(l)) }),
       (1, flatMapped(rec)),
       (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => product(g1, g2) }),
       (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => softProduct(g1, g2) }),
@@ -483,7 +483,7 @@ object ParserGen {
       (1, rec.flatMap(mapped1(_))),
       (1, flatMapped1(gen0, rec)),
       (1, tailRecM1(rec)),
-      (1, Gen.choose(1, 10).map { l => GenT(Parser0.length1(l)) }),
+      (1, Gen.choose(1, 10).map { l => GenT(Parser0.length(l)) }),
       (
         2,
         Gen.frequency(
@@ -612,16 +612,16 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Parser0.length succeeds when the string is long enough") {
+  property("Parser0.length0 succeeds when the string is long enough") {
     forAll { (s: String, len: Int) =>
       if (len < 1) {
         intercept[IllegalArgumentException] {
-          Parser0.length1(len)
+          Parser0.length(len)
         }
-        assertEquals(Parser0.length(len).parse(s), Right((s, "")))
+        assertEquals(Parser0.length0(len).parse(s), Right((s, "")))
       } else {
-        val pa = Parser0.length(len)
-        val pa1 = Parser0.length1(len)
+        val pa = Parser0.length0(len)
+        val pa1 = Parser0.length(len)
 
         val res = pa.parse(s)
         val res1 = pa1.parse(s)
@@ -808,7 +808,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = (Parser0.length(off) ~ p2.fa).map(_._2)
+          p3 = (Parser0.length0(off) ~ p2.fa).map(_._2)
           pair2 <- p3.parse(sfix)
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -833,7 +833,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = Parser0.length(off) *> p2.fa
+          p3 = Parser0.length0(off) *> p2.fa
           pair2 <- p3.parse(sfix)
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -854,7 +854,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = Parser0.length(off) *> p2.fa
+          p3 = Parser0.length0(off) *> p2.fa
           pair2 <- p3.parse(sfix)
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
@@ -875,7 +875,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = (Parser0.length(off) ~ p2.fa).map(_._2)
+          p3 = (Parser0.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser0.Error(fidx, errs) if (fidx == off) => Parser0.Error(0, errs)
             case notEps2 => notEps2
@@ -899,7 +899,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = (Parser0.length(off) ~ p2.fa).map(_._2)
+          p3 = (Parser0.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser0.Error(fidx, errs) if (fidx == off) => Parser0.Error(0, errs)
             case notEps2 => notEps2
@@ -923,7 +923,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           off = if (s1 == "") str.length else str.indexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
-          p3 = (Parser0.length(off) ~ p2.fa).map(_._2)
+          p3 = (Parser0.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser0.Error(fidx, errs) if (fidx == off) => Parser0.Error(0, errs)
             case notEps2 => notEps2
@@ -941,7 +941,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   test("partial parse fails in rep0") {
-    val partial = Parser0.length1(1) ~ Parser0.fail
+    val partial = Parser0.length(1) ~ Parser0.fail
     // we can't return empty list here
     assert(partial.rep0.parse("foo").isLeft)
 
@@ -1323,7 +1323,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       val p = Parser0.until(a.fa) *> a.fa
       def loopMatch(cnt: Int): Option[(String, a.A)] =
-        (Parser0.length(cnt) *> a.fa).parse(str) match {
+        (Parser0.length0(cnt) *> a.fa).parse(str) match {
           case Right(res) => Some(res)
           case Left(_) if cnt > str.length => None
           case _ => loopMatch(cnt + 1)

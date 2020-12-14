@@ -846,15 +846,15 @@ object Parser0 extends ParserInstances {
     pure("")
 
   /** if len < 1, the same as pure("")
-    * else length1(len)
+    * else length(len)
     */
-  def length(len: Int): Parser0[String] =
-    if (len > 0) length1(len) else emptyStringParser0
+  def length0(len: Int): Parser0[String] =
+    if (len > 0) length(len) else emptyStringParser0
 
   /** Parse the next len characters where len > 0
     * if (len < 1) throw IllegalArgumentException
     */
-  def length1(len: Int): Parser[String] =
+  def length(len: Int): Parser[String] =
     Impl.Length(len)
 
   /** Repeat this parser 0 or more times
