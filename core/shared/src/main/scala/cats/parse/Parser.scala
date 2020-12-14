@@ -239,7 +239,7 @@ sealed abstract class Parser0[+A] {
     * since these are much more efficient.
     */
   def flatMap[B](fn: A => Parser0[B]): Parser0[B] =
-    Parser0.flatMap(this)(fn)
+    Parser0.flatMap0(this)(fn)
 
   /** Replaces parsed values with the given value.
     */
@@ -411,7 +411,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** This method overrides `Parser0#flatMap` to refine the return type.
     */
   override def flatMap[B](fn: A => Parser0[B]): Parser[B] =
-    Parser0.flatMap10(this)(fn)
+    Parser0.flatMap(this)(fn)
 
   /** This method overrides `Parser0#as` to refine the return type.
     */
@@ -1012,8 +1012,8 @@ object Parser0 extends ParserInstances {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def flatMap[A, B](pa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
-    Impl.FlatMap(pa, fn)
+  def flatMap0[A, B](pa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
+    Impl.FlatMap0(pa, fn)
 
   /** Standard monadic flatMap where you start with a Parser
     *  Avoid this function if possible. If you can
@@ -1021,8 +1021,8 @@ object Parser0 extends ParserInstances {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def flatMap10[A, B](pa: Parser[A])(fn: A => Parser0[B]): Parser[B] =
-    Impl.FlatMap1(pa, fn)
+  def flatMap[A, B](pa: Parser[A])(fn: A => Parser0[B]): Parser[B] =
+    Impl.FlatMap(pa, fn)
 
   /** Standard monadic flatMap where you end with a Parser
     *  Avoid this function if possible. If you can
@@ -1031,7 +1031,7 @@ object Parser0 extends ParserInstances {
     *  parser is less amenable to optimization
     */
   def flatMap01[A, B](pa: Parser0[A])(fn: A => Parser[B]): Parser[B] =
-    Impl.FlatMap1(pa, fn)
+    Impl.FlatMap(pa, fn)
 
   /** tail recursive monadic flatMaps
     * This is a rarely used function, but needed to implement cats.FlatMap
@@ -1348,7 +1348,7 @@ object Parser0 extends ParserInstances {
         fa.filter { a => !fn(a) }
 
       def flatMap[A, B](fa: Parser[A])(fn: A => Parser[B]): Parser[B] =
-        flatMap10(fa)(fn)
+        Parser0.this.flatMap(fa)(fn)
 
       override def product[A, B](pa: Parser[A], pb: Parser[B]): Parser[(A, B)] =
         Parser0.this.product(pa, pb)
@@ -1514,7 +1514,7 @@ object Parser0 extends ParserInstances {
         case Defer0(fn) =>
           Defer0(() => unmap0(compute0(fn)))
         case Rep0(p, _) => Rep0(unmap(p), Accumulator0.unitAccumulator0)
-        case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap(_, _) =>
+        case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap0(_, _) =>
           // we can't transform this significantly
           pa
       }
@@ -1597,7 +1597,7 @@ object Parser0 extends ParserInstances {
           Defer(() => unmap(compute(fn)))
         case Rep(p, m, _) => Rep(unmap(p), m, Accumulator0.unitAccumulator0)
         case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
-            TailRecM1(_, _) | FlatMap1(_, _) =>
+            TailRecM1(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
 
@@ -1905,12 +1905,12 @@ object Parser0 extends ParserInstances {
       } else null.asInstanceOf[B]
     }
 
-    case class FlatMap[A, B](parser: Parser0[A], fn: A => Parser0[B]) extends Parser0[B] {
+    case class FlatMap0[A, B](parser: Parser0[A], fn: A => Parser0[B]) extends Parser0[B] {
       override def parseMut(state: State): B = Impl.flatMap(parser, fn, state)
     }
 
     // at least one of the parsers needs to be a Parser
-    case class FlatMap1[A, B](parser: Parser0[A], fn: A => Parser0[B]) extends Parser[B] {
+    case class FlatMap[A, B](parser: Parser0[A], fn: A => Parser0[B]) extends Parser[B] {
       override def parseMut(state: State): B = Impl.flatMap(parser, fn, state)
     }
 
@@ -2273,7 +2273,7 @@ abstract class ParserInstances {
         map(product(pf, pa)) { case (fn, a) => fn(a) }
 
       def flatMap[A, B](fa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
-        Parser0.flatMap(fa)(fn)
+        Parser0.flatMap0(fa)(fn)
 
       def combineK[A](pa: Parser0[A], pb: Parser0[A]): Parser0[A] =
         Parser0.oneOf0(pa :: pb :: Nil)
