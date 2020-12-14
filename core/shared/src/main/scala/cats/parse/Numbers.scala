@@ -30,11 +30,11 @@ object Numbers {
 
   /** zero or more digit chars
     */
-  val digits: Parser0[String] = digit.rep0.string
+  val digits0: Parser0[String] = digit.rep0.string
 
   /** one or more digit chars
     */
-  val digits1: Parser[String] = digit.rep.string
+  val digits: Parser[String] = digit.rep.string
 
   /** a single base 10 digit excluding 0
     */
@@ -45,7 +45,7 @@ object Numbers {
     * 1 non-zero digit followed by zero or more digits
     */
   val nonNegativeIntString: Parser[String] =
-    (nonZeroDigit ~ digits).void
+    (nonZeroDigit ~ digits0).void
       .orElse(Parser.char('0'))
       .string
 
@@ -75,8 +75,8 @@ object Numbers {
      *     plus = %x2B                ; +
      *     zero = %x30                ; 0
      */
-    val frac: Parser[Any] = Parser.char('.') ~ digits1
-    val exp: Parser[Unit] = (Parser.charIn("eE") ~ Parser.charIn("+-").? ~ digits1).void
+    val frac: Parser[Any] = Parser.char('.') ~ digits
+    val exp: Parser[Unit] = (Parser.charIn("eE") ~ Parser.charIn("+-").? ~ digits).void
 
     (signedIntString ~ frac.? ~ exp.?).string
   }
