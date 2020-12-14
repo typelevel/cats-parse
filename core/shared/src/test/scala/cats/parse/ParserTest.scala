@@ -430,8 +430,8 @@ object ParserGen {
   }
 
   // Generate a random parser
-  lazy val gen: Gen[GenT[Parser0]] = {
-    val rec = Gen.lzy(gen)
+  lazy val gen0: Gen[GenT[Parser0]] = {
+    val rec = Gen.lzy(gen0)
 
     Gen.frequency(
       (
@@ -453,10 +453,10 @@ object ParserGen {
       (1, rec.map(backtrack(_))),
       (1, rec.map(defer0(_))),
       (1, rec.map { gen => GenT(!gen.fa) }),
-      (1, Gen.lzy(gen1.map(rep0(_)))),
+      (1, Gen.lzy(gen.map(rep0(_)))),
       (1, rec.flatMap(mapped(_))),
       (1, rec.flatMap(selected(_))),
-      (1, tailRecM(Gen.lzy(gen1))),
+      (1, tailRecM(Gen.lzy(gen))),
       (1, Gen.choose(0, 10).map { l => GenT(Parser0.length(l)) }),
       (1, flatMapped(rec)),
       (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => product(g1, g2) }),
@@ -466,8 +466,8 @@ object ParserGen {
   }
 
   // Generate a random parser
-  lazy val gen1: Gen[GenT[Parser]] = {
-    val rec = Gen.lzy(gen1)
+  lazy val gen: Gen[GenT[Parser]] = {
+    val rec = Gen.lzy(gen)
 
     Gen.frequency(
       (8, expect1),
@@ -479,17 +479,17 @@ object ParserGen {
       (2, rec.map(backtrack1(_))),
       (1, rec.map(defer(_))),
       (1, rec.map(rep(_))),
-      (1, selected1(rec, gen)),
+      (1, selected1(rec, gen0)),
       (1, rec.flatMap(mapped1(_))),
-      (1, flatMapped1(gen, rec)),
+      (1, flatMapped1(gen0, rec)),
       (1, tailRecM1(rec)),
       (1, Gen.choose(1, 10).map { l => GenT(Parser0.length1(l)) }),
       (
         2,
         Gen.frequency(
           (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => product1(g1, g2) }),
-          (1, Gen.zip(rec, gen).flatMap { case (g1, g2) => product10(g1, g2) }),
-          (1, Gen.zip(rec, gen).flatMap { case (g1, g2) => softProduct1(g1, g2) }),
+          (1, Gen.zip(rec, gen0).flatMap { case (g1, g2) => product10(g1, g2) }),
+          (1, Gen.zip(rec, gen0).flatMap { case (g1, g2) => softProduct1(g1, g2) }),
           (1, Gen.zip(rec, rec, pures).flatMap { case (g1, g2, p) => orElse(g1, g2, p) })
         )
       )
@@ -498,13 +498,13 @@ object ParserGen {
 
   def genParser0[A](genA: Gen[A]): Gen[Parser0[A]] =
     for {
-      genT <- gen
+      genT <- gen0
       fn <- Gen.function1(genA)(genT.cogen)
     } yield genT.fa.map(fn)
 
   def genParser[A](genA: Gen[A]): Gen[Parser[A]] =
     for {
-      genT <- gen1
+      genT <- gen
       fn <- Gen.function1(genA)(genT.cogen)
     } yield genT.fa.map(fn)
 
@@ -582,7 +582,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("Parser0 on success replaces parsed value") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.as("something").parse(str)
       res0 match {
         case Left(_) => ()
@@ -648,7 +648,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("voided only changes the result") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val r1 = genP.fa.parse(str)
       val r2 = genP.fa.void.parse(str)
       val r3 = FlatMap[Parser0].void(genP.fa).parse(str)
@@ -661,7 +661,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("voided only changes the result Parser") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val r1 = genP.fa.parse(str)
       val r2 = genP.fa.void.parse(str)
       val r3 = FlatMap[Parser].void(genP.fa).parse(str)
@@ -676,7 +676,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("expected in errors gives valid offsets") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       genP.fa.parse(str) match {
         case Left(err) =>
           err.offsets.forall { off =>
@@ -689,7 +689,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("oneOf0 nesting doesn't change results") {
-    forAll(Gen.listOf(ParserGen.gen), Gen.listOf(ParserGen.gen), Arbitrary.arbitrary[String]) {
+    forAll(Gen.listOf(ParserGen.gen0), Gen.listOf(ParserGen.gen0), Arbitrary.arbitrary[String]) {
       (genP1, genP2, str) =>
         val oneOf = Parser0.oneOf0((genP1 ::: genP2).map(_.fa))
         val oneOf2 = Parser0.oneOf0(genP1.map(_.fa)).orElse0(Parser0.oneOf0(genP2.map(_.fa)))
@@ -699,7 +699,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("oneOf nesting doesn't change results") {
-    forAll(Gen.listOf(ParserGen.gen1), Gen.listOf(ParserGen.gen1), Arbitrary.arbitrary[String]) {
+    forAll(Gen.listOf(ParserGen.gen), Gen.listOf(ParserGen.gen), Arbitrary.arbitrary[String]) {
       (genP1, genP2, str) =>
         val oneOf = Parser0.oneOf((genP1 ::: genP2).map(_.fa))
         val oneOf2 = Parser0
@@ -732,19 +732,19 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("oneOf0 composes as expected") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
       assertEquals(genP1.fa.orElse0(genP2.fa).parse(str), orElse(genP1.fa, genP2.fa, str))
     }
   }
 
   property("oneOf composes as expected") {
-    forAll(ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
       assertEquals(genP1.fa.orElse(genP2.fa).parse(str), orElse(genP1.fa, genP2.fa, str))
     }
   }
 
   property("oneOf0 same as foldLeft(fail)(_.orElse0(_))") {
-    forAll(Gen.listOf(ParserGen.gen), Arbitrary.arbitrary[String]) { (genP1, str) =>
+    forAll(Gen.listOf(ParserGen.gen0), Arbitrary.arbitrary[String]) { (genP1, str) =>
       val oneOfImpl = genP1.foldLeft(Parser0.fail: Parser0[Any]) { (leftp, p) => leftp.orElse0(p.fa) }
 
       assertEquals(oneOfImpl.parse(str), Parser0.oneOf0(genP1.map(_.fa)).parse(str))
@@ -752,7 +752,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("oneOf same as foldLeft(fail)(_.orElse(_))") {
-    forAll(Gen.listOf(ParserGen.gen1), Arbitrary.arbitrary[String]) { (genP1, str) =>
+    forAll(Gen.listOf(ParserGen.gen), Arbitrary.arbitrary[String]) { (genP1, str) =>
       val oneOfImpl = genP1.foldLeft(Parser0.fail[Any]) { (leftp, p) => leftp.orElse(p.fa) }
 
       assertEquals(oneOfImpl.parse(str), Parser0.oneOf(genP1.map(_.fa)).parse(str))
@@ -760,7 +760,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("string can be recovered with index") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val r1 = genP.fa.string.parse(str)
       val r2 = (genP.fa ~ Parser0.index).map { case (_, end) => str.substring(0, end) }.parse(str)
 
@@ -769,7 +769,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("backtrack orElse pure always succeeds") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val p1 = genP.fa.backtrack.orElse0(Parser0.pure(())): Parser0[Any]
 
       assert(p1.parse(str).isRight)
@@ -777,7 +777,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("backtrack.? pure always succeeds") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val p1 = genP.fa.backtrack.?
 
       assert(p1.parse(str).isRight)
@@ -785,7 +785,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.backtrack either succeeds or fails at 0") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       a.fa.backtrack.parse(str) match {
         case Right(_) => ()
         case Left(err) => assertEquals(err.failedAtOffset, 0)
@@ -794,7 +794,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a ~ b composes as expected") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val composed = p1.fa ~ p2.fa
       val cres = composed.parse(str)
 
@@ -818,7 +818,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a ~ b composes as expected parser1") {
-    forAll(ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val composed = p1.fa ~ p2.fa
       val cres = composed.parse(str)
 
@@ -843,7 +843,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.with1 ~ b composes as expected") {
-    forAll(ParserGen.gen, ParserGen.gen1, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val composed = p1.fa.with1 ~ p2.fa
       val cres = composed.parse(str)
 
@@ -864,7 +864,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.soft ~ b composes as expected") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val composed = p1.fa.soft ~ p2.fa
       val cres = composed.parse(str)
 
@@ -888,7 +888,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a1.soft ~ b composes as expected Parser") {
-    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val composed = p1.fa.soft ~ p2.fa
       val cres = composed.parse(str)
 
@@ -912,7 +912,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.with1.soft ~ b1 composes as expected") {
-    forAll(ParserGen.gen, ParserGen.gen1, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val composed = p1.fa.with1.soft ~ p2.fa
       val cres = composed.parse(str)
 
@@ -1014,7 +1014,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("rep0 can be reimplemented with oneOf0 and defer") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       def rep0[A](pa: Parser[A]): Parser0[List[A]] =
         Defer[Parser0].fix[List[A]] { tail =>
           (pa ~ tail)
@@ -1030,7 +1030,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("rep0 is consistent with rep") {
-    forAll(ParserGen.gen1, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
       (genP, min0, str) =>
         val min = min0 & Int.MaxValue
         val repA = genP.fa.rep0(min)
@@ -1047,7 +1047,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("repSep with unit sep is the same as rep0") {
-    forAll(ParserGen.gen1, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
       (genP, min0, str) =>
         val min = min0 & Int.MaxValue
         val p1a = Parser0.repSep(genP.fa, min = min, sep = Parser0.unit)
@@ -1064,7 +1064,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("rep1Sep with sep = fail is the same as parsing 1") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       assertEquals(
         genP.fa.parse(str),
         Parser0.rep1Sep(genP.fa, 1, Parser0.fail).parse(str).map { case (rest, nel) =>
@@ -1104,7 +1104,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("p orElse p == p") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.parse(str)
       val res1 = genP.fa.orElse0(genP.fa).parse(str)
       assertEquals(res1, res0)
@@ -1112,7 +1112,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("p orElse p == p") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.parse(str)
       val res1 = genP.fa.orElse(genP.fa).parse(str)
       assertEquals(res1, res0)
@@ -1120,7 +1120,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("Parser fails or consumes 1 or more") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.parse(str)
       res0 match {
         case Left(_) => assert(true)
@@ -1130,7 +1130,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("p1.backtrack.orElse0(p2) succeeds if either p1 or p2 do") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val ores = p1.fa.backtrack.orElse0(p2.fa).parse(str)
       val r1 = p1.fa.parse(str)
       val r = if (r1.isLeft) p2.fa.parse(str) else r1
@@ -1142,7 +1142,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("p1.backtrack.orElse(p2) succeeds if either p1 or p2 do") {
-    forAll(ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val ores = p1.fa.backtrack.orElse(p2.fa).parse(str)
       val r1 = p1.fa.parse(str)
       val r = if (r1.isLeft) p2.fa.parse(str) else r1
@@ -1158,7 +1158,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("with1 *> and with1 <* work as expected") {
-    forAll(ParserGen.gen, ParserGen.gen1, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val rp1 = p1.fa.with1 *> p2.fa
       val rp2 = (p1.fa.with1 ~ p2.fa).map(_._2)
       assertEquals(rp1.parse(str), rp2.parse(str))
@@ -1170,7 +1170,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a1 *> b and a1 <* b") {
-    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       assertEquals(
         (p1.fa *> p2.fa).parse(str),
         Parser0.product10(p1.fa.void, p2.fa).map(_._2).parse(str)
@@ -1183,7 +1183,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("parse between open and close") {
-    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) {
       (genP1, genP, genQ, str) =>
         val pa = genP1.fa.between(genP.fa, genQ.fa)
         val pb = genP.fa *> genP1.fa <* genQ.fa
@@ -1193,7 +1193,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("surroundedBy consistent with between") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
       val pa = genP1.fa.between(genP.fa, genP.fa)
       val pb = genP1.fa.surroundedBy(genP.fa)
 
@@ -1202,7 +1202,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("parse between open and close with Parser this") {
-    forAll(ParserGen.gen1, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen, ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) {
       (genP1, genP, genQ, str) =>
         val pa = genP1.fa.between(genP.fa, genQ.fa)
         val pb = genP.fa *> genP1.fa <* genQ.fa
@@ -1212,7 +1212,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("surroundedBy consistent with between with Parser this") {
-    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
       val pa = genP1.fa.between(genP.fa, genP.fa)
       val pb = genP1.fa.surroundedBy(genP.fa)
 
@@ -1221,7 +1221,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("parse between open and close with Parser args") {
-    forAll(ParserGen.gen, ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen0, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
       (genP1, genP, genQ, str) =>
         val pa = genP1.fa.with1.between(genP.fa, genQ.fa)
         val pb = genP.fa *> genP1.fa <* genQ.fa
@@ -1231,7 +1231,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("surroundedBy consistent with between with Parser this") {
-    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
       val pa = genP1.fa.between(genP.fa, genP.fa)
       val pb = genP1.fa.surroundedBy(genP.fa)
 
@@ -1240,7 +1240,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("exactly one of x or !x parse") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, str) =>
       val notx = !p1.fa
 
       val xor = p1.fa.parse(str).isRight ^ notx.parse(str).isRight
@@ -1249,7 +1249,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("if x ~ y matches then x ~ y.peek match") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (x, y, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (x, y, str) =>
       val m1 = (x.fa ~ y.fa).parse(str)
       val m2 = ((x.fa ~ y.fa.peek).map(_._1)).parse(str)
 
@@ -1261,7 +1261,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("if x matches then x.peek matches but returns the whole string and unit") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (x, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (x, str) =>
       if (x.fa.parse(str).isRight) {
         assertEquals(x.fa.peek.parse(str), Right((str, ())))
       }
@@ -1269,7 +1269,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("(a.soft ~ b) == a ~ b in success of expected (not partials)") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val left = a.fa.soft ~ b.fa
       val right = a.fa ~ b.fa
       val leftRes = left.parse(str).leftMap(_.expected)
@@ -1279,7 +1279,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("(a.soft ~ b) == softProduct(a, b)") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val left = a.fa.soft ~ b.fa
       val right = Parser0.softProduct(a.fa, b.fa)
       assertEquals(left.parse(str), right.parse(str))
@@ -1295,7 +1295,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("(a1.soft ~ b) == softProduct10(a, b)") {
-    forAll(ParserGen.gen1, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val left1 = a.fa.soft ~ b.fa
       val right1 = Parser0.softProduct10(a.fa, b.fa)
       assertEquals(left1.parse(str), right1.parse(str))
@@ -1320,7 +1320,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("Parser0.until is like a search") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       val p = Parser0.until(a.fa) *> a.fa
       def loopMatch(cnt: Int): Option[(String, a.A)] =
         (Parser0.length(cnt) *> a.fa).parse(str) match {
@@ -1334,7 +1334,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("parseAll law") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       val pall = (a.fa <* Parser0.end).parse(str).map(_._2)
 
       assertEquals(a.fa.parseAll(str), pall)
@@ -1363,7 +1363,7 @@ class ParserTest extends munit.ScalaCheckSuite {
    * Instead, we have some weakened versions of distributive laws
    */
   property("b.orElse0(c) ~ a == (b ~ a).orElse0((!b) *> (c ~ a))") {
-    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) {
       (a, b, c, str) =>
         val pa = a.fa
         val pb = b.fa
@@ -1379,7 +1379,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("b.orElse(c) ~ a == (b ~ a).orElse((!b) *> (c ~ a))") {
-    forAll(ParserGen.gen, ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen0, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
       (a, b, c, str) =>
         val pa = a.fa
         val pb = b.fa
@@ -1397,7 +1397,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a ~ b.orElse0(c) == (a.soft ~ b).orElse0(a ~ c)") {
-    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) {
       (a, b, c, str) =>
         val pa = a.fa
         val pb = b.fa
@@ -1413,7 +1413,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a ~ b.orElse(c) == (a.soft ~ b).orElse(a ~ c)") {
-    forAll(ParserGen.gen, ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) {
+    forAll(ParserGen.gen0, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
       (a, b, c, str) =>
         val pa = a.fa
         val pb = b.fa
@@ -1429,7 +1429,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.backtrack.orElse0(b) parses iff b.backtrack.orElse0(a)") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val pa = a.fa
       val pb = b.fa
 
@@ -1443,7 +1443,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.backtrack.orElse(b) parses iff b.backtrack.orElse(a)") {
-    forAll(ParserGen.gen1, ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, b, str) =>
+    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val pa = a.fa
       val pb = b.fa
 
@@ -1472,7 +1472,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.repAs0[Vector[A]] matches a.rep0.map(_.toVector)") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa: Parser[a.A] = a.fa
 
       val left = pa.repAs0[Vector[a.A]]
@@ -1485,7 +1485,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.repAs[Vector[A]] matches a.rep.map(_.toList.toVector)") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa: Parser[a.A] = a.fa
 
       val left = pa.repAs0[Vector[a.A]]
@@ -1498,7 +1498,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.string.repAs0[String] matches a.string.rep0.map(_.mkString)") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa: Parser[String] = a.fa.string
 
       val left = pa.repAs0[String]
@@ -1511,7 +1511,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.repAs0[Unit] matches a.rep0.void") {
-    forAll(ParserGen.gen1, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa: Parser[a.A] = a.fa
 
       val left = pa.repAs0[Unit](Accumulator0.unitAccumulator0)
@@ -1524,7 +1524,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.peek == a.peek.peek") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa = a.fa
 
       val left = pa.peek
@@ -1537,7 +1537,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.backtrack.peek.orElse0(b.peek) == (a.backtrack.orElse0(b)).peek") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (a, b, str) =>
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val pa = a.fa.backtrack
       val pb = b.fa
 
@@ -1551,7 +1551,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.peek == a.peek *> a.peek") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa = a.fa.peek
 
       val left = pa
@@ -1564,7 +1564,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("!a == (!a) *> (!a)") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa = !a.fa
 
       val left = pa
@@ -1577,7 +1577,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("!(!a) == a.peek") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa = a.fa
 
       val left = (!(!pa))
@@ -1590,7 +1590,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("!(!(!a)) == !a") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (a, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
       val pa = a.fa
 
       val left = !(!(!pa))
@@ -1701,7 +1701,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("p.filter(_ => true) == p") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.filter(_ => true).parse(str)
       val res1 = genP.fa.parse(str)
       assertEquals(res0, res1)
@@ -1709,7 +1709,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("p.filter(_ => false) fails") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res = genP.fa.filter(_ => false).parse(str)
       assert(res.isLeft)
     }
