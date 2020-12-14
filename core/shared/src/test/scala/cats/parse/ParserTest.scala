@@ -266,7 +266,7 @@ object ParserGen {
         }
 
       Gen.zip(genPR, gfn).map { case (pab, fn) =>
-        GenT(Parser0.select(pab)(fn))(genRes2.cogen)
+        GenT(Parser0.select0(pab)(fn))(genRes2.cogen)
       }
     }
 
@@ -361,7 +361,7 @@ object ParserGen {
         }
 
       Gen.zip(genPR1, gfn).map { case (pab, fn) =>
-        GenT(Parser0.select1(pab)(fn))(genRes2.cogen)
+        GenT(Parser0.select(pab)(fn))(genRes2.cogen)
       }
     }
 
@@ -1673,7 +1673,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("select(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
     forAll { (pa: Parser0[Int], pf: Parser0[Int => String], str: String) =>
       assertEquals(
-        Parser0.select(pa.map(Left(_)))(pf).parse(str),
+        Parser0.select0(pa.map(Left(_)))(pf).parse(str),
         (pa, pf).mapN((a, f) => f(a)).parse(str)
       )
     }
@@ -1690,13 +1690,13 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("select(pa.map(Right(_)))(pf) == pa") {
     forAll { (pa: Parser0[String], pf: Parser0[Int => String], str: String) =>
-      assertEquals(Parser0.select(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
+      assertEquals(Parser0.select0(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
     }
   }
 
   property("select1(pa.map(Right(_)))(pf) == pa") {
     forAll { (pa: Parser[String], pf: Parser0[Int => String], str: String) =>
-      assertEquals(Parser0.select1(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
+      assertEquals(Parser0.select(pa.map(Right(_)))(pf).parse(str), pa.parse(str))
     }
   }
 
@@ -1728,7 +1728,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       }
 
       assertEquals(
-        Parser0.select(pleft)(pright).parse(str).toOption.map(_._2),
+        Parser0.select0(pleft)(pright).parse(str).toOption.map(_._2),
         left.flatMap {
           case Left(i) => right.map(_(i))
           case Right(s) =>

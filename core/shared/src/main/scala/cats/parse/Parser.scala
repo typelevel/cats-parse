@@ -204,7 +204,7 @@ sealed abstract class Parser0[+A] {
         case None => leftUnit
       }
     }
-    Parser0.select(first)(Parser0.Fail)
+    Parser0.select0(first)(Parser0.Fail)
   }
 
   /** Transform parsed values using the given function, or fail when not defined
@@ -225,7 +225,7 @@ sealed abstract class Parser0[+A] {
     */
   def filter(fn: A => Boolean): Parser0[A] = {
     val leftUnit = Left(())
-    Parser0.select(this.map { a =>
+    Parser0.select0(this.map { a =>
       if (fn(a)) Right(a)
       else leftUnit
     })(Parser0.Fail)
@@ -342,7 +342,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     */
   override def filter(fn: A => Boolean): Parser[A] = {
     val leftUnit = Left(())
-    Parser0.select1(this.map { a =>
+    Parser0.select(this.map { a =>
       if (fn(a)) Right(a)
       else leftUnit
     })(Parser0.Fail)
@@ -405,7 +405,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
         case None => leftUnit
       }
     }
-    Parser0.select1(first)(Parser0.Fail)
+    Parser0.select(first)(Parser0.Fail)
   }
 
   /** This method overrides `Parser0#flatMap` to refine the return type.
@@ -988,9 +988,9 @@ object Parser0 extends ParserInstances {
     *  the fn Parser0 is evaluated once, not on every item
     *  parsed
     */
-  def select[A, B](p: Parser0[Either[A, B]])(fn: Parser0[A => B]): Parser0[B] =
+  def select0[A, B](p: Parser0[Either[A, B]])(fn: Parser0[A => B]): Parser0[B] =
     Impl
-      .Select(p, fn)
+      .Select0(p, fn)
       .map {
         case Left((a, fn)) => fn(a)
         case Right(b) => b
@@ -998,9 +998,9 @@ object Parser0 extends ParserInstances {
 
   /** Parser version of select
     */
-  def select1[A, B](p: Parser[Either[A, B]])(fn: Parser0[A => B]): Parser[B] =
+  def select[A, B](p: Parser[Either[A, B]])(fn: Parser0[A => B]): Parser[B] =
     Impl
-      .Select1(p, fn)
+      .Select(p, fn)
       .map {
         case Left((a, fn)) => fn(a)
         case Right(b) => b
@@ -1462,8 +1462,8 @@ object Parser0 extends ParserInstances {
         case Map(p, _) =>
           // we discard any allocations done by fn
           unmap0(p)
-        case Select(p, fn) =>
-          Select(p, unmap0(fn))
+        case Select0(p, fn) =>
+          Select0(p, unmap0(fn))
         case StringP(s) =>
           // StringP is added privately, and only after unmap0
           s
@@ -1539,8 +1539,8 @@ object Parser0 extends ParserInstances {
         case Map1(p, _) =>
           // we discard any allocations done by fn
           unmap(p)
-        case Select1(p, fn) =>
-          Select1(p, unmap0(fn))
+        case Select(p, fn) =>
+          Select(p, unmap0(fn))
         case StringP1(s) =>
           // StringP is added privately, and only after unmap
           s
@@ -1880,13 +1880,13 @@ object Parser0 extends ParserInstances {
       else null
     }
 
-    case class Select[A, B, C](pab: Parser0[Either[A, B]], pc: Parser0[C])
+    case class Select0[A, B, C](pab: Parser0[Either[A, B]], pc: Parser0[C])
         extends Parser0[Either[(A, C), B]] {
       override def parseMut(state: State): Either[(A, C), B] =
         Impl.select(pab, pc, state)
     }
 
-    case class Select1[A, B, C](pab: Parser[Either[A, B]], pc: Parser0[C])
+    case class Select[A, B, C](pab: Parser[Either[A, B]], pc: Parser0[C])
         extends Parser[Either[(A, C), B]] {
       override def parseMut(state: State): Either[(A, C), B] =
         Impl.select(pab, pc, state)
