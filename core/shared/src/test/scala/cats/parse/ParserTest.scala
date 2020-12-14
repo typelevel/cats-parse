@@ -1074,17 +1074,17 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("charsWhile/charWhile consistency") {
+  property("charsWhile/charsWhere consistency") {
     forAll(
       Gen.choose(0, 100).flatMap(Gen.listOfN(_, Gen.choose(Char.MinValue, Char.MaxValue))),
       Arbitrary.arbitrary[String]
     ) { (chars, str) =>
       val pred = chars.toSet
-      val p1a = Parser0.charsWhile(pred)
+      val p1a = Parser0.charsWhile0(pred)
       val p1b = Parser0.charWhere(pred).rep0.string
       assertEquals(p1a.parse(str), p1b.parse(str))
 
-      val p2a = Parser0.charsWhile1(pred)
+      val p2a = Parser0.charsWhile(pred)
       val p2b = Parser0.charWhere(pred).rep.string
       assertEquals(p2a.parse(str), p2b.parse(str))
     }

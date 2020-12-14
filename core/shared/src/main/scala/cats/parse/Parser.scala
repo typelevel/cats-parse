@@ -1148,13 +1148,13 @@ object Parser0 extends ParserInstances {
 
   /** Parse a string while the given function is true
     */
-  def charsWhile(fn: Char => Boolean): Parser0[String] =
+  def charsWhile0(fn: Char => Boolean): Parser0[String] =
     charWhere(fn).rep0.string
 
   /** Parse a string while the given function is true
     * parses at least one character
     */
-  def charsWhile1(fn: Char => Boolean): Parser[String] =
+  def charsWhile(fn: Char => Boolean): Parser[String] =
     charWhere(fn).rep.string
 
   /** parse zero or more characters as long as they don't match p
