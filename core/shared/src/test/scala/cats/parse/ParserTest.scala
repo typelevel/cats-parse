@@ -79,9 +79,9 @@ object ParserGen {
       GenT(Parser0.string0(str))
     }
 
-  val ignoreCase: Gen[GenT[Parser0]] =
+  val ignoreCase0: Gen[GenT[Parser0]] =
     Arbitrary.arbitrary[String].map { str =>
-      GenT(Parser0.ignoreCase(str))
+      GenT(Parser0.ignoreCase0(str))
     }
 
   val charIn: Gen[GenT[Parser0]] =
@@ -109,7 +109,7 @@ object ParserGen {
   val ignoreCase1: Gen[GenT[Parser]] =
     Arbitrary.arbitrary[String].map { str =>
       if (str.isEmpty) GenT(Parser0.fail: Parser[Unit])
-      else GenT(Parser0.ignoreCase1(str))
+      else GenT(Parser0.ignoreCase(str))
     }
 
   val fail: Gen[GenT[Parser0]] =
@@ -443,7 +443,7 @@ object ParserGen {
           }))
       ),
       (5, expect0),
-      (1, ignoreCase),
+      (1, ignoreCase0),
       (5, charIn),
       (1, Gen.oneOf(GenT(Parser0.start), GenT(Parser0.end), GenT(Parser0.index))),
       (1, fail),
@@ -548,8 +548,8 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   val fooP = Parser0.string("foo")
   val barP = Parser0.string("bar")
-  val fooCIP = Parser0.ignoreCase1("foo")
-  val cCIP = Parser0.ignoreCase1("a")
+  val fooCIP = Parser0.ignoreCase("foo")
+  val cCIP = Parser0.ignoreCase("a")
   val cCIP1 = Parser0.ignoreCaseChar('a')
   val abcCI = Parser0.ignoreCaseCharIn('a', 'b', 'c')
 

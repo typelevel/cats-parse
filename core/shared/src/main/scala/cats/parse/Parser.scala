@@ -747,7 +747,7 @@ object Parser0 extends ParserInstances {
     * or fail. This backtracks on failure
     * this is an error if the string is empty
     */
-  def ignoreCase1(str: String): Parser[Unit] =
+  def ignoreCase(str: String): Parser[Unit] =
     if (str.length == 1) {
       ignoreCaseChar(str.charAt(0))
     } else Impl.IgnoreCase(str.toLowerCase)
@@ -778,9 +778,9 @@ object Parser0 extends ParserInstances {
   /** Parse a potentially empty string, in a case-insensitive manner,
     * or fail. This backtracks on failure
     */
-  def ignoreCase(str: String): Parser0[Unit] =
+  def ignoreCase0(str: String): Parser0[Unit] =
     if (str.length == 0) unit
-    else ignoreCase1(str)
+    else ignoreCase(str)
 
   /** go through the list of parsers trying each
     *  as long as they are epsilon failures (don't advance)
