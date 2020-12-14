@@ -84,7 +84,7 @@ object ParserGen {
       GenT(Parser0.ignoreCase0(str))
     }
 
-  val charIn: Gen[GenT[Parser0]] =
+  val charIn0: Gen[GenT[Parser0]] =
     Gen.oneOf(
       Arbitrary.arbitrary[List[Char]].map { cs =>
         GenT(Parser0.charIn(cs): Parser0[Char])
@@ -92,7 +92,7 @@ object ParserGen {
       Gen.const(GenT(Parser0.anyChar: Parser0[Char]))
     )
 
-  val charIn1: Gen[GenT[Parser]] =
+  val charIn: Gen[GenT[Parser]] =
     Gen.oneOf(
       Arbitrary.arbitrary[List[Char]].map { cs =>
         GenT(Parser0.charIn(cs))
@@ -444,7 +444,7 @@ object ParserGen {
       ),
       (5, expect0),
       (1, ignoreCase0),
-      (5, charIn),
+      (5, charIn0),
       (1, Gen.oneOf(GenT(Parser0.start), GenT(Parser0.end), GenT(Parser0.index))),
       (1, fail),
       (1, failWith),
@@ -472,7 +472,7 @@ object ParserGen {
     Gen.frequency(
       (8, expect1),
       (2, ignoreCase),
-      (8, charIn1),
+      (8, charIn),
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser0.char(c)) }),
       (2, rec.map(void(_))),
       (2, rec.map(string(_))),
