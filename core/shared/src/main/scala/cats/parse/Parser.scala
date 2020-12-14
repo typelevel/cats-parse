@@ -1159,12 +1159,12 @@ object Parser0 extends ParserInstances {
 
   /** parse zero or more characters as long as they don't match p
     */
-  def until(p: Parser0[Any]): Parser0[String] =
+  def until0(p: Parser0[Any]): Parser0[String] =
     (not(p).with1 ~ anyChar).rep0.string
 
   /** parse one or more characters as long as they don't match p
     */
-  def until1(p: Parser0[Any]): Parser[String] =
+  def until(p: Parser0[Any]): Parser[String] =
     (not(p).with1 ~ anyChar).rep.string
 
   /** discard the value in a Parser0.

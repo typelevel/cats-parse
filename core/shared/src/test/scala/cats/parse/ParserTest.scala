@@ -1321,7 +1321,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("Parser0.until is like a search") {
     forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, str) =>
-      val p = Parser0.until(a.fa) *> a.fa
+      val p = Parser0.until0(a.fa) *> a.fa
       def loopMatch(cnt: Int): Option[(String, a.A)] =
         (Parser0.length0(cnt) *> a.fa).parse(str) match {
           case Right(res) => Some(res)
