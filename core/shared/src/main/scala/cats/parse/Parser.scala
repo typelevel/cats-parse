@@ -162,7 +162,7 @@ sealed abstract class Parser0[+A] {
     * Otherwise both extracted values are combined into a tuple.
     */
   def ~[B](that: Parser0[B]): Parser0[(A, B)] =
-    Parser0.product(this, that)
+    Parser0.product0(this, that)
 
   /** If this parser fails to parse its input with an epsilon error,
     * try the given parser instead.
@@ -366,7 +366,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** This method overrides `Parser0#~` to refine the return type.
     */
   override def ~[B](that: Parser0[B]): Parser[(A, B)] =
-    Parser0.product10(this, that)
+    Parser0.product(this, that)
 
   /** Compose two parsers, ignoring the values extracted by the
     * left-hand parser.
@@ -613,7 +613,7 @@ object Parser0 extends ParserInstances {
       expected.map(_.offset).distinct
   }
 
-  /** Enables syntax to access product01, product10 and flatMap01
+  /** Enables syntax to access product01, product and flatMap01
     *  This helps us build Parser instances when starting from
     *  a Parser0
     */
@@ -675,13 +675,13 @@ object Parser0 extends ParserInstances {
     */
   sealed class Soft[+A](parser: Parser0[A]) {
     def ~[B](that: Parser0[B]): Parser0[(A, B)] =
-      softProduct(parser, that)
+      softProduct0(parser, that)
 
     def *>[B](that: Parser0[B]): Parser0[B] =
-      softProduct(void0(parser), that).map(_._2)
+      softProduct0(void0(parser), that).map(_._2)
 
     def <*[B](that: Parser0[B]): Parser0[A] =
-      softProduct(parser, void0(that)).map(_._1)
+      softProduct0(parser, void0(that)).map(_._1)
 
     /** If we can parse this then that, do so,
       * if we fail that without consuming, rewind
@@ -699,13 +699,13 @@ object Parser0 extends ParserInstances {
     */
   final class Soft10[+A](parser: Parser[A]) extends Soft(parser) {
     override def ~[B](that: Parser0[B]): Parser[(A, B)] =
-      softProduct10(parser, that)
+      softProduct(parser, that)
 
     override def *>[B](that: Parser0[B]): Parser[B] =
-      softProduct10(void(parser), that).map(_._2)
+      softProduct(void(parser), that).map(_._2)
 
     override def <*[B](that: Parser0[B]): Parser[A] =
-      softProduct10(parser, void0(that)).map(_._1)
+      softProduct(parser, void0(that)).map(_._1)
   }
 
   /** If we can parse this then that, do so,
@@ -900,26 +900,26 @@ object Parser0 extends ParserInstances {
 
   /** parse first then second
     */
-  def product[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
+  def product0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
-      case f1: Parser[A] => product10(f1, second)
+      case f1: Parser[A] => product(f1, second)
       case _ =>
         second match {
           case s1: Parser[B] =>
             product01(first, s1)
-          case _ => Impl.Prod(first, second)
+          case _ => Impl.Prod0(first, second)
         }
     }
 
   /** product with the first argument being a Parser
     */
-  def product10[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
-    Impl.Prod1(first, second)
+  def product[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
+    Impl.Prod(first, second)
 
   /** product with the second argument being a Parser
     */
   def product01[A, B](first: Parser0[A], second: Parser[B]): Parser[(A, B)] =
-    Impl.Prod1(first, second)
+    Impl.Prod(first, second)
 
   /** softProduct, a variant of product
     *  A soft product backtracks if the first succeeds and the second
@@ -928,14 +928,14 @@ object Parser0 extends ParserInstances {
     *
     *  see @Parser0.soft
     */
-  def softProduct[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
+  def softProduct0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
-      case f1: Parser[A] => softProduct10(f1, second)
+      case f1: Parser[A] => softProduct(f1, second)
       case _ =>
         second match {
           case s1: Parser[B] =>
             softProduct01(first, s1)
-          case _ => Impl.SoftProd(first, second)
+          case _ => Impl.SoftProd0(first, second)
         }
     }
 
@@ -946,8 +946,8 @@ object Parser0 extends ParserInstances {
     *
     *  see @Parser0.soft
     */
-  def softProduct10[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
-    Impl.SoftProd1(first, second)
+  def softProduct[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
+    Impl.SoftProd(first, second)
 
   /** softProduct with the second argument being a Parser
     *  A soft product backtracks if the first succeeds and the second
@@ -957,7 +957,7 @@ object Parser0 extends ParserInstances {
     *  see @Parser0.soft
     */
   def softProduct01[A, B](first: Parser0[A], second: Parser[B]): Parser[(A, B)] =
-    Impl.SoftProd1(first, second)
+    Impl.SoftProd(first, second)
 
   /** transform a Parser0 result
     */
@@ -1351,7 +1351,7 @@ object Parser0 extends ParserInstances {
         flatMap10(fa)(fn)
 
       override def product[A, B](pa: Parser[A], pb: Parser[B]): Parser[(A, B)] =
-        product10(pa, pb)
+        Parser0.this.product(pa, pb)
 
       override def map2[A, B, C](pa: Parser[A], pb: Parser[B])(fn: (A, B) => C): Parser[C] =
         map(product(pa, pb)) { case (a, b) => fn(a, b) }
@@ -1428,8 +1428,8 @@ object Parser0 extends ParserInstances {
           true
         case Map(p, _) => doesBacktrack(p)
         case Map1(p, _) => doesBacktrack(p)
+        case SoftProd0(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
         case SoftProd(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
-        case SoftProd1(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
         case _ => false
       }
 
@@ -1440,8 +1440,8 @@ object Parser0 extends ParserInstances {
       p match {
         case Index | Pure(_) => true
         case Map(p, _) => alwaysSucceeds(p)
-        case SoftProd(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
-        case Prod(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case SoftProd0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case Prod0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         // by construction we never build a Not(Fail()) since
         // it would just be the same as unit
         //case Not(Fail() | FailWith(_)) => true
@@ -1481,35 +1481,35 @@ object Parser0 extends ParserInstances {
           // to remove the backtrack wrapper
           Parser0.backtrack0(unmap0(p))
         case OneOf0(ps) => Parser0.oneOf0(ps.map(unmap0))
-        case Prod(p1, p2) =>
+        case Prod0(p1, p2) =>
           unmap0(p1) match {
-            case Prod(p11, p12) =>
+            case Prod0(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              Prod(p11, unmap0(Prod(Void0(p12), p2)))
+              Prod0(p11, unmap0(Prod0(Void0(p12), p2)))
             case u1 if u1 eq Parser0.unit =>
               unmap0(p2)
             case u1 =>
               val u2 = unmap0(p2)
               if (u2 eq Parser0.unit) u1
-              else Prod(u1, u2)
+              else Prod0(u1, u2)
           }
-        case SoftProd(p1, p2) =>
+        case SoftProd0(p1, p2) =>
           unmap0(p1) match {
-            case SoftProd(p11, p12) =>
+            case SoftProd0(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              SoftProd(p11, unmap0(SoftProd(Void0(p12), p2)))
+              SoftProd0(p11, unmap0(SoftProd0(Void0(p12), p2)))
             case u1 if u1 eq Parser0.unit =>
               unmap0(p2)
             case u1 =>
               val u2 = unmap0(p2)
               if (u2 eq Parser0.unit) u1
-              else SoftProd(u1, u2)
+              else SoftProd0(u1, u2)
           }
         case Defer0(fn) =>
           Defer0(() => unmap0(compute0(fn)))
@@ -1552,46 +1552,46 @@ object Parser0 extends ParserInstances {
           // to remove the backtrack wrapper
           Parser0.backtrack(unmap(p))
         case OneOf(ps) => Parser0.oneOf(ps.map(unmap))
-        case Prod1(p1, p2) =>
+        case Prod(p1, p2) =>
           unmap0(p1) match {
-            case Prod(p11, p12) =>
+            case Prod0(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // note: p12 is already unmapped, so
               // we wrap with Void to prevent n^2 cost
-              Prod1(p11, unmap0(Parser0.product(p12.void, p2)))
-            case Prod1(p11, p12) =>
+              Prod(p11, unmap0(Parser0.product0(p12.void, p2)))
+            case Prod(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // we wrap with Void to prevent n^2 cost
-              Prod1(p11, unmap0(Parser0.product(p12.void, p2)))
+              Prod(p11, unmap0(Parser0.product0(p12.void, p2)))
             case u1 if u1 eq Parser0.unit =>
               // if unmap0(u1) is unit, p2 must be a Parser
               unmap(expect1(p2))
             case u1 =>
               val u2 = unmap0(p2)
               if (u2 eq Parser0.unit) expect1(u1)
-              else Prod1(u1, u2)
+              else Prod(u1, u2)
           }
-        case SoftProd1(p1, p2) =>
+        case SoftProd(p1, p2) =>
           unmap0(p1) match {
+            case SoftProd0(p11, p12) =>
+              // right associate so
+              // we can check matches a bit faster
+              // we wrap with Void to prevent n^2 cost
+              SoftProd(p11, unmap0(Parser0.softProduct0(p12.void, p2)))
             case SoftProd(p11, p12) =>
               // right associate so
               // we can check matches a bit faster
               // we wrap with Void to prevent n^2 cost
-              SoftProd1(p11, unmap0(Parser0.softProduct(p12.void, p2)))
-            case SoftProd1(p11, p12) =>
-              // right associate so
-              // we can check matches a bit faster
-              // we wrap with Void to prevent n^2 cost
-              SoftProd1(p11, unmap0(Parser0.softProduct(p12.void, p2)))
+              SoftProd(p11, unmap0(Parser0.softProduct0(p12.void, p2)))
             case u1 if u1 eq Parser0.unit =>
               // if unmap0(u1) is unit, p2 must be a Parser
               unmap(expect1(p2))
             case u1 =>
               val u2 = unmap0(p2)
               if (u2 eq Parser0.unit) expect1(u1)
-              else SoftProd1(u1, u2)
+              else SoftProd(u1, u2)
           }
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
@@ -1806,12 +1806,12 @@ object Parser0 extends ParserInstances {
     }
 
     // we know that at least one of first | second is Parser
-    case class Prod1[A, B](first: Parser0[A], second: Parser0[B]) extends Parser[(A, B)] {
+    case class Prod[A, B](first: Parser0[A], second: Parser0[B]) extends Parser[(A, B)] {
       require(first.isInstanceOf[Parser[_]] || second.isInstanceOf[Parser[_]])
       override def parseMut(state: State): (A, B) = prod(first, second, state)
     }
 
-    case class Prod[A, B](first: Parser0[A], second: Parser0[B]) extends Parser0[(A, B)] {
+    case class Prod0[A, B](first: Parser0[A], second: Parser0[B]) extends Parser0[(A, B)] {
       override def parseMut(state: State): (A, B) = prod(first, second, state)
     }
 
@@ -1834,12 +1834,12 @@ object Parser0 extends ParserInstances {
     }
 
     // we know that at least one of first | second is Parser
-    case class SoftProd1[A, B](first: Parser0[A], second: Parser0[B]) extends Parser[(A, B)] {
+    case class SoftProd[A, B](first: Parser0[A], second: Parser0[B]) extends Parser[(A, B)] {
       require(first.isInstanceOf[Parser[_]] || second.isInstanceOf[Parser[_]])
       override def parseMut(state: State): (A, B) = softProd(first, second, state)
     }
 
-    case class SoftProd[A, B](first: Parser0[A], second: Parser0[B]) extends Parser0[(A, B)] {
+    case class SoftProd0[A, B](first: Parser0[A], second: Parser0[B]) extends Parser0[(A, B)] {
       override def parseMut(state: State): (A, B) = softProd(first, second, state)
     }
 
@@ -2256,7 +2256,7 @@ abstract class ParserInstances {
         fa.filter { a => !fn(a) }
 
       override def product[A, B](fa: Parser0[A], fb: Parser0[B]): Parser0[(A, B)] =
-        Parser0.product(fa, fb)
+        Parser0.product0(fa, fb)
 
       override def map2[A, B, C](pa: Parser0[A], pb: Parser0[B])(fn: (A, B) => C): Parser0[C] =
         map(product(pa, pb)) { case (a, b) => fn(a, b) }
