@@ -160,7 +160,9 @@ object ParserGen {
     Gen.oneOf(
       GenT[Parser0, (ga.A, gb.A)](FlatMap[Parser0].product(ga.fa, gb.fa)),
       GenT[Parser0, (ga.A, gb.A)](FlatMap[Parser0].map2(ga.fa, gb.fa)((_, _))),
-      GenT[Parser0, (ga.A, gb.A)](FlatMap[Parser0].map2Eval(ga.fa, Eval.later(gb.fa))((_, _)).value),
+      GenT[Parser0, (ga.A, gb.A)](
+        FlatMap[Parser0].map2Eval(ga.fa, Eval.later(gb.fa))((_, _)).value
+      ),
       GenT[Parser0, (ga.A, gb.A)](FlatMap[Parser0].map2Eval(ga.fa, Eval.now(gb.fa))((_, _)).value)
     )
   }
@@ -745,7 +747,9 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("oneOf0 same as foldLeft(fail)(_.orElse0(_))") {
     forAll(Gen.listOf(ParserGen.gen0), Arbitrary.arbitrary[String]) { (genP1, str) =>
-      val oneOfImpl = genP1.foldLeft(Parser.fail: Parser0[Any]) { (leftp, p) => leftp.orElse0(p.fa) }
+      val oneOfImpl = genP1.foldLeft(Parser.fail: Parser0[Any]) { (leftp, p) =>
+        leftp.orElse0(p.fa)
+      }
 
       assertEquals(oneOfImpl.parse(str), Parser.oneOf0(genP1.map(_.fa)).parse(str))
     }

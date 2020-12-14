@@ -490,9 +490,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     new Parser.Soft(this)
 }
 
-object Parser0 extends ParserInstances {
-  
-}
+object Parser0 extends ParserInstances {}
 object Parser {
 
   /** An expectation reports the kind or parsing error
@@ -1427,7 +1425,9 @@ object Parser {
     final def doesBacktrack(p: Parser0[Any]): Boolean =
       p match {
         case Backtrack0(_) | Backtrack(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
-            Length(_) | StartParser0 | EndParser0 | Index | Pure(_) | Fail() | FailWith(_) | Not(_) =>
+            Length(_) | StartParser0 | EndParser0 | Index | Pure(_) | Fail() | FailWith(_) | Not(
+              _
+            ) =>
           true
         case Map(p, _) => doesBacktrack(p)
         case Map1(p, _) => doesBacktrack(p)
