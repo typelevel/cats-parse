@@ -110,7 +110,7 @@ sealed abstract class Parser0[+A] {
     * will still fail.
     */
   def ? : Parser0[Option[A]] =
-    Parser0.oneOf0(Parser0.map(this)(Some(_)) :: Parser0.Impl.optTail)
+    Parser0.oneOf0(Parser0.map0(this)(Some(_)) :: Parser0.Impl.optTail)
 
   /** Parse without capturing values.
     *
@@ -187,7 +187,7 @@ sealed abstract class Parser0[+A] {
     * `void` before `map` will improve the efficiency of the parser.
     */
   def map[B](fn: A => B): Parser0[B] =
-    Parser0.map(this)(fn)
+    Parser0.map0(this)(fn)
 
   /** Transform parsed values using the given function, or fail on None
     *
@@ -392,7 +392,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** This method overrides `Parser0#map` to refine the return type.
     */
   override def map[B](fn: A => B): Parser[B] =
-    Parser0.map1(this)(fn)
+    Parser0.map(this)(fn)
 
   /** This method overrides `Parser0#mapFilter` to refine the return type.
     */
@@ -961,9 +961,9 @@ object Parser0 extends ParserInstances {
 
   /** transform a Parser0 result
     */
-  def map[A, B](p: Parser0[A])(fn: A => B): Parser0[B] =
+  def map0[A, B](p: Parser0[A])(fn: A => B): Parser0[B] =
     p match {
-      case p1: Parser[A] => map1(p1)(fn)
+      case p1: Parser[A] => map(p1)(fn)
       case Impl.Map(p0, f0) =>
         Impl.Map(p0, AndThen(f0).andThen(fn))
       case _ => Impl.Map(p, fn)
@@ -971,7 +971,7 @@ object Parser0 extends ParserInstances {
 
   /** transform a Parser result
     */
-  def map1[A, B](p: Parser[A])(fn: A => B): Parser[B] =
+  def map[A, B](p: Parser[A])(fn: A => B): Parser[B] =
     p match {
       case Impl.Map1(p0, f0) =>
         Impl.Map1(p0, AndThen(f0).andThen(fn))
@@ -1336,7 +1336,7 @@ object Parser0 extends ParserInstances {
       def functor = this
 
       def map[A, B](fa: Parser[A])(fn: A => B): Parser[B] =
-        map1(fa)(fn)
+        Parser0.this.map(fa)(fn)
 
       def mapFilter[A, B](fa: Parser[A])(f: A => Option[B]): Parser[B] =
         fa.mapFilter(f)
@@ -2244,7 +2244,7 @@ abstract class ParserInstances {
 
       def functor = this
 
-      override def map[A, B](fa: Parser0[A])(fn: A => B): Parser0[B] = Parser0.map(fa)(fn)
+      override def map[A, B](fa: Parser0[A])(fn: A => B): Parser0[B] = Parser0.map0(fa)(fn)
 
       def mapFilter[A, B](fa: Parser0[A])(f: A => Option[B]): Parser0[B] =
         fa.mapFilter(f)
