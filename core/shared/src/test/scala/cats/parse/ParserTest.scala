@@ -132,10 +132,10 @@ object ParserGen {
   def string(g: GenT[Parser]): GenT[Parser] =
     GenT(Parser0.string(g.fa))
 
-  def backtrack(g: GenT[Parser0]): GenT[Parser0] =
+  def backtrack0(g: GenT[Parser0]): GenT[Parser0] =
     GenT(g.fa.backtrack)(g.cogen)
 
-  def backtrack1(g: GenT[Parser]): GenT[Parser] =
+  def backtrack(g: GenT[Parser]): GenT[Parser] =
     GenT(g.fa.backtrack)(g.cogen)
 
   def defer0(g: GenT[Parser0]): GenT[Parser0] =
@@ -450,7 +450,7 @@ object ParserGen {
       (1, failWith),
       (1, rec.map(void0(_))),
       (1, rec.map(string0(_))),
-      (1, rec.map(backtrack(_))),
+      (1, rec.map(backtrack0(_))),
       (1, rec.map(defer0(_))),
       (1, rec.map { gen => GenT(!gen.fa) }),
       (1, Gen.lzy(gen.map(rep0(_)))),
@@ -476,7 +476,7 @@ object ParserGen {
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser0.char(c)) }),
       (2, rec.map(void(_))),
       (2, rec.map(string(_))),
-      (2, rec.map(backtrack1(_))),
+      (2, rec.map(backtrack(_))),
       (1, rec.map(defer(_))),
       (1, rec.map(rep(_))),
       (1, selected1(rec, gen0)),

@@ -149,7 +149,7 @@ sealed abstract class Parser0[+A] {
     * picking up where this one left off.
     */
   def backtrack: Parser0[A] =
-    Parser0.backtrack(this)
+    Parser0.backtrack0(this)
 
   /** Sequence another parser after this one, combining both results
     * into a tuple.
@@ -361,7 +361,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** This method overrides `Parser0#backtrack` to refine the return type.
     */
   override def backtrack: Parser[A] =
-    Parser0.backtrack1(this)
+    Parser0.backtrack(this)
 
   /** This method overrides `Parser0#~` to refine the return type.
     */
@@ -1287,11 +1287,11 @@ object Parser0 extends ParserInstances {
     * to harm debuggability and ideally should be
     * minimized
     */
-  def backtrack[A](pa: Parser0[A]): Parser0[A] =
+  def backtrack0[A](pa: Parser0[A]): Parser0[A] =
     pa match {
-      case p1: Parser[A] => backtrack1(p1)
+      case p1: Parser[A] => backtrack(p1)
       case pa if Impl.doesBacktrack(pa) => pa
-      case nbt => Impl.Backtrack(nbt)
+      case nbt => Impl.Backtrack0(nbt)
     }
 
   /** If we fail, rewind the offset back so that
@@ -1299,10 +1299,10 @@ object Parser0 extends ParserInstances {
     * to harm debuggability and ideally should be
     * minimized
     */
-  def backtrack1[A](pa: Parser[A]): Parser[A] =
+  def backtrack[A](pa: Parser[A]): Parser[A] =
     pa match {
       case pa if Impl.doesBacktrack(pa) => pa
-      case nbt => Impl.Backtrack1(nbt)
+      case nbt => Impl.Backtrack(nbt)
     }
 
   /** Replaces parsed values with the given value.
@@ -1423,7 +1423,7 @@ object Parser0 extends ParserInstances {
     @annotation.tailrec
     final def doesBacktrack(p: Parser0[Any]): Boolean =
       p match {
-        case Backtrack(_) | Backtrack1(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
+        case Backtrack0(_) | Backtrack(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
             Length(_) | StartParser0 | EndParser0 | Index | Pure(_) | Fail() | FailWith(_) | Not(_) =>
           true
         case Map(p, _) => doesBacktrack(p)
@@ -1476,10 +1476,10 @@ object Parser0 extends ParserInstances {
         case p @ Peek(_) =>
           // peek is already voided
           p
-        case Backtrack(p) =>
+        case Backtrack0(p) =>
           // unmap0 may simplify enough
           // to remove the backtrack wrapper
-          Parser0.backtrack(unmap0(p))
+          Parser0.backtrack0(unmap0(p))
         case OneOf0(ps) => Parser0.oneOf0(ps.map(unmap0))
         case Prod(p1, p2) =>
           unmap0(p1) match {
@@ -1547,10 +1547,10 @@ object Parser0 extends ParserInstances {
         case Void(v) =>
           // Void is added privately, and only after unmap
           v
-        case Backtrack1(p) =>
+        case Backtrack(p) =>
           // unmap may simplify enough
           // to remove the backtrack wrapper
-          Parser0.backtrack1(unmap(p))
+          Parser0.backtrack(unmap(p))
         case OneOf(ps) => Parser0.oneOf(ps.map(unmap))
         case Prod1(p1, p2) =>
           unmap0(p1) match {
@@ -1699,12 +1699,12 @@ object Parser0 extends ParserInstances {
       a
     }
 
-    case class Backtrack[A](parser: Parser0[A]) extends Parser0[A] {
+    case class Backtrack0[A](parser: Parser0[A]) extends Parser0[A] {
       override def parseMut(state: State): A =
         Impl.backtrack(parser, state)
     }
 
-    case class Backtrack1[A](parser: Parser[A]) extends Parser[A] {
+    case class Backtrack[A](parser: Parser[A]) extends Parser[A] {
       override def parseMut(state: State): A =
         Impl.backtrack(parser, state)
     }
