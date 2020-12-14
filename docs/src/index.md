@@ -56,7 +56,7 @@ object Json {
       P0.char(',').surroundedBy(whitespaces0).void
 
     def rep[A](pa: Parser[A]): P0[List[A]] =
-      P0.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
+      P0.rep0Sep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
 
     val list = rep(recurse).with1
       .between(P0.char('['), P0.char(']'))

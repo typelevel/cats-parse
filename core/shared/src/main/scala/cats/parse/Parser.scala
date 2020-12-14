@@ -881,7 +881,7 @@ object Parser0 extends ParserInstances {
 
   /** Repeat 1 or more times with a separator
     */
-  def rep1Sep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
+  def repSep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
     if (min <= 0) throw new IllegalArgumentException(s"require min > 0, found: $min")
 
     val rest = (sep.void.with1.soft *> p1).rep0(min - 1)
@@ -890,12 +890,12 @@ object Parser0 extends ParserInstances {
 
   /** Repeat 0 or more times with a separator
     */
-  def repSep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] = {
-    if (min <= 0) rep1Sep(p1, 1, sep).?.map {
+  def rep0Sep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] = {
+    if (min <= 0) repSep(p1, 1, sep).?.map {
       case None => Nil
       case Some(nel) => nel.toList
     }
-    else rep1Sep(p1, min, sep).map(_.toList)
+    else repSep(p1, min, sep).map(_.toList)
   }
 
   /** parse first then second

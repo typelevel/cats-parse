@@ -52,12 +52,12 @@ object SemVer {
 
   val preReleaseIdentifier: Parser[String] = alphanumericIdentifier
 
-  val dotSeparatedBuildIdentifiers: Parser[String] = Parser0.rep1Sep(buildIdentifier, 1, dot).string
+  val dotSeparatedBuildIdentifiers: Parser[String] = Parser0.repSep(buildIdentifier, 1, dot).string
 
   val build: Parser[String] = dotSeparatedBuildIdentifiers
 
   val dotSeparatedPreReleaseIdentifiers: Parser[String] =
-    Parser0.rep1Sep(preReleaseIdentifier, 1, dot).string
+    Parser0.repSep(preReleaseIdentifier, 1, dot).string
 
   val preRelease: Parser[String] = dotSeparatedPreReleaseIdentifiers
 

@@ -1046,28 +1046,28 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("repSep with unit sep is the same as rep0") {
+  property("rep0Sep with unit sep is the same as rep0") {
     forAll(ParserGen.gen, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
       (genP, min0, str) =>
         val min = min0 & Int.MaxValue
-        val p1a = Parser0.repSep(genP.fa, min = min, sep = Parser0.unit)
+        val p1a = Parser0.rep0Sep(genP.fa, min = min, sep = Parser0.unit)
         val p1b = genP.fa.rep0(min = min)
 
         assertEquals(p1a.parse(str), p1b.parse(str))
 
         val min1 = if (min < 1) 1 else min
-        val p2a = Parser0.rep1Sep(genP.fa, min = min1, sep = Parser0.unit)
+        val p2a = Parser0.repSep(genP.fa, min = min1, sep = Parser0.unit)
         val p2b = genP.fa.rep(min = min1)
 
         assertEquals(p2a.parse(str), p2b.parse(str))
     }
   }
 
-  property("rep1Sep with sep = fail is the same as parsing 1") {
+  property("repSep with sep = fail is the same as parsing 1") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       assertEquals(
         genP.fa.parse(str),
-        Parser0.rep1Sep(genP.fa, 1, Parser0.fail).parse(str).map { case (rest, nel) =>
+        Parser0.repSep(genP.fa, 1, Parser0.fail).parse(str).map { case (rest, nel) =>
           (rest, nel.head)
         }
       )
