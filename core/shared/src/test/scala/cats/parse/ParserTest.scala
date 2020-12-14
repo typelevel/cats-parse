@@ -106,7 +106,7 @@ object ParserGen {
       else GenT(Parser0.string(str))
     }
 
-  val ignoreCase1: Gen[GenT[Parser]] =
+  val ignoreCase: Gen[GenT[Parser]] =
     Arbitrary.arbitrary[String].map { str =>
       if (str.isEmpty) GenT(Parser0.fail: Parser[Unit])
       else GenT(Parser0.ignoreCase(str))
@@ -471,7 +471,7 @@ object ParserGen {
 
     Gen.frequency(
       (8, expect1),
-      (2, ignoreCase1),
+      (2, ignoreCase),
       (8, charIn1),
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser0.char(c)) }),
       (2, rec.map(void(_))),
