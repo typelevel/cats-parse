@@ -278,8 +278,8 @@ sealed abstract class Parser0[+A] {
     * y)`, if `x` parses successfully, and `y` returns an epsilon
     * failure, the parser will "rewind" to the point before `x` began.
     */
-  def soft: Parser0.Soft[A] =
-    new Parser0.Soft(this)
+  def soft: Parser0.Soft0[A] =
+    new Parser0.Soft0(this)
 
   /** Return a parser that succeeds (consuming nothing, and extracting
     * nothing) if the current parser would fail.
@@ -486,8 +486,8 @@ sealed abstract class Parser[+A] extends Parser0[A] {
 
   /** This method overrides `Parser0#soft` to refine the return type.
     */
-  override def soft: Parser0.Soft10[A] =
-    new Parser0.Soft10(this)
+  override def soft: Parser0.Soft[A] =
+    new Parser0.Soft(this)
 }
 
 object Parser0 extends ParserInstances {
@@ -673,7 +673,7 @@ object Parser0 extends ParserInstances {
     * before this without consuming.
     * If either consume 1 or more, do not rewind
     */
-  sealed class Soft[+A](parser: Parser0[A]) {
+  sealed class Soft0[+A](parser: Parser0[A]) {
     def ~[B](that: Parser0[B]): Parser0[(A, B)] =
       softProduct0(parser, that)
 
@@ -697,7 +697,7 @@ object Parser0 extends ParserInstances {
     * before this without consuming.
     * If either consume 1 or more, do not rewind
     */
-  final class Soft10[+A](parser: Parser[A]) extends Soft(parser) {
+  final class Soft[+A](parser: Parser[A]) extends Soft0(parser) {
     override def ~[B](that: Parser0[B]): Parser[(A, B)] =
       softProduct(parser, that)
 
