@@ -244,7 +244,7 @@ sealed abstract class Parser0[+A] {
   /** Replaces parsed values with the given value.
     */
   def as[B](b: B): Parser0[B] =
-    Parser0.as(this, b)
+    Parser0.as0(this, b)
 
   /** Wrap this parser in a helper class, enabling better composition
     * with `Parser` values.
@@ -416,7 +416,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** This method overrides `Parser0#as` to refine the return type.
     */
   override def as[B](b: B): Parser[B] =
-    Parser0.as1(this, b)
+    Parser0.as(this, b)
 
   /** If this parser fails to parse its input with an epsilon error,
     * try the given parser instead.
@@ -1307,16 +1307,16 @@ object Parser0 extends ParserInstances {
 
   /** Replaces parsed values with the given value.
     */
-  def as[A, B](pa: Parser0[A], b: B): Parser0[B] =
+  def as0[A, B](pa: Parser0[A], b: B): Parser0[B] =
     pa match {
       case Impl.Pure(_) | Impl.Index => pure(b)
-      case p1: Parser[A] => as1(p1, b)
+      case p1: Parser[A] => as(p1, b)
       case _ => pa.void.map(Impl.ConstFn(b))
     }
 
   /** Replaces parsed values with the given value.
     */
-  def as1[A, B](pa: Parser[A], b: B): Parser[B] =
+  def as[A, B](pa: Parser[A], b: B): Parser[B] =
     (pa.void, b) match {
       case (Impl.Void(ci @ Impl.CharIn(min, bs, _)), bc: Char)
           if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
@@ -1377,7 +1377,7 @@ object Parser0 extends ParserInstances {
         pa.void
 
       override def as[A, B](pa: Parser[A], b: B): Parser[B] =
-        Parser0.as1(pa, b)
+        Parser0.as(pa, b)
 
       override def productL[A, B](pa: Parser[A])(pb: Parser[B]): Parser[A] =
         map(product(pa, pb.void)) { case (a, _) => a }
@@ -2285,7 +2285,7 @@ abstract class ParserInstances {
         Parser0.void0(pa)
 
       override def as[A, B](pa: Parser0[A], b: B): Parser0[B] =
-        Parser0.as(pa, b)
+        Parser0.as0(pa, b)
 
       override def productL[A, B](pa: Parser0[A])(pb: Parser0[B]): Parser0[A] =
         map(product(pa, pb.void)) { case (a, _) => a }
