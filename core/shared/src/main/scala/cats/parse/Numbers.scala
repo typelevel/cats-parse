@@ -26,7 +26,7 @@ object Numbers {
   /** a single base 10 digit
     */
   val digit: Parser[Char] =
-    Parser0.charIn('0' to '9')
+    Parser.charIn('0' to '9')
 
   /** zero or more digit chars
     */
@@ -39,20 +39,20 @@ object Numbers {
   /** a single base 10 digit excluding 0
     */
   val nonZeroDigit: Parser[Char] =
-    Parser0.charIn('1' to '9')
+    Parser.charIn('1' to '9')
 
   /** A String of either 1 '0' or
     * 1 non-zero digit followed by zero or more digits
     */
   val nonNegativeIntString: Parser[String] =
     (nonZeroDigit ~ digits).void
-      .orElse(Parser0.char('0'))
+      .orElse(Parser.char('0'))
       .string
 
   /** A nonNegativeIntString possibly preceded by '-'
     */
   val signedIntString: Parser[String] =
-    (Parser0.char('-').?.with1 ~ nonNegativeIntString).string
+    (Parser.char('-').?.with1 ~ nonNegativeIntString).string
 
   /** map a signedIntString into a BigInt
     */
@@ -75,8 +75,8 @@ object Numbers {
      *     plus = %x2B                ; +
      *     zero = %x30                ; 0
      */
-    val frac: Parser[Any] = Parser0.char('.') ~ digits1
-    val exp: Parser[Unit] = (Parser0.charIn("eE") ~ Parser0.charIn("+-").? ~ digits1).void
+    val frac: Parser[Any] = Parser.char('.') ~ digits1
+    val exp: Parser[Unit] = (Parser.charIn("eE") ~ Parser.charIn("+-").? ~ digits1).void
 
     (signedIntString ~ frac.? ~ exp.?).string
   }

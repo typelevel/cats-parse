@@ -27,7 +27,7 @@ import org.typelevel.jawn.ast._
 
 /* Based on https://github.com/johnynek/bosatsu/blob/7f4b75356c207b0e0eb2ab7d39f646e04b4004ca/core/src/main/scala/org/bykn/bosatsu/Json.scala */
 object Json {
-  private[this] val whitespace: P[Unit] = P0.charIn(" \t\r\n").void
+  private[this] val whitespace: P[Unit] = P.charIn(" \t\r\n").void
   private[this] val whitespaces0: P0[Unit] = whitespace.rep0.void
 
   /** This doesn't have to be super fast (but is fairly fast) since we use it in places
@@ -35,35 +35,35 @@ object Json {
     * structured data
     */
   val parser: P[JValue] = {
-    val recurse = P0.defer(parser)
-    val pnull = P0.string("null").as(JNull)
-    val bool = P0.string("true").as(JBool.True).orElse(P0.string("false").as(JBool.False))
+    val recurse = P.defer(parser)
+    val pnull = P.string("null").as(JNull)
+    val bool = P.string("true").as(JBool.True).orElse(P.string("false").as(JBool.False))
     val justStr = JsonStringUtil.escapedString('"')
     val str = justStr.map(JString(_))
     val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: P[Unit] =
-      P0.char(',').surroundedBy(whitespaces0).void
+      P.char(',').surroundedBy(whitespaces0).void
 
     def rep0[A](pa: P[A]): P0[List[A]] =
-      P0.rep0Sep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
+      P.rep0Sep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
 
     val list = rep0(recurse).with1
-      .between(P0.char('['), P0.char(']'))
+      .between(P.char('['), P.char(']'))
       .map { vs => JArray.fromSeq(vs) }
 
     val kv: P[(String, JValue)] =
-      justStr ~ (P0.char(':').surroundedBy(whitespaces0) *> recurse)
+      justStr ~ (P.char(':').surroundedBy(whitespaces0) *> recurse)
 
     val obj = rep0(kv).with1
-      .between(P0.char('{'), P0.char('}'))
+      .between(P.char('{'), P.char('}'))
       .map { vs => JObject.fromSeq(vs) }
 
-    P0.oneOf(str :: num :: list :: obj :: bool :: pnull :: Nil)
+    P.oneOf(str :: num :: list :: obj :: bool :: pnull :: Nil)
   }
 
   // any whitespace followed by json followed by whitespace followed by end
-  val parserFile: P[JValue] = parser.between(whitespaces0, whitespaces0 ~ P0.end)
+  val parserFile: P[JValue] = parser.between(whitespaces0, whitespaces0 ~ P.end)
 }
 
 object JsonStringUtil extends GenericStringUtil {
@@ -94,43 +94,43 @@ abstract class GenericStringUtil {
     }.toArray
 
   val escapedToken: P[Unit] = {
-    val escapes = P0.charIn(decodeTable.keys.toSeq)
+    val escapes = P.charIn(decodeTable.keys.toSeq)
 
-    val oct = P0.charIn('0' to '7')
-    val octP0 = P0.char('o') ~ oct ~ oct
+    val oct = P.charIn('0' to '7')
+    val octP0 = P.char('o') ~ oct ~ oct
 
-    val hex = P0.charIn(('0' to '9') ++ ('a' to 'f') ++ ('A' to 'F'))
+    val hex = P.charIn(('0' to '9') ++ ('a' to 'f') ++ ('A' to 'F'))
     val hex2 = hex ~ hex
-    val hexP0 = P0.char('x') ~ hex2
+    val hexP0 = P.char('x') ~ hex2
 
     val hex4 = hex2 ~ hex2
-    val u4 = P0.char('u') ~ hex4
+    val u4 = P.char('u') ~ hex4
     val hex8 = hex4 ~ hex4
-    val u8 = P0.char('U') ~ hex8
+    val u8 = P.char('U') ~ hex8
 
-    val after = P0.oneOf[Any](escapes :: octP0 :: hexP0 :: u4 :: u8 :: Nil)
-    (P0.char('\\') ~ after).void
+    val after = P.oneOf[Any](escapes :: octP0 :: hexP0 :: u4 :: u8 :: Nil)
+    (P.char('\\') ~ after).void
   }
 
   /** String content without the delimiter
     */
   def undelimitedString1(endP0: P[Unit]): P[String] =
     escapedToken.backtrack
-      .orElse((!endP0).with1 ~ P0.anyChar)
+      .orElse((!endP0).with1 ~ P.anyChar)
       .rep
       .string
       .flatMap { str =>
         unescape(str) match {
-          case Right(str1) => P0.pure(str1)
-          case Left(_) => P0.fail
+          case Right(str1) => P.pure(str1)
+          case Left(_) => P.fail
         }
       }
 
   private val simpleString: P0[String] =
-    P0.charsWhile0(c => c >= ' ' && c != '"' && c != '\\')
+    P.charsWhile0(c => c >= ' ' && c != '"' && c != '\\')
 
   def escapedString(q: Char): P[String] = {
-    val end: P[Unit] = P0.char(q)
+    val end: P[Unit] = P.char(q)
     end *> ((simpleString <* end).backtrack
       .orElse0(undelimitedString1(end) <* end))
   }

@@ -31,35 +31,35 @@ object Rfc5234 {
   /** A-Z and a-z, without diacritics
     */
   val alpha: Parser[Char] =
-    Parser0.charIn('A' to 'Z').orElse(Parser0.charIn('a' to 'z'))
+    Parser.charIn('A' to 'Z').orElse(Parser.charIn('a' to 'z'))
 
   /** `0` or `1`
     */
   val bit: Parser[Char] =
-    Parser0.charIn('0' to '1')
+    Parser.charIn('0' to '1')
 
   /** any 7-bit US-ASCII character, excluding NUL
     */
   val char: Parser[Char] =
-    Parser0.charIn(0x01.toChar to 0x7f.toChar)
+    Parser.charIn(0x01.toChar to 0x7f.toChar)
 
   /** carriage return
     */
   val cr: Parser[Unit] =
-    Parser0.char('\r')
+    Parser.char('\r')
 
   /** linefeed
     */
   val lf: Parser[Unit] =
-    Parser0.char('\n')
+    Parser.char('\n')
 
   /** Internet standard newline */
   val crlf: Parser[Unit] =
-    Parser0.string("\r\n")
+    Parser.string("\r\n")
 
   /** controls */
   val ctl: Parser[Char] =
-    Parser0.charIn(0x7f, (0x00.toChar to 0x1f.toChar): _*)
+    Parser.charIn(0x7f, (0x00.toChar to 0x1f.toChar): _*)
 
   /** `0` to `9`
     */
@@ -69,21 +69,21 @@ object Rfc5234 {
   /** double quote (`"`)
     */
   val dquote: Parser[Unit] =
-    Parser0.char('"')
+    Parser.char('"')
 
   /** hexadecimal digit, case insensitive
     */
   val hexdig: Parser[Char] =
-    digit.orElse(Parser0.ignoreCaseCharIn('A' to 'F'))
+    digit.orElse(Parser.ignoreCaseCharIn('A' to 'F'))
 
   /** horizontal tab
     */
   val htab: Parser[Unit] =
-    Parser0.char('\t')
+    Parser.char('\t')
 
   /** space */
   val sp: Parser[Unit] =
-    Parser0.char(' ')
+    Parser.char(' ')
 
   /** white space (space or horizontal tab) */
   val wsp: Parser[Unit] =
@@ -99,15 +99,15 @@ object Rfc5234 {
     * other contexts.
     */
   val lwsp: Parser0[Unit] =
-    Parser0.rep0(wsp.orElse(crlf *> wsp)).void
+    Parser.rep0(wsp.orElse(crlf *> wsp)).void
 
   /** 8 bits of data
     */
   val octet: Parser[Char] =
-    Parser0.charIn(0x00.toChar to 0xff.toChar)
+    Parser.charIn(0x00.toChar to 0xff.toChar)
 
   /** visible (printing) characters
     */
   val vchar: Parser[Char] =
-    Parser0.charIn(0x21.toChar to 0x7e.toChar)
+    Parser.charIn(0x21.toChar to 0x7e.toChar)
 }
