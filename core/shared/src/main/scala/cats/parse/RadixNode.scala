@@ -27,7 +27,8 @@ import scala.annotation.tailrec
 
 class RadixNode(
     val fsts: Array[Char],
-    val children: Array[(String, RadixNode)],
+    val prefixes: Array[String],
+    val children: Array[RadixNode],
     val word: Boolean
 ) {
   override def toString(): String =
@@ -69,15 +70,20 @@ object RadixNode {
             nonEmpty.head,
             NonEmptyList.one(nonEmpty.head),
             Nil
-          ).reverse.map { case (fst, prefix, v) => (fst, (prefix, fromSortedStrings(v))) }
-        val (fsts, children) = grouped.unzip
-        new RadixNode(fsts.toArray, children.toArray, nonEmpty.size < strings.size)
+          ).reverse.map { case (fst, prefix, v) => (fst, prefix, fromSortedStrings(v)) }
+        val (fsts, prefixes, children) = grouped.unzip3
+        new RadixNode(
+          fsts.toArray,
+          prefixes.toArray,
+          children.toArray,
+          nonEmpty.size < strings.size
+        )
       case None =>
         leaf
     }
   }
 
-  private val leaf = new RadixNode(Array.empty, Array.empty, true)
+  private val leaf = new RadixNode(Array.empty, Array.empty, Array.empty, true)
 
   private def commonPrefix(s1: String, s2: String): Int = {
     @tailrec

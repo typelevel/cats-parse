@@ -1819,11 +1819,10 @@ object Parser extends ParserInstances {
         val c = state.str.charAt(offset)
         val idx = Arrays.binarySearch(tree.fsts, c)
         if (idx >= 0) {
-          val child = tree.children(idx)
-          val prefix = child._1
+          val prefix = tree.prefixes(idx)
           // accept the prefix fo this character
           if (state.str.startsWith(prefix, offset)) {
-            val children = child._2
+            val children = tree.children(idx)
             offset += prefix.length
             tree = children
             cont = offset < state.str.length
