@@ -855,6 +855,12 @@ object Parser extends ParserInstances {
     }
   }
 
+  /** Parse the longest matching string between alternatives.
+    * The order of the strings does not matter.
+    * If not string matches, this parser results in an epsilon failure.
+    *
+    *  This parser doesn't backtrack.
+    */
   def stringIn1(strings: List[String]): Parser1[Unit] =
     strings match {
       case Nil => fail
@@ -1807,9 +1813,9 @@ object Parser extends ParserInstances {
       val startOffset = state.offset
       var offset = state.offset
       var tree = radix
-      var cont = true
-      val s = state.str.length
-      while (cont && offset < s) {
+      var cont = offset < state.str.length
+      var lastMatch = -1
+      while (cont) {
         val c = state.str.charAt(offset)
         val idx = Arrays.binarySearch(tree.fsts, c)
         if (idx >= 0) {
@@ -1817,8 +1823,11 @@ object Parser extends ParserInstances {
           val prefix = child._1
           // accept the prefix fo this character
           if (state.str.startsWith(prefix, offset)) {
+            val children = child._2
             offset += prefix.length
-            tree = child._2
+            tree = children
+            cont = offset < state.str.length
+            if(children.word) lastMatch = offset
           } else {
             cont = false
           }
@@ -1826,10 +1835,11 @@ object Parser extends ParserInstances {
           cont = false
         }
       }
-      if (!tree.word) {
+      if (lastMatch < 0) {
         state.error = Chain.one(Expectation.OneStr(startOffset, all))
+        state.offset = startOffset
       } else {
-        state.offset = offset
+        state.offset = lastMatch
       }
     }
 

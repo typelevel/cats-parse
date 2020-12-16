@@ -67,7 +67,7 @@ object RadixNode {
           groupByNonEmptyPrefix(
             nonEmpty.tail,
             nonEmpty.head,
-            NonEmptyList.one(strings.head),
+            NonEmptyList.one(nonEmpty.head),
             Nil
           ).reverse.map { case (fst, prefix, v) => (fst, (prefix, fromSortedStrings(v))) }
         val (fsts, children) = grouped.unzip
