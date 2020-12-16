@@ -1826,7 +1826,7 @@ object Parser extends ParserInstances {
             offset += prefix.length
             tree = children
             cont = offset < state.str.length
-            if(children.word) lastMatch = offset
+            if (children.word) lastMatch = offset
           } else {
             cont = false
           }

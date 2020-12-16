@@ -593,7 +593,11 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   test("longest match stringIn1") {
     parseTest(Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string, "foo", "foo")
-    parseTest(Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string, "foobat", "foobat")
+    parseTest(
+      Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string,
+      "foobat",
+      "foobat"
+    )
     parseTest(Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string, "foot", "foo")
     parseTest(Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string, "foobal", "foo")
   }
