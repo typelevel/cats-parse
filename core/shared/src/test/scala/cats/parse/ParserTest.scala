@@ -591,6 +591,13 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(Parser.product(fooP, barP), "foobar", ((), ()))
   }
 
+  test("longest match stringIn1") {
+    parseTest(Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string, "foo", "foo")
+    parseTest(Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string, "foobat", "foobat")
+    parseTest(Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string, "foot", "foo")
+    parseTest(Parser.stringIn1(List("foo", "foobar", "foofoo", "foobat")).string, "foobal", "foo")
+  }
+
   property("Parser on success replaces parsed value") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.as("something").parse(str)
