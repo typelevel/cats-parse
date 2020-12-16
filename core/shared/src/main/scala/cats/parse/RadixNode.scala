@@ -25,8 +25,13 @@ import cats.data.NonEmptyList
 
 import scala.annotation.tailrec
 
-class RadixNode(val children: Map[Char, (String, RadixNode)], val word: Boolean) {
-  override def toString(): String = s"RadixNode($children, $word)"
+class RadixNode(
+    val fsts: Array[Char],
+    val children: Array[(String, RadixNode)],
+    val word: Boolean
+) {
+  override def toString(): String =
+    s"RadixNode(${fsts.mkString("[", ", ", "]")}, ${children.mkString("[", ", ", "]")}, $word)"
 }
 
 object RadixNode {
@@ -36,8 +41,8 @@ object RadixNode {
         keys: List[String],
         prefix: String,
         current: NonEmptyList[String],
-        acc: Map[String, NonEmptyList[String]]
-    ): Map[String, NonEmptyList[String]] =
+        acc: List[(Char, String, NonEmptyList[String])]
+    ): List[(Char, String, NonEmptyList[String])] =
       keys match {
         case key :: keys =>
           val prefixSize = commonPrefix(prefix, key)
@@ -47,14 +52,14 @@ object RadixNode {
               keys,
               key,
               NonEmptyList.one(key),
-              acc.updated(prefix, current.map(_.drop(prefix.size)).reverse)
+              (prefix(0), prefix, current.map(_.drop(prefix.size)).reverse) :: acc
             )
           } else {
             // clip the prefix to the length, and continue
             groupByNonEmptyPrefix(keys, prefix.take(prefixSize), key :: current, acc)
           }
         case Nil =>
-          acc.updated(prefix, current.map(_.drop(prefix.size)).reverse)
+          (prefix(0), prefix, current.map(_.drop(prefix.size)).reverse) :: acc
       }
     NonEmptyList.fromList(strings.filter(_.nonEmpty)) match {
       case Some(nonEmpty) =>
@@ -63,20 +68,16 @@ object RadixNode {
             nonEmpty.tail,
             nonEmpty.head,
             NonEmptyList.one(strings.head),
-            Map.empty
-          ).view.mapValues(fromSortedStrings(_))
-        new RadixNode(
-          grouped.map { case (k, v) =>
-            (k(0), (k, v))
-          }.toMap,
-          nonEmpty.size < strings.size
-        )
+            Nil
+          ).reverse.map { case (fst, prefix, v) => (fst, (prefix, fromSortedStrings(v))) }
+        val (fsts, children) = grouped.unzip
+        new RadixNode(fsts.toArray, children.toArray, nonEmpty.size < strings.size)
       case None =>
         leaf
     }
   }
 
-  private val leaf = new RadixNode(Map.empty, true)
+  private val leaf = new RadixNode(Array.empty, Array.empty, true)
 
   private def commonPrefix(s1: String, s2: String): Int = {
     @tailrec

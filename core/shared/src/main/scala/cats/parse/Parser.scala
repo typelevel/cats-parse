@@ -26,6 +26,7 @@ import cats.data.{AndThen, Chain, NonEmptyList}
 
 import cats.implicits._
 import scala.collection.mutable.ListBuffer
+import java.util.Arrays
 
 /** Parser[A] attempts to extract an `A` value from the given input,
   * potentially moving its offset forward in the process.
@@ -855,7 +856,11 @@ object Parser extends ParserInstances {
   }
 
   def stringIn1(strings: List[String]): Parser1[Unit] =
-    Impl.StringIn1(strings)
+    strings match {
+      case Nil => fail
+      case s :: Nil => string1(s)
+      case two => Impl.StringIn1(two)
+    }
 
   private[this] val emptyStringParser: Parser[String] =
     pure("")
@@ -1803,12 +1808,20 @@ object Parser extends ParserInstances {
       var offset = state.offset
       var tree = radix
       var cont = true
-      while (cont && offset < state.str.size && tree.children.contains(state.str(offset))) {
-        val (prefix, child) = tree.children(state.str(offset))
-        // accept the prefix fo this character
-        if (state.str.startsWith(prefix, offset)) {
-          offset += prefix.size
-          tree = child
+      val s = state.str.length
+      while (cont && offset < s) {
+        val c = state.str.charAt(offset)
+        val idx = Arrays.binarySearch(tree.fsts, c)
+        if (idx >= 0) {
+          val child = tree.children(idx)
+          val prefix = child._1
+          // accept the prefix fo this character
+          if (state.str.startsWith(prefix, offset)) {
+            offset += prefix.length
+            tree = child._2
+          } else {
+            cont = false
+          }
         } else {
           cont = false
         }
