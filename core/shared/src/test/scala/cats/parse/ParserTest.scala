@@ -102,7 +102,7 @@ object ParserGen {
 
   val stringIn1: Gen[GenT[Parser1]] =
     Arbitrary.arbitrary[List[String]].map { cs =>
-      if (cs.size < 2 || cs.exists(_.isEmpty)) GenT(Parser.fail: Parser1[Unit])
+      if (cs.exists(_.isEmpty)) GenT(Parser.fail: Parser1[Unit])
       else GenT(Parser.stringIn1(cs))
     }
 

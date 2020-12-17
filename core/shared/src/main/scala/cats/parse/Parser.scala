@@ -525,10 +525,7 @@ object Parser extends ParserInstances {
               case (Str(_, s1), Str(_, s2)) => s1.compare(s2)
               case (Str(_, _), _) => -1
               case (OneStr(_, _), Str(_, _)) => 1
-              case (OneStr(_, s1), OneStr(_, s2)) =>
-                val s = s1.lengthCompare(s2.size)
-                if (s == 0) s1.compare(s2)
-                else s
+              case (OneStr(_, s1), OneStr(_, s2)) => s1.compare(s2)
               case (OneStr(_, _), _) => -1
               case (InRange(_, _, _), Str(_, _) | OneStr(_, _)) => 1
               case (InRange(_, l1, u1), InRange(_, l2, u2)) =>
@@ -857,9 +854,8 @@ object Parser extends ParserInstances {
 
   /** Parse the longest matching string between alternatives.
     * The order of the strings does not matter.
-    * If not string matches, this parser results in an epsilon failure.
     *
-    *  This parser doesn't backtrack.
+    * If no string matches, this parser results in an epsilon failure.
     */
   def stringIn1(strings: List[String]): Parser1[Unit] =
     strings match {
@@ -1811,9 +1807,10 @@ object Parser extends ParserInstances {
 
     final def stringIn1[A](radix: RadixNode, all: List[String], state: State): Unit = {
       val startOffset = state.offset
+      val strLength = state.str.length
       var offset = state.offset
       var tree = radix
-      var cont = offset < state.str.length
+      var cont = offset < strLength
       var lastMatch = -1
       while (cont) {
         val c = state.str.charAt(offset)
@@ -1825,7 +1822,7 @@ object Parser extends ParserInstances {
             val children = tree.children(idx)
             offset += prefix.length
             tree = children
-            cont = offset < state.str.length
+            cont = offset < strLength
             if (children.word) lastMatch = offset
           } else {
             cont = false
