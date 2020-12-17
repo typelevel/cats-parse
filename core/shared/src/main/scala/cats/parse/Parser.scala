@@ -1181,8 +1181,8 @@ object Parser {
       case s if Impl.alwaysSucceeds(s) => unit
       case _ =>
         Impl.unmap0(pa) match {
-          case Impl.StartParser0 => Impl.StartParser0
-          case Impl.EndParser0 => Impl.EndParser0
+          case Impl.StartParser => Impl.StartParser
+          case Impl.EndParser => Impl.EndParser
           case n @ Impl.Not(_) => n
           case p @ Impl.Peek(_) => p
           case other => Impl.Void0(other)
@@ -1277,11 +1277,11 @@ object Parser {
 
   /** succeeds when we are at the start
     */
-  def start: Parser0[Unit] = Impl.StartParser0
+  def start: Parser0[Unit] = Impl.StartParser
 
   /** succeeds when we are at the end
     */
-  def end: Parser0[Unit] = Impl.EndParser0
+  def end: Parser0[Unit] = Impl.EndParser
 
   /** If we fail, rewind the offset back so that
     * we can try other branches. This tends
@@ -1425,9 +1425,7 @@ object Parser {
     final def doesBacktrack(p: Parser0[Any]): Boolean =
       p match {
         case Backtrack0(_) | Backtrack(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
-            Length(_) | StartParser0 | EndParser0 | Index | Pure(_) | Fail() | FailWith(_) | Not(
-              _
-            ) =>
+            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) | Not(_) =>
           true
         case Map(p, _) => doesBacktrack(p)
         case Map1(p, _) => doesBacktrack(p)
@@ -1517,7 +1515,7 @@ object Parser {
         case Defer0(fn) =>
           Defer0(() => unmap0(compute0(fn)))
         case Rep0(p, _) => Rep0(unmap(p), Accumulator0.unitAccumulator0)
-        case StartParser0 | EndParser0 | TailRecM0(_, _) | FlatMap0(_, _) =>
+        case StartParser | EndParser | TailRecM0(_, _) | FlatMap0(_, _) =>
           // we can't transform this significantly
           pa
       }
@@ -1671,7 +1669,7 @@ object Parser {
         Impl.string0(parser, state)
     }
 
-    case object StartParser0 extends Parser0[Unit] {
+    case object StartParser extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
         if (state.offset != 0) {
           state.error = Chain.one(Expectation.StartOfString(state.offset))
@@ -1680,7 +1678,7 @@ object Parser {
       }
     }
 
-    case object EndParser0 extends Parser0[Unit] {
+    case object EndParser extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
         if (state.offset != state.str.length) {
           state.error = Chain.one(Expectation.EndOfString(state.offset, state.str.length))
