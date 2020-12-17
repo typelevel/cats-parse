@@ -1041,8 +1041,8 @@ object Parser {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def tailRecM[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
-    Impl.TailRecM(init, fn)
+  def tailRecM0[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
+    Impl.TailRecM0(init, fn)
 
   /** tail recursive monadic flatMaps on Parser
     * This is a rarely used function, but needed to implement cats.FlatMap
@@ -1051,7 +1051,7 @@ object Parser {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def tailRecM1[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
+  def tailRecM[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
     Impl.TailRecM1(init, fn)
 
   /** Lazily create a Parser
@@ -1369,7 +1369,7 @@ object Parser {
         map(product(pf, pa)) { case (fn, a) => fn(a) }
 
       def tailRecM[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
-        tailRecM1(init)(fn)
+        Parser0.this.tailRecM(init)(fn)
 
       def combineK[A](pa: Parser[A], pb: Parser[A]): Parser[A] =
         Parser.oneOf(pa :: pb :: Nil)
@@ -1517,7 +1517,7 @@ object Parser {
         case Defer0(fn) =>
           Defer0(() => unmap0(compute0(fn)))
         case Rep0(p, _) => Rep0(unmap(p), Accumulator0.unitAccumulator0)
-        case StartParser0 | EndParser0 | TailRecM(_, _) | FlatMap0(_, _) =>
+        case StartParser0 | EndParser0 | TailRecM0(_, _) | FlatMap0(_, _) =>
           // we can't transform this significantly
           pa
       }
@@ -1758,7 +1758,7 @@ object Parser {
       }
     }
 
-    final def oneOf0[A](all: Array[Parser0[A]], state: State): A = {
+    final def oneOf[A](all: Array[Parser0[A]], state: State): A = {
       val offset = state.offset
       var errs: Chain[Expectation] = Chain.nil
       var idx = 0
@@ -1789,14 +1789,14 @@ object Parser {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary: Array[Parser0[A]] = all.toArray
 
-      override def parseMut(state: State): A = oneOf0(ary, state)
+      override def parseMut(state: State): A = oneOf(ary, state)
     }
 
     case class OneOf0[A](all: List[Parser0[A]]) extends Parser0[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary = all.toArray
 
-      override def parseMut(state: State): A = oneOf0(ary, state)
+      override def parseMut(state: State): A = oneOf(ary, state)
     }
 
     final def prod[A, B](pa: Parser0[A], pb: Parser0[B], state: State): (A, B) = {
@@ -1942,7 +1942,7 @@ object Parser {
       null.asInstanceOf[B]
     }
 
-    case class TailRecM[A, B](init: A, fn: A => Parser0[Either[A, B]]) extends Parser0[B] {
+    case class TailRecM0[A, B](init: A, fn: A => Parser0[Either[A, B]]) extends Parser0[B] {
       private[this] val p1 = fn(init)
 
       override def parseMut(state: State): B = Impl.tailRecM(p1, fn, state)
@@ -2282,7 +2282,7 @@ abstract class ParserInstances {
         Parser.oneOf0(pa :: pb :: Nil)
 
       def tailRecM[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
-        Parser.tailRecM(init)(fn)
+        Parser0.tailRecM0(init)(fn)
 
       override def void[A](pa: Parser0[A]): Parser0[Unit] =
         Parser.void0(pa)
