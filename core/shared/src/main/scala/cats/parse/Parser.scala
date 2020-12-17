@@ -1214,12 +1214,12 @@ object Parser {
     */
   def string0(pa: Parser0[Any]): Parser0[String] =
     pa match {
-      case str @ Impl.StringP(_) => str
+      case str @ Impl.StringP0(_) => str
       case s1: Parser[_] => string(s1)
       case _ =>
         Impl.unmap0(pa) match {
           case Impl.Pure(_) | Impl.Index => emptyStringParser0
-          case notEmpty => Impl.StringP(notEmpty)
+          case notEmpty => Impl.StringP0(notEmpty)
         }
     }
 
@@ -1228,7 +1228,7 @@ object Parser {
     */
   def string(pa: Parser[Any]): Parser[String] =
     pa match {
-      case str @ Impl.StringP1(_) => str
+      case str @ Impl.StringP(_) => str
       case _ =>
         Impl.unmap(pa) match {
           case len @ Impl.Length(_) => len
@@ -1241,7 +1241,7 @@ object Parser {
             // these are really Parser[Nothing]
             // but scala can't see that, so we cast
             f.asInstanceOf[Parser[String]]
-          case notStr => Impl.StringP1(notStr)
+          case notStr => Impl.StringP(notStr)
         }
     }
 
@@ -1465,7 +1465,7 @@ object Parser {
           unmap0(p)
         case Select0(p, fn) =>
           Select0(p, unmap0(fn))
-        case StringP(s) =>
+        case StringP0(s) =>
           // StringP is added privately, and only after unmap0
           s
         case Void0(v) =>
@@ -1542,7 +1542,7 @@ object Parser {
           unmap(p)
         case Select(p, fn) =>
           Select(p, unmap0(fn))
-        case StringP1(s) =>
+        case StringP(s) =>
           // StringP is added privately, and only after unmap
           s
         case Void(v) =>
@@ -1659,12 +1659,12 @@ object Parser {
       str
     }
 
-    case class StringP[A](parser: Parser0[A]) extends Parser0[String] {
+    case class StringP0[A](parser: Parser0[A]) extends Parser0[String] {
       override def parseMut(state: State): String =
         Impl.string0(parser, state)
     }
 
-    case class StringP1[A](parser: Parser[A]) extends Parser[String] {
+    case class StringP[A](parser: Parser[A]) extends Parser[String] {
       override def parseMut(state: State): String =
         Impl.string0(parser, state)
     }
