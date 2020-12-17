@@ -29,15 +29,16 @@ import org.openjdk.jmh.annotations._
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 class StringInBenchmarks {
-  val text: String =
-    "foofoo"
+  val inputs =
+    List("foofoo", "bar", "foobat", "foot", "foobar")
 
-  val stringIn = Parser.stringIn1(List("foo", "bar", "foobar", "foofoo"))
+  val stringIn = Parser.stringIn1(List("foo", "bar", "foobar", "foofoo", "foobaz"))
 
   val oneOf =
     Parser.oneOf1(
       List(
         Parser.string1("foobar"),
+        Parser.string1("foobaz"),
         Parser.string1("foofoo"),
         Parser.string1("foo"),
         Parser.string1("bar")
@@ -46,16 +47,10 @@ class StringInBenchmarks {
 
   @Benchmark
   def stringInParse(): Unit =
-    stringIn.parseAll(text) match {
-      case Right(()) => ()
-      case Left(e) => sys.error(e.toString)
-    }
+    inputs.foreach(stringIn.parseAll(_))
 
   @Benchmark
   def oneOfParse(): Unit =
-    oneOf.parseAll(text) match {
-      case Right(()) => ()
-      case Left(e) => sys.error(e.toString)
-    }
+    inputs.foreach(oneOf.parseAll(_))
 
 }
