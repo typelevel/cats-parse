@@ -858,7 +858,7 @@ object Parser extends ParserInstances {
     * If no string matches, this parser results in an epsilon failure.
     */
   def stringIn1(strings: List[String]): Parser1[Unit] =
-    strings match {
+    strings.distinct match {
       case Nil => fail
       case s :: Nil => string1(s)
       case two => Impl.StringIn1(two)

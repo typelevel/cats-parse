@@ -28,6 +28,7 @@ import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Cogen}
 
 import cats.implicits._
+import scala.util.Random
 
 sealed abstract class GenT[F[_]] { self =>
   type A
@@ -1797,6 +1798,38 @@ class ParserTest extends munit.ScalaCheckSuite {
       val right = pa.map(fn).filter(_.isDefined).map(_.get)
 
       assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("oneOf(string1(s)*) success => stringIn1(s*) success") {
+    forAll { (ss0: List[String], toParse: String) =>
+      val ss = ss0.filterNot(_.isEmpty)
+      val oneOfs = Parser.oneOf1(ss.map(Parser.string1))
+      val stringIn = Parser.stringIn1(ss)
+      if (oneOfs.parse(toParse).isRight) assert(stringIn.parse(toParse).isRight)
+    }
+  }
+
+  property("stringIn1(List(s)) == string1(s)") {
+    forAll { (s: String) =>
+      if (s.nonEmpty)
+        assertEquals(Parser.stringIn1(List(s)), Parser.string1(s))
+    }
+  }
+
+  property("stringIn1(List(s, s)) == string1(s)") {
+    forAll { (s: String) =>
+      if (s.nonEmpty)
+        assertEquals(Parser.stringIn1(List(s, s)), Parser.string1(s))
+    }
+  }
+
+  property("string1(s) matches  => stringIn1(ss) matches if s in ss") {
+    forAll { (s: String, ss0: List[String], toParse: String) =>
+      val ss = ss0.filterNot(_.isEmpty)
+      val ss1 = Random.shuffle(s :: ss)
+      if (s.nonEmpty && Parser.string1(s).parse(toParse).isRight)
+        assert(Parser.stringIn1(ss1).parse(toParse).isRight)
     }
   }
 }
