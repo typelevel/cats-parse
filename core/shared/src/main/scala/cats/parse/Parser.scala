@@ -490,7 +490,6 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     new Parser.Soft(this)
 }
 
-object Parser0 extends ParserInstances {}
 object Parser {
 
   /** An expectation reports the kind or parsing error
@@ -2233,7 +2232,8 @@ object Parser {
   }
 }
 
-abstract class ParserInstances {
+//holds just the typeclass instances, and brings them in implicit scope
+object Parser0 {
   implicit val catInstancesParser0
       : Monad[Parser0] with Alternative[Parser0] with Defer[Parser0] with FunctorFilter[Parser0] =
     new Monad[Parser0] with Alternative[Parser0] with Defer[Parser0] with FunctorFilter[Parser0] {
