@@ -1369,7 +1369,7 @@ object Parser {
         map(product(pf, pa)) { case (fn, a) => fn(a) }
 
       def tailRecM[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
-        Parser0.this.tailRecM(init)(fn)
+        Parser.this.tailRecM(init)(fn)
 
       def combineK[A](pa: Parser[A], pb: Parser[A]): Parser[A] =
         Parser.oneOf(pa :: pb :: Nil)
@@ -2280,7 +2280,7 @@ abstract class ParserInstances {
         Parser.oneOf0(pa :: pb :: Nil)
 
       def tailRecM[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
-        Parser0.tailRecM0(init)(fn)
+        Parser.tailRecM0(init)(fn)
 
       override def void[A](pa: Parser0[A]): Parser0[Unit] =
         Parser.void0(pa)
