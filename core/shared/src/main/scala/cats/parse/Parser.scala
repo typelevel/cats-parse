@@ -124,8 +124,8 @@ sealed abstract class Parser[+A] {
     *
     * This method is similar to Parser#orElse but returns Either.
     */
-  def or[B](pb: Parser[B]): Parser[Either[A, B]] =
-    map(Left(_)).orElse(pb.map(Right(_)))
+  def or[B](pb: Parser[B]): Parser[Either[B, A]] =
+    map(Right(_)).orElse(pb.map(Left(_)))
 
   /** Parse without capturing values.
     *
@@ -380,8 +380,8 @@ sealed abstract class Parser1[+A] extends Parser[A] {
 
   /** This method overrides `Parser#or` to refine the return type.
     */
-  def or[B](pb: Parser1[B]): Parser1[Either[A, B]] =
-    map(Left(_)).orElse1(pb.map(Right(_)))
+  def or[B](pb: Parser1[B]): Parser1[Either[B, A]] =
+    map(Right(_)).orElse1(pb.map(Left(_)))
 
   /** This method overrides `Parser#~` to refine the return type.
     */
