@@ -862,6 +862,32 @@ object Parser extends ParserInstances {
     }
   }
 
+  /** If this right parser fails to parse its input with an epsilon error,
+    * try the left parser instead.
+    *
+    * If the right parser fails with an arresting error, the left parser
+    * won't be tried.
+    *
+    * Backtracking may be used on the left parser to allow the right
+    * one to pick up after any error, resetting any state that was
+    * modified by the left parser.
+    */
+  def either[A, B](left: Parser[A], right: Parser[B]): Parser[Either[A, B]] =
+    oneOf(right.map(Right(_)) :: left.map(Left(_)) :: Nil)
+
+  /** If this right parser fails to parse its input with an epsilon error,
+    * try the left parser instead.
+    *
+    * If the right parser fails with an arresting error, the left parser
+    * won't be tried.
+    *
+    * Backtracking may be used on the left parser to allow the right
+    * one to pick up after any error, resetting any state that was
+    * modified by the left parser.
+    */
+  def either1[A, B](left: Parser1[A], right: Parser1[B]): Parser1[Either[A, B]] =
+    oneOf1(right.map(Right(_)) :: left.map(Left(_)) :: Nil)
+
   private[this] val emptyStringParser: Parser[String] =
     pure("")
 
