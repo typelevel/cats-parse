@@ -411,7 +411,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** This method overrides `Parser0#flatMap` to refine the return type.
     */
   override def flatMap[B](fn: A => Parser0[B]): Parser[B] =
-    Parser.flatMap(this)(fn)
+    Parser.flatMap10(this)(fn)
 
   /** This method overrides `Parser0#as` to refine the return type.
     */
@@ -1010,7 +1010,7 @@ object Parser {
     *  flatMap always has to allocate a parser, and the
     *  parser is less amenable to optimization
     */
-  def flatMap[A, B](pa: Parser[A])(fn: A => Parser0[B]): Parser[B] =
+  def flatMap10[A, B](pa: Parser[A])(fn: A => Parser0[B]): Parser[B] =
     Impl.FlatMap(pa, fn)
 
   /** Standard monadic flatMap where you end with a Parser
@@ -1337,7 +1337,7 @@ object Parser {
         fa.filter { a => !fn(a) }
 
       def flatMap[A, B](fa: Parser[A])(fn: A => Parser[B]): Parser[B] =
-        Parser.this.flatMap(fa)(fn)
+        Parser.this.flatMap10(fa)(fn)
 
       override def product[A, B](pa: Parser[A], pb: Parser[B]): Parser[(A, B)] =
         Parser.this.product(pa, pb)
