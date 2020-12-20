@@ -192,10 +192,10 @@ object ParserGen {
     implicit val ca: Cogen[ga.A] = ga.cogen
     implicit val cb: Cogen[gb.A] = gb.cogen
     Gen.oneOf(
-      GenT[Parser, (ga.A, gb.A)](Parser.product(ga.fa, gb.fa)),
+      GenT[Parser, (ga.A, gb.A)](Parser.product10(ga.fa, gb.fa)),
       GenT[Parser, ga.A](ga.fa <* gb.fa),
       GenT[Parser, gb.A](ga.fa *> gb.fa),
-      GenT[Parser, (ga.A, ga.A)](Parser.product(ga.fa, ga.fa))
+      GenT[Parser, (ga.A, ga.A)](Parser.product10(ga.fa, ga.fa))
     )
   }
 
@@ -579,7 +579,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   test("product tests") {
     parseTest(Parser.product01(fooP, barP), "foobar", ((), ()))
-    parseTest(Parser.product(fooP, barP), "foobar", ((), ()))
+    parseTest(Parser.product10(fooP, barP), "foobar", ((), ()))
     parseTest(Parser.product0(fooP, barP), "foobar", ((), ()))
   }
 
@@ -1177,11 +1177,11 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       assertEquals(
         (p1.fa *> p2.fa).parse(str),
-        Parser.product(p1.fa.void, p2.fa).map(_._2).parse(str)
+        Parser.product10(p1.fa.void, p2.fa).map(_._2).parse(str)
       )
       assertEquals(
         (p1.fa <* p2.fa).parse(str),
-        Parser.product(p1.fa, p2.fa.void).map(_._1).parse(str)
+        Parser.product10(p1.fa, p2.fa.void).map(_._1).parse(str)
       )
     }
   }

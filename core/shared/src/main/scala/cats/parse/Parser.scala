@@ -366,7 +366,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** This method overrides `Parser0#~` to refine the return type.
     */
   override def ~[B](that: Parser0[B]): Parser[(A, B)] =
-    Parser.product(this, that)
+    Parser.product10(this, that)
 
   /** Compose two parsers, ignoring the values extracted by the
     * left-hand parser.
@@ -891,7 +891,7 @@ object Parser {
     */
   def product0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
-      case f1: Parser[A] => product(f1, second)
+      case f1: Parser[A] => product10(f1, second)
       case _ =>
         second match {
           case s1: Parser[B] =>
@@ -902,7 +902,7 @@ object Parser {
 
   /** product with the first argument being a Parser
     */
-  def product[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
+  def product10[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
     Impl.Prod(first, second)
 
   /** product with the second argument being a Parser
@@ -1340,7 +1340,7 @@ object Parser {
         Parser.this.flatMap10(fa)(fn)
 
       override def product[A, B](pa: Parser[A], pb: Parser[B]): Parser[(A, B)] =
-        Parser.this.product(pa, pb)
+        Parser.this.product10(pa, pb)
 
       override def map2[A, B, C](pa: Parser[A], pb: Parser[B])(fn: (A, B) => C): Parser[C] =
         map(product(pa, pb)) { case (a, b) => fn(a, b) }
