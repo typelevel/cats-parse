@@ -439,7 +439,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * list as a successful parse.
     */
   def rep0: Parser0[List[A]] =
-    Parser.rep0(this)
+    Parser.repAs0[A, List[A]](this)
 
   /** Use this parser to parse at least `min` values (where `min >= 0`).
     *
@@ -464,7 +464,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * parses.
     */
   def rep: Parser[NonEmptyList[A]] =
-    Parser.rep(this, min = 1)
+    Parser.repAs(this, min = 1)
 
   /** Use this parser to parse at least `min` values (where `min >= 1`).
     *
@@ -472,7 +472,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * values are produced an arresting failure will be returned.
     */
   def rep(min: Int): Parser[NonEmptyList[A]] =
-    Parser.rep(this, min = min)
+    Parser.repAs(this, min = min)
 
   /** This method overrides `Parser0#between` to refine the return type
     */
@@ -860,19 +860,8 @@ object Parser {
   /** Repeat this parser 0 or more times
     * note: this can wind up parsing nothing
     */
-  def rep0[A](p1: Parser[A]): Parser0[List[A]] =
-    repAs0[A, List[A]](p1)
-
-  /** Repeat this parser 0 or more times
-    * note: this can wind up parsing nothing
-    */
   def repAs0[A, B](p1: Parser[A])(implicit acc: Accumulator0[A, B]): Parser0[B] =
     Impl.Rep0(p1, acc)
-
-  /** Repeat this parser 1 or more times
-    */
-  def rep[A](p1: Parser[A], min: Int): Parser[NonEmptyList[A]] =
-    repAs[A, NonEmptyList[A]](p1, min)
 
   /** Repeat this parser 1 or more times
     */

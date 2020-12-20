@@ -99,7 +99,7 @@ object Rfc5234 {
     * other contexts.
     */
   val lwsp: Parser0[Unit] =
-    Parser.rep0(wsp.orElse(crlf *> wsp)).void
+    Parser.repAs0[Unit, List[Unit]](wsp.orElse(crlf *> wsp)).void
 
   /** 8 bits of data
     */
