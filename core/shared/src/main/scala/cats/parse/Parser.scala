@@ -124,8 +124,8 @@ sealed abstract class Parser[+A] {
     *
     * This method is similar to Parser#orElse but returns Either.
     */
-  def or[B](pb: Parser[B]): Parser[Either[B, A]] =
-    map(Right(_)).orElse(pb.map(Left(_)))
+  def eitherOr[B](pb: Parser[B]): Parser[Either[A, B]] =
+    Parser.eitherOr(this, pb)
 
   /** Parse without capturing values.
     *
@@ -378,10 +378,10 @@ sealed abstract class Parser1[+A] extends Parser[A] {
   override def backtrack: Parser1[A] =
     Parser.backtrack1(this)
 
-  /** This method overrides `Parser#or` to refine the return type.
+  /** This method overrides `Parser#eitherOr` to refine the return type.
     */
-  def or[B](pb: Parser1[B]): Parser1[Either[B, A]] =
-    map(Right(_)).orElse1(pb.map(Left(_)))
+  def eitherOr[B](pb: Parser1[B]): Parser1[Either[A, B]] =
+    Parser.eitherOr1(this, pb)
 
   /** This method overrides `Parser#~` to refine the return type.
     */
@@ -862,31 +862,31 @@ object Parser extends ParserInstances {
     }
   }
 
-  /** If this right parser fails to parse its input with an epsilon error,
-    * try the left parser instead.
+  /** If this left parser fails to parse its input with an epsilon error,
+    * try the right parser instead.
     *
-    * If the right parser fails with an arresting error, the left parser
+    * If the left parser fails with an arresting error, the right parser
     * won't be tried.
     *
-    * Backtracking may be used on the left parser to allow the right
+    * Backtracking may be used on the right parser to allow the right
     * one to pick up after any error, resetting any state that was
     * modified by the left parser.
     */
-  def either[A, B](left: Parser[A], right: Parser[B]): Parser[Either[A, B]] =
-    oneOf(right.map(Right(_)) :: left.map(Left(_)) :: Nil)
+  def eitherOr[A, B](left: Parser[A], right: Parser[B]): Parser[Either[A, B]] =
+    oneOf(left.map(Left(_)) :: right.map(Right(_)) :: Nil)
 
-  /** If this right parser fails to parse its input with an epsilon error,
-    * try the left parser instead.
+  /** If this left parser fails to parse its input with an epsilon error,
+    * try the right parser instead.
     *
-    * If the right parser fails with an arresting error, the left parser
+    * If the left parser fails with an arresting error, the right parser
     * won't be tried.
     *
-    * Backtracking may be used on the left parser to allow the right
+    * Backtracking may be used on the right parser to allow the right
     * one to pick up after any error, resetting any state that was
     * modified by the left parser.
     */
-  def either1[A, B](left: Parser1[A], right: Parser1[B]): Parser1[Either[A, B]] =
-    oneOf1(right.map(Right(_)) :: left.map(Left(_)) :: Nil)
+  def eitherOr1[A, B](left: Parser1[A], right: Parser1[B]): Parser1[Either[A, B]] =
+    oneOf1(left.map(Left(_)) :: right.map(Right(_)) :: Nil)
 
   private[this] val emptyStringParser: Parser[String] =
     pure("")

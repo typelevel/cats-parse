@@ -1781,9 +1781,9 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("Or parser works as expected") {
     forAll { (pa: Parser1[Int], pb: Parser1[String], str: String) =>
-      val left = pa.or(pb).map {
-        case Right(value) => value.toString()
-        case Left(value) => value
+      val left = pa.eitherOr(pb).map {
+        case Left(value) => value.toString()
+        case Right(value) => value
       }
       val right = Parser.oneOf1(pa.map(_.toString) :: pb :: Nil)
 
