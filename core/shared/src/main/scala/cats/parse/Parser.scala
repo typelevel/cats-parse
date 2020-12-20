@@ -1214,10 +1214,10 @@ object Parser extends ParserInstances {
   def string(pa: Parser[Any]): Parser[String] =
     pa match {
       case str @ Impl.StringP(_) => str
+      case s1: Parser1[_] => string1(s1)
       case _ =>
         Impl.unmap(pa) match {
           case Impl.Pure(_) | Impl.Index => emptyStringParser
-          case s1: Parser1[_] => string1(s1)
           case notEmpty => Impl.StringP(notEmpty)
         }
     }
