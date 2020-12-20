@@ -699,13 +699,13 @@ object Parser {
     */
   final class Soft[+A](parser: Parser[A]) extends Soft0(parser) {
     override def ~[B](that: Parser0[B]): Parser[(A, B)] =
-      softProduct(parser, that)
+      softProduct10(parser, that)
 
     override def *>[B](that: Parser0[B]): Parser[B] =
-      softProduct(void(parser), that).map(_._2)
+      softProduct10(void(parser), that).map(_._2)
 
     override def <*[B](that: Parser0[B]): Parser[A] =
-      softProduct(parser, void0(that)).map(_._1)
+      softProduct10(parser, void0(that)).map(_._1)
   }
 
   /** If we can parse this then that, do so,
@@ -919,7 +919,7 @@ object Parser {
     */
   def softProduct0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
-      case f1: Parser[A] => softProduct(f1, second)
+      case f1: Parser[A] => softProduct10(f1, second)
       case _ =>
         second match {
           case s1: Parser[B] =>
@@ -935,7 +935,7 @@ object Parser {
     *
     *  see @Parser.soft
     */
-  def softProduct[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
+  def softProduct10[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
     Impl.SoftProd(first, second)
 
   /** softProduct with the second argument being a Parser

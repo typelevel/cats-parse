@@ -199,7 +199,7 @@ object ParserGen {
     )
   }
 
-  def softProduct(ga: GenT[Parser], gb: GenT[Parser0]): Gen[GenT[Parser]] = {
+  def softProduct10(ga: GenT[Parser], gb: GenT[Parser0]): Gen[GenT[Parser]] = {
     implicit val ca: Cogen[ga.A] = ga.cogen
     implicit val cb: Cogen[gb.A] = gb.cogen
     Gen.oneOf(
@@ -491,7 +491,7 @@ object ParserGen {
         Gen.frequency(
           (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => product(g1, g2) }),
           (1, Gen.zip(rec, gen0).flatMap { case (g1, g2) => product10(g1, g2) }),
-          (1, Gen.zip(rec, gen0).flatMap { case (g1, g2) => softProduct(g1, g2) }),
+          (1, Gen.zip(rec, gen0).flatMap { case (g1, g2) => softProduct10(g1, g2) }),
           (1, Gen.zip(rec, rec, pures).flatMap { case (g1, g2, p) => orElse(g1, g2, p) })
         )
       )
@@ -1301,7 +1301,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("(a1.soft ~ b) == softProduct(a, b)") {
     forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val left1 = a.fa.soft ~ b.fa
-      val right1 = Parser.softProduct(a.fa, b.fa)
+      val right1 = Parser.softProduct10(a.fa, b.fa)
       assertEquals(left1.parse(str), right1.parse(str))
 
       val left2 = b.fa.soft ~ a.fa
@@ -1310,7 +1310,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
       assertEquals(
         (a.fa.soft *> b.fa).parse(str),
-        Parser.softProduct(a.fa.void, b.fa).map(_._2).parse(str)
+        Parser.softProduct10(a.fa.void, b.fa).map(_._2).parse(str)
       )
       assertEquals(
         (b.fa.with1.soft <* a.fa).parse(str),
