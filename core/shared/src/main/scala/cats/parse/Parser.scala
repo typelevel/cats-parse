@@ -862,31 +862,31 @@ object Parser extends ParserInstances {
     }
   }
 
-  /** If this right parser fails to parse its input with an epsilon error,
-    * try the left parser instead.
+  /** If the first parser fails to parse its input with an epsilon error,
+    * try the second parser instead.
     *
-    * If the right parser fails with an arresting error, the left parser
+    * If the first parser fails with an arresting error, the second parser
     * won't be tried.
     *
-    * Backtracking may be used on the left parser to allow the right
+    * Backtracking may be used on the first parser to allow the second
     * one to pick up after any error, resetting any state that was
-    * modified by the left parser.
+    * modified by the first parser.
     */
-  def eitherOr[A, B](right: Parser[B], left: Parser[A]): Parser[Either[A, B]] =
-    oneOf(right.map(Right(_)) :: left.map(Left(_)) :: Nil)
+  def eitherOr[A, B](first: Parser[B], second: Parser[A]): Parser[Either[A, B]] =
+    oneOf(first.map(Right(_)) :: second.map(Left(_)) :: Nil)
 
-  /** If this right parser fails to parse its input with an epsilon error,
-    * try the left parser instead.
+  /** If the first parser fails to parse its input with an epsilon error,
+    * try the second parser instead.
     *
-    * If the right parser fails with an arresting error, the left parser
+    * If the first parser fails with an arresting error, the second parser
     * won't be tried.
     *
-    * Backtracking may be used on the left parser to allow the right
+    * Backtracking may be used on the first parser to allow the second
     * one to pick up after any error, resetting any state that was
-    * modified by the left parser.
+    * modified by the first parser.
     */
-  def eitherOr1[A, B](right: Parser1[B], left: Parser1[A]): Parser1[Either[A, B]] =
-    oneOf1(right.map(Right(_)) :: left.map(Left(_)) :: Nil)
+  def eitherOr1[A, B](first: Parser1[B], second: Parser1[A]): Parser1[Either[A, B]] =
+    oneOf1(first.map(Right(_)) :: second.map(Left(_)) :: Nil)
 
   private[this] val emptyStringParser: Parser[String] =
     pure("")
