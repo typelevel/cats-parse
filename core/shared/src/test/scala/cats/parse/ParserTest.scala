@@ -1782,4 +1782,28 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(left.parse(str), right.parse(str))
     }
   }
+
+  property("eitherOr Parser0 works as expected") {
+    forAll { (pa: Parser0[Int], pb: Parser0[String], str: String) =>
+      val left = pa.eitherOr(pb).map {
+        case Left(value) => value
+        case Right(value) => value.toString()
+      }
+      val right = Parser.oneOf0(pa.map(_.toString) :: pb :: Nil)
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("eitherOr Parser works as expected") {
+    forAll { (pa: Parser[Int], pb: Parser[String], str: String) =>
+      val left = pa.eitherOr(pb).map {
+        case Left(value) => value
+        case Right(value) => value.toString()
+      }
+      val right = Parser.oneOf(pa.map(_.toString) :: pb :: Nil)
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
 }

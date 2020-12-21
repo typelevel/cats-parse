@@ -112,6 +112,21 @@ sealed abstract class Parser0[+A] {
   def ? : Parser0[Option[A]] =
     Parser.oneOf0(Parser.map0(this)(Some(_)) :: Parser.Impl.optTail)
 
+  /** If this parser fails to parse its input with an epsilon error,
+    * try the given parser instead.
+    *
+    * If this parser fails with an arresting error, the next parser
+    * won't be tried.
+    *
+    * Backtracking may be used on the left parser to allow the right
+    * one to pick up after any error, resetting any state that was
+    * modified by the left parser.
+    *
+    * This method is similar to Parser#orElse but returns Either.
+    */
+  def eitherOr[B](pb: Parser0[B]): Parser0[Either[B, A]] =
+    Parser.eitherOr0(this, pb)
+
   /** Parse without capturing values.
     *
     * Calling `void` on a parser can be a significant optimization --
@@ -362,6 +377,11 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     */
   override def backtrack: Parser[A] =
     Parser.backtrack(this)
+
+  /** This method overrides `Parser#eitherOr` to refine the return type.
+    */
+  def eitherOr[B](pb: Parser[B]): Parser[Either[B, A]] =
+    Parser.eitherOr(this, pb)
 
   /** This method overrides `Parser0#~` to refine the return type.
     */
@@ -841,6 +861,32 @@ object Parser {
       case two => Impl.OneOf0(two)
     }
   }
+
+  /** If the first parser fails to parse its input with an epsilon error,
+    * try the second parser instead.
+    *
+    * If the first parser fails with an arresting error, the second parser
+    * won't be tried.
+    *
+    * Backtracking may be used on the first parser to allow the second
+    * one to pick up after any error, resetting any state that was
+    * modified by the first parser.
+    */
+  def eitherOr0[A, B](first: Parser0[B], second: Parser0[A]): Parser0[Either[A, B]] =
+    oneOf0(first.map(Right(_)) :: second.map(Left(_)) :: Nil)
+
+  /** If the first parser fails to parse its input with an epsilon error,
+    * try the second parser instead.
+    *
+    * If the first parser fails with an arresting error, the second parser
+    * won't be tried.
+    *
+    * Backtracking may be used on the first parser to allow the second
+    * one to pick up after any error, resetting any state that was
+    * modified by the first parser.
+    */
+  def eitherOr[A, B](first: Parser[B], second: Parser[A]): Parser[Either[A, B]] =
+    oneOf(first.map(Right(_)) :: second.map(Left(_)) :: Nil)
 
   private[this] val emptyStringParser0: Parser0[String] =
     pure("")
