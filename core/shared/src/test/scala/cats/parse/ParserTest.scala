@@ -1783,7 +1783,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Parser0 eitherOr works as expected") {
+  property("eitherOr Parser0 works as expected") {
     forAll { (pa: Parser0[Int], pb: Parser0[String], str: String) =>
       val left = pa.eitherOr(pb).map {
         case Left(value) => value
@@ -1795,7 +1795,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Parser eitherOr works as expected") {
+  property("eitherOr Parser works as expected") {
     forAll { (pa: Parser[Int], pb: Parser[String], str: String) =>
       val left = pa.eitherOr(pb).map {
         case Left(value) => value
