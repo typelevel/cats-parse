@@ -24,7 +24,7 @@ this library has a few goals:
 2. Excellent performance: should be as fast or faster than any parser combinator that has comparable scala version support.
 3. Cats friendliness: method names match cats style, and out of the box support for cats typeclasses.
 4. Precise errors: following the [Haskell Trifecta parsing library](https://hackage.haskell.org/package/trifecta), backtracking is opt-in vs opt-out. This design tends to make it easier to write parsers that point correctly to failure points.
-5. Safety: by introducing Parser1, a parser that must consume at least one character on success, some combinators and methods can be made safer to use and less prone to runtime errors.
+5. Safety: by separating Parser0, a parser that may consume no input, from Parser, a parser must consume at least one character on success. Most combinators and methods can be made safer to use and less prone to runtime errors.
 6. Stability: we are very reluctant to break compatibility between versions. We want to put a minimal tax on users to stay on the latest versions.
 
 # An Example
@@ -37,43 +37,43 @@ import cats.parse.bench.self.JsonStringUtil
 ```
 
 ```scala mdoc
-import cats.parse.{Parser => P, Parser1, Numbers}
+import cats.parse.{Parser0, Parser => P, Numbers}
 import org.typelevel.jawn.ast._
 
 object Json {
-  private[this] val whitespace: Parser1[Unit] = P.charIn(" \t\r\n").void
+  private[this] val whitespace: P[Unit] = P.charIn(" \t\r\n").void
   private[this] val whitespaces0: P[Unit] = whitespace.rep.void
 
-  val parser: Parser1[JValue] = {
-    val recurse = P.defer1(parser)
-    val pnull = P.string1("null").as(JNull)
-    val bool = P.string1("true").as(JBool.True).orElse1(P.string1("false").as(JBool.False))
+  val parser: P[JValue] = {
+    val recurse = P.defer(parser)
+    val pnull = P.string("null").as(JNull)
+    val bool = P.string("true").as(JBool.True).orElse(P.string("false").as(JBool.False))
     val justStr = JsonStringUtil.escapedString('"')
     val str = justStr.map(JString(_))
     val num = Numbers.jsonNumber.map(JNum(_))
 
-    val listSep: Parser1[Unit] =
+    val listSep: P[Unit] =
       P.char(',').surroundedBy(whitespaces0).void
 
-    def rep[A](pa: Parser1[A]): P[List[A]] =
-      P.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
+    def rep[A](pa: P[A]): Parser0[List[A]] =
+      P.rep0Sep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
 
     val list = rep(recurse).with1
       .between(P.char('['), P.char(']'))
       .map { vs => JArray.fromSeq(vs) }
 
-    val kv: Parser1[(String, JValue)] =
+    val kv: P[(String, JValue)] =
       justStr ~ (P.char(':').surroundedBy(whitespaces0) *> recurse)
 
     val obj = rep(kv).with1
       .between(P.char('{'), P.char('}'))
       .map { vs => JObject.fromSeq(vs) }
 
-    P.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
+    P.oneOf(str :: num :: list :: obj :: bool :: pnull :: Nil)
   }
 
   // any whitespace followed by json followed by whitespace followed by end
-  val parserFile: Parser1[JValue] = whitespaces0.with1 *> parser <* (whitespaces0 ~ P.end)
+  val parserFile: P[JValue] = whitespaces0.with1 *> parser <* (whitespaces0 ~ P.end)
 }
 ```
 

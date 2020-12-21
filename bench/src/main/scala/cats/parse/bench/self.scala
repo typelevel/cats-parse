@@ -22,48 +22,48 @@
 package cats.parse.bench.self
 
 import cats.implicits._
-import cats.parse.{Parser => P, Parser1 => P1, Numbers}
+import cats.parse.{Parser0 => P0, Parser => P, Numbers}
 import org.typelevel.jawn.ast._
 
 /* Based on https://github.com/johnynek/bosatsu/blob/7f4b75356c207b0e0eb2ab7d39f646e04b4004ca/core/src/main/scala/org/bykn/bosatsu/Json.scala */
 object Json {
-  private[this] val whitespace: P1[Unit] = P.charIn(" \t\r\n").void
-  private[this] val whitespaces0: P[Unit] = whitespace.rep.void
+  private[this] val whitespace: P[Unit] = P.charIn(" \t\r\n").void
+  private[this] val whitespaces0: P0[Unit] = whitespace.rep0.void
 
   /** This doesn't have to be super fast (but is fairly fast) since we use it in places
     * where speed won't matter: feeding it into a program that will convert it to bosatsu
     * structured data
     */
-  val parser: P1[JValue] = {
-    val recurse = P.defer1(parser)
-    val pnull = P.string1("null").as(JNull)
-    val bool = P.string1("true").as(JBool.True).orElse1(P.string1("false").as(JBool.False))
+  val parser: P[JValue] = {
+    val recurse = P.defer(parser)
+    val pnull = P.string("null").as(JNull)
+    val bool = P.string("true").as(JBool.True).orElse(P.string("false").as(JBool.False))
     val justStr = JsonStringUtil.escapedString('"')
     val str = justStr.map(JString(_))
     val num = Numbers.jsonNumber.map(JNum(_))
 
-    val listSep: P1[Unit] =
+    val listSep: P[Unit] =
       P.char(',').surroundedBy(whitespaces0).void
 
-    def rep[A](pa: P1[A]): P[List[A]] =
-      P.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
+    def rep0[A](pa: P[A]): P0[List[A]] =
+      P.rep0Sep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
 
-    val list = rep(recurse).with1
+    val list = rep0(recurse).with1
       .between(P.char('['), P.char(']'))
       .map { vs => JArray.fromSeq(vs) }
 
-    val kv: P1[(String, JValue)] =
+    val kv: P[(String, JValue)] =
       justStr ~ (P.char(':').surroundedBy(whitespaces0) *> recurse)
 
-    val obj = rep(kv).with1
+    val obj = rep0(kv).with1
       .between(P.char('{'), P.char('}'))
       .map { vs => JObject.fromSeq(vs) }
 
-    P.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
+    P.oneOf(str :: num :: list :: obj :: bool :: pnull :: Nil)
   }
 
   // any whitespace followed by json followed by whitespace followed by end
-  val parserFile: P1[JValue] = parser.between(whitespaces0, whitespaces0 ~ P.end)
+  val parserFile: P[JValue] = parser.between(whitespaces0, whitespaces0 ~ P.end)
 }
 
 object JsonStringUtil extends GenericStringUtil {
@@ -93,7 +93,7 @@ abstract class GenericStringUtil {
       s"\\u$strPad$strHex"
     }.toArray
 
-  val escapedToken: P1[Unit] = {
+  val escapedToken: P[Unit] = {
     val escapes = P.charIn(decodeTable.keys.toSeq)
 
     val oct = P.charIn('0' to '7')
@@ -108,16 +108,16 @@ abstract class GenericStringUtil {
     val hex8 = hex4 ~ hex4
     val u8 = P.char('U') ~ hex8
 
-    val after = P.oneOf1[Any](escapes :: octP :: hexP :: u4 :: u8 :: Nil)
+    val after = P.oneOf[Any](escapes :: octP :: hexP :: u4 :: u8 :: Nil)
     (P.char('\\') ~ after).void
   }
 
   /** String content without the delimiter
     */
-  def undelimitedString1(endP: P1[Unit]): P1[String] =
+  def undelimitedString(endP: P[Unit]): P[String] =
     escapedToken.backtrack
-      .orElse1((!endP).with1 ~ P.anyChar)
-      .rep1
+      .orElse((!endP).with1 ~ P.anyChar)
+      .rep
       .string
       .flatMap { str =>
         unescape(str) match {
@@ -126,13 +126,13 @@ abstract class GenericStringUtil {
         }
       }
 
-  private val simpleString: P[String] =
-    P.charsWhile(c => c >= ' ' && c != '"' && c != '\\')
+  private val simpleString: P0[String] =
+    P.charsWhile0(c => c >= ' ' && c != '"' && c != '\\')
 
-  def escapedString(q: Char): P1[String] = {
-    val end: P1[Unit] = P.char(q)
+  def escapedString(q: Char): P[String] = {
+    val end: P[Unit] = P.char(q)
     end *> ((simpleString <* end).backtrack
-      .orElse(undelimitedString1(end) <* end))
+      .orElse0(undelimitedString(end) <* end))
   }
 
   def escape(quoteChar: Char, str: String): String = {
