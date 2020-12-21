@@ -152,7 +152,7 @@ typelevel/cats-parse
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.2-9-3e79914
+<i class="md-icon" title="Version">label_outline</i> 0.3-10-ef9c471
 </label>
 </li>
 </ul>
@@ -198,48 +198,48 @@ libraryDependencies += &quot;org.typelevel&quot; %%% &quot;cats-parse&quot; % &q
   <li>Excellent performance: should be as fast or faster than any parser combinator that has comparable scala version support.</li>
   <li>Cats friendliness: method names match cats style, and out of the box support for cats typeclasses.</li>
   <li>Precise errors: following the <a href="https://hackage.haskell.org/package/trifecta">Haskell Trifecta parsing library</a>, backtracking is opt-in vs opt-out. This design tends to make it easier to write parsers that point correctly to failure points.</li>
-  <li>Safety: by introducing Parser1, a parser that must consume at least one character on success, some combinators and methods can be made safer to use and less prone to runtime errors.</li>
+  <li>Safety: by separating Parser0, a parser that may consume no input, from Parser, a parser must consume at least one character on success. Most combinators and methods can be made safer to use and less prone to runtime errors.</li>
   <li>Stability: we are very reluctant to break compatibility between versions. We want to put a minimal tax on users to stay on the latest versions.</li>
 </ol>
 <h1><a href="#an-example" name="an-example" class="anchor"><span class="anchor-link"></span></a>An Example</h1>
 <p>Below is most of a json parser (the string unescaping is elided). This example can give you a feel for what it is like to use this library.</p>
-<pre class="prettyprint"><code class="language-scala">import cats.parse.{Parser =&gt; P, Parser1, Numbers}
+<pre class="prettyprint"><code class="language-scala">import cats.parse.{Parser0, Parser =&gt; P, Numbers}
 import org.typelevel.jawn.ast._
 
 object Json {
-  private[this] val whitespace: Parser1[Unit] = P.charIn(&quot; \t\r\n&quot;).void
+  private[this] val whitespace: P[Unit] = P.charIn(&quot; \t\r\n&quot;).void
   private[this] val whitespaces0: P[Unit] = whitespace.rep.void
 
-  val parser: Parser1[JValue] = {
-    val recurse = P.defer1(parser)
-    val pnull = P.string1(&quot;null&quot;).as(JNull)
-    val bool = P.string1(&quot;true&quot;).as(JBool.True).orElse1(P.string1(&quot;false&quot;).as(JBool.False))
+  val parser: P[JValue] = {
+    val recurse = P.defer(parser)
+    val pnull = P.string(&quot;null&quot;).as(JNull)
+    val bool = P.string(&quot;true&quot;).as(JBool.True).orElse(P.string(&quot;false&quot;).as(JBool.False))
     val justStr = JsonStringUtil.escapedString(&#39;&quot;&#39;)
     val str = justStr.map(JString(_))
     val num = Numbers.jsonNumber.map(JNum(_))
 
-    val listSep: Parser1[Unit] =
+    val listSep: P[Unit] =
       P.char(&#39;,&#39;).surroundedBy(whitespaces0).void
 
-    def rep[A](pa: Parser1[A]): P[List[A]] =
-      P.repSep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
+    def rep[A](pa: P[A]): Parser0[List[A]] =
+      P.rep0Sep(pa, min = 0, sep = listSep).surroundedBy(whitespaces0)
 
     val list = rep(recurse).with1
       .between(P.char(&#39;[&#39;), P.char(&#39;]&#39;))
       .map { vs =&gt; JArray.fromSeq(vs) }
 
-    val kv: Parser1[(String, JValue)] =
+    val kv: P[(String, JValue)] =
       justStr ~ (P.char(&#39;:&#39;).surroundedBy(whitespaces0) *&gt; recurse)
 
     val obj = rep(kv).with1
       .between(P.char(&#39;{&#39;), P.char(&#39;}&#39;))
       .map { vs =&gt; JObject.fromSeq(vs) }
 
-    P.oneOf1(str :: num :: list :: obj :: bool :: pnull :: Nil)
+    P.oneOf(str :: num :: list :: obj :: bool :: pnull :: Nil)
   }
 
   // any whitespace followed by json followed by whitespace followed by end
-  val parserFile: Parser1[JValue] = whitespaces0.with1 *&gt; parser &lt;* (whitespaces0 ~ P.end)
+  val parserFile: P[JValue] = whitespaces0.with1 *&gt; parser &lt;* (whitespaces0 ~ P.end)
 }
 </code></pre>
 <h1><a href="#performance" name="performance" class="anchor"><span class="anchor-link"></span></a>Performance</h1>
@@ -284,13 +284,13 @@ object Json {
 <p>We welcome new contributors and new maintainers. Please feel free to open issues and PRs. If you have any problem using the library, an issue is the best way to ask a question until we flush out more documentation.</p>
 </div>
 <div>
-<a href="https://github.com/typelevel/cats-parse/tree/v0.2-9-3e79914/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/typelevel/cats-parse/tree/v0.3-10-ef9c471/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.2-9-3e79914
+0.3-10-ef9c471
 </span>
 </div>
 </article>
