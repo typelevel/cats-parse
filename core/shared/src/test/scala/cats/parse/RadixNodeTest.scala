@@ -36,15 +36,15 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("commonPrefixLength(s, s) == s.length") {
-    forAll { (s: String) =>
-      assertEquals(RadixNode.commonPrefixLength(s, s), s.length)
+  property("commonPrefixLength(s, s + r) == s.length") {
+    forAll { (s: String, r: String) =>
+      assert(RadixNode.commonPrefixLength(s, s + r) == s.length)
     }
   }
 
-  property("commonPrefixLength(s, s + r) >= s.length") {
-    forAll { (s: String, r: String) =>
-      assert(RadixNode.commonPrefixLength(s, s + r) >= s.length)
+  property("commonPrefixLength(s + r, s + t) >= s.length") {
+    forAll { (s: String, r: String, t: String) =>
+      assert(RadixNode.commonPrefixLength(s + r, s + t) >= s.length)
     }
   }
 

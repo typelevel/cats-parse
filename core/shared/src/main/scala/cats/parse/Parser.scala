@@ -1555,7 +1555,7 @@ object Parser {
       p match {
         case StringP0(_) | StringP(_) | Pure("") | Length(_) | Fail() | FailWith(_) => true
         case Map(Str(e1), ConstFn(e2)) => e1 == e2
-        case Map(ci @ Impl.CharIn(min, bs, _), ConstFn(e)) if BitSetUtil.isSingleton(bs) =>
+        case Map(Impl.CharIn(min, bs, _), ConstFn(e)) if BitSetUtil.isSingleton(bs) =>
           e == min.toChar.toString
         case OneOf(ss) => ss.forall(matchesString)
         case OneOf0(ss) => ss.forall(matchesString)
