@@ -852,13 +852,19 @@ object Parser {
           flatten(rest, acc += notOneOf)
       }
 
-    val flat = flatten(parsers, new ListBuffer)
-    val cs = Impl.mergeCharIn[A, Parser[A]](flat)
-    Impl.mergeStrIn[A, Parser[A]](cs) match {
+    val flat0 = flatten(parsers, new ListBuffer)
+    // we unmap if we can to make merging work better
+    val isStr = flat0.forall(Impl.matchesString)
+    val flat = if (isStr) flat0.map(Impl.unmap) else flat0
+
+    val cs = Impl.mergeCharIn[Any, Parser[Any]](flat)
+    val res = Impl.mergeStrIn[Any, Parser[Any]](cs) match {
       case Nil => fail
       case p :: Nil => p
       case two => Impl.OneOf(two)
     }
+
+    (if (isStr) string(res) else res).asInstanceOf[Parser[A]]
   }
 
   /** go through the list of parsers trying each
@@ -886,13 +892,19 @@ object Parser {
           }
       }
 
-    val flat = flatten(ps, new ListBuffer)
-    val cs = Impl.mergeCharIn[A, Parser0[A]](flat)
-    Impl.mergeStrIn[A, Parser0[A]](cs) match {
+    val flat0 = flatten(ps, new ListBuffer)
+    // we unmap if we can to make merging work better
+    val isStr = flat0.forall(Impl.matchesString)
+    val flat = if (isStr) flat0.map(Impl.unmap0) else flat0
+
+    val cs = Impl.mergeCharIn[Any, Parser0[Any]](flat)
+    val res = Impl.mergeStrIn[Any, Parser0[Any]](cs) match {
       case Nil => fail
       case p :: Nil => p
       case two => Impl.OneOf0(two)
     }
+
+    (if (isStr) string0(res) else res).asInstanceOf[Parser0[A]]
   }
 
   /** Parse the longest matching string between alternatives.
@@ -1907,21 +1919,24 @@ object Parser {
     }
 
     final def stringIn[A](radix: RadixNode, all: SortedSet[String], state: State): Unit = {
+      val str = state.str
+      val strLength = str.length
       val startOffset = state.offset
-      val strLength = state.str.length
-      var offset = state.offset
+
+      var offset = startOffset
       var tree = radix
       var cont = offset < strLength
       var lastMatch = -1
+
       while (cont) {
-        val c = state.str.charAt(offset)
+        val c = str.charAt(offset)
         val idx = Arrays.binarySearch(tree.fsts, c)
         if (idx >= 0) {
           val prefix = tree.prefixes(idx)
           // accept the prefix fo this character
-          if (state.str.startsWith(prefix, offset)) {
+          if (str.startsWith(prefix, offset + 1)) {
             val children = tree.children(idx)
-            offset += prefix.length
+            offset += (prefix.length + 1)
             tree = children
             cont = offset < strLength
             if (children.word) lastMatch = offset
@@ -2319,43 +2334,37 @@ object Parser {
       @annotation.tailrec
       def loop(ps: List[P0], front: SortedSet[String], result: Chain[P0]): Chain[P0] = {
         @inline
-        def frontRes: Chain[P0] =
+        def res(front: SortedSet[String]): Chain[P0] =
           if (front.isEmpty) Chain.nil
           else if (front.size == 1) Chain.one(Str(front.head).asInstanceOf[P0])
           else Chain.one(StringIn(front).asInstanceOf[P0])
 
+        // returns if there is a strict prefix (equality does not count)
         def frontHasPrefixOf(s: String): Boolean =
-          front.exists(s.startsWith(_))
+          front.exists { f => s.startsWith(f) && (f.length != s.length) }
 
         ps match {
-          case Nil => result ++ frontRes
+          case Nil => result ++ res(front)
           case Str(s) :: tail =>
-            if (front(s)) {
-              // this is already matched
-              loop(tail, front, result)
-            } else if (frontHasPrefixOf(s)) {
+            if (frontHasPrefixOf(s)) {
               // there is an overlap, so we need to match what we have first, then come here
-              loop(tail, SortedSet(s), result ++ frontRes)
+              loop(tail, SortedSet(s), result ++ res(front))
             } else {
               // there is no overlap in the tree, just merge it in:
               loop(tail, front + s, result)
             }
           case StringIn(ss) :: tail =>
-            ss.find(!frontHasPrefixOf(_)) match {
-              case None =>
-                // can't merge and
-                loop(tail, ss, result ++ frontRes)
-              case Some(h) =>
-                // we can merge head
-                val restss = ss - h
-                val ph =
-                  if (restss.size == 1) Str(restss.head)
-                  else StringIn(restss)
-
-                loop(ph.asInstanceOf[P0] :: tail, front + h, result)
+            val (rights, lefts) = ss.partition(frontHasPrefixOf(_))
+            val front1 = front | lefts
+            if (rights.nonEmpty) {
+              // there are some that can't be merged in
+              loop(tail, rights, result ++ res(front1))
+            } else {
+              // everything can be merged in
+              loop(tail, front1, result)
             }
           case h :: tail =>
-            loop(tail, SortedSet.empty, (result ++ frontRes) :+ h)
+            loop(tail, SortedSet.empty, (result ++ res(front)) :+ h)
         }
       }
 

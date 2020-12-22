@@ -25,8 +25,9 @@ import cats.data.NonEmptyList
 
 import scala.annotation.tailrec
 
-class RadixNode(
+private[parse] class RadixNode(
     val fsts: Array[Char],
+    // the prefixes are the rest of the string after the fsts (not including the fsts Char)
     val prefixes: Array[String],
     val children: Array[RadixNode],
     val word: Boolean
@@ -35,34 +36,34 @@ class RadixNode(
     s"RadixNode(${fsts.mkString("[", ", ", "]")}, ${children.mkString("[", ", ", "]")}, $word)"
 }
 
-object RadixNode {
-  def fromSortedStrings(strings: NonEmptyList[String]): RadixNode = {
-    @tailrec
-    def groupByNonEmptyPrefix(
-        keys: List[String],
-        prefix: String,
-        current: NonEmptyList[String],
-        acc: List[(Char, String, NonEmptyList[String])]
-    ): List[(Char, String, NonEmptyList[String])] =
-      keys match {
-        case key :: keys =>
-          val prefixSize = commonPrefixLength(prefix, key)
-          if (prefixSize == 0) {
-            // no common prefix, group current suffixes together sorted again
-            groupByNonEmptyPrefix(
-              keys,
-              key,
-              NonEmptyList.one(key),
-              (prefix(0), prefix, current.map(_.drop(prefix.size)).reverse) :: acc
-            )
-          } else {
-            // clip the prefix to the length, and continue
-            groupByNonEmptyPrefix(keys, prefix.take(prefixSize), key :: current, acc)
-          }
-        case Nil =>
-          (prefix(0), prefix, current.map(_.drop(prefix.size)).reverse) :: acc
-      }
+private[parse] object RadixNode {
+  @tailrec
+  private def groupByNonEmptyPrefix(
+      keys: List[String],
+      prefix: String,
+      current: NonEmptyList[String],
+      acc: List[(Char, String, NonEmptyList[String])]
+  ): List[(Char, String, NonEmptyList[String])] =
+    keys match {
+      case key :: keys =>
+        val prefixSize = commonPrefixLength(prefix, key)
+        if (prefixSize == 0) {
+          // no common prefix, group current suffixes together sorted again
+          groupByNonEmptyPrefix(
+            keys,
+            key,
+            NonEmptyList.one(key),
+            (prefix(0), prefix.tail, current.map(_.drop(prefix.size)).reverse) :: acc
+          )
+        } else {
+          // clip the prefix to the length, and continue
+          groupByNonEmptyPrefix(keys, prefix.take(prefixSize), key :: current, acc)
+        }
+      case Nil =>
+        (prefix(0), prefix.tail, current.map(_.drop(prefix.size)).reverse) :: acc
+    }
 
+  def fromSortedStrings(strings: NonEmptyList[String]): RadixNode =
     NonEmptyList.fromList(strings.filter(_.nonEmpty)) match {
       case Some(nonEmpty) =>
         val grouped =
@@ -85,7 +86,6 @@ object RadixNode {
       case None =>
         leaf
     }
-  }
 
   private val leaf = new RadixNode(Array.empty, Array.empty, Array.empty, true)
 
