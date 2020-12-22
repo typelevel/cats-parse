@@ -101,10 +101,25 @@ object ParserGen {
       Gen.const(GenT(Parser.anyChar))
     )
 
+  val char: Gen[GenT[Parser]] =
+    Gen.oneOf(
+      Gen.choose(Char.MinValue, Char.MaxValue).map { c =>
+        GenT(Parser.char(c))
+      },
+      Gen.choose(Char.MinValue, Char.MaxValue).map { c =>
+        GenT(Parser.char(c).string)
+      }
+    )
+
   val stringIn: Gen[GenT[Parser]] =
     Arbitrary.arbitrary[List[String]].map { cs =>
       if (cs.exists(_.isEmpty)) GenT(Parser.fail: Parser[Unit])
       else GenT(Parser.stringIn(cs))
+    }
+
+  val stringIn0: Gen[GenT[Parser0]] =
+    Arbitrary.arbitrary[List[String]].map { cs =>
+      GenT(Parser.stringIn0(cs))
     }
 
   val expect1: Gen[GenT[Parser]] =
@@ -459,6 +474,7 @@ object ParserGen {
       (1, failWith),
       (1, rec.map(void0(_))),
       (1, rec.map(string0(_))),
+      (1, stringIn0),
       (1, rec.map(backtrack0(_))),
       (1, rec.map(defer0(_))),
       (1, rec.map { gen => GenT(!gen.fa) }),
@@ -482,6 +498,7 @@ object ParserGen {
       (8, expect1),
       (2, ignoreCase),
       (8, charIn),
+      (2, char),
       (8, stringIn),
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser.char(c)) }),
       (2, rec.map(void(_))),
