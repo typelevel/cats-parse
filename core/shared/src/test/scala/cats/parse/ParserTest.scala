@@ -1887,6 +1887,14 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("stringIn(s) is order independent") {
+    forAll { (ss0: List[String]) =>
+      val ss = ss0.filterNot(_.isEmpty)
+      val ss1 = Random.shuffle(ss)
+      assertEquals(Parser.stringIn(ss1), Parser.stringIn(ss))
+    }
+  }
+
   property("Union parser is stringIn if alternatives have no common prefix") {
     forAll { (left0: List[String], right0: List[String], toParse: String) =>
       val left = left0.filterNot(_.isEmpty)
@@ -1900,12 +1908,22 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("stringIn parse longest match") {
+  property("stringIn parses longest match") {
     forAll { (ss0: List[String], toParse: String) =>
       val ss = ss0.filterNot(_.isEmpty)
       val left = Parser.stringIn(ss).parse(toParse).toOption
-      val right = ss.filter(toParse.startsWith(_)).sortBy { s => -s.length }
-      assertEquals(left.map(_._1), right.headOption)
+      val right: Option[String] =
+        ss.filter(toParse.startsWith(_)).sortBy { s => -s.length }.headOption
+      assertEquals(left.map(_._2), right)
+    }
+  }
+
+  property("stringIn0 parses longest match") {
+    forAll { (ss: List[String], toParse: String) =>
+      val left = Parser.stringIn0(ss).parse(toParse).toOption
+      val right: Option[String] =
+        ss.filter(toParse.startsWith(_)).sortBy { s => -s.length }.headOption
+      assertEquals(left.map(_._2), right)
     }
   }
 
