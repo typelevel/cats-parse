@@ -25,6 +25,7 @@ import cats.{Eval, FunctorFilter, Monad, Defer, Alternative, FlatMap, Now, Monoi
 import cats.data.{AndThen, Chain, NonEmptyList}
 
 import cats.implicits._
+import scala.collection.immutable.SortedSet
 import scala.collection.mutable.ListBuffer
 import java.util.Arrays
 
@@ -562,8 +563,7 @@ object Parser {
               case (EndOfString(_, _), _) => -1
               case (
                     Length(_, _, _),
-                    OneOfStr(_, _) | InRange(_, _, _) | StartOfString(_) |
-                    EndOfString(_, _)
+                    OneOfStr(_, _) | InRange(_, _, _) | StartOfString(_) | EndOfString(_, _)
                   ) =>
                 1
               case (Length(_, e1, a1), Length(_, e2, a2)) =>
@@ -873,11 +873,14 @@ object Parser {
     *
     * If no string matches, this parser results in an epsilon failure.
     */
-  def stringIn(strings: List[String]): Parser[Unit] =
-    strings.distinct match {
+  def stringIn(strings: Iterable[String]): Parser[Unit] =
+    strings.toList.distinct match {
       case Nil => fail
       case s :: Nil => string(s)
-      case two => Impl.StringIn(two)
+      case two =>
+        Impl.StringIn(
+          SortedSet(two: _*)
+        ) // sadly scala 2.12 doesn't have the `SortedSet.from` constructor function
     }
 
   /** If the first parser fails to parse its input with an epsilon error,
@@ -1649,8 +1652,9 @@ object Parser {
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
         case Rep(p, m, _) => Rep(unmap(p), m, Accumulator0.unitAccumulator0)
-        case AnyChar | CharIn(_, _, _) | Str(_) | StringIn(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
-            TailRecM1(_, _) | FlatMap(_, _) =>
+        case AnyChar | CharIn(_, _, _) | Str(_) | StringIn(_) | IgnoreCase(_) | Fail() | FailWith(
+              _
+            ) | Length(_) | TailRecM1(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
 
@@ -1835,7 +1839,7 @@ object Parser {
       null.asInstanceOf[A]
     }
 
-    final def stringIn[A](radix: RadixNode, all: List[String], state: State): Unit = {
+    final def stringIn[A](radix: RadixNode, all: SortedSet[String], state: State): Unit = {
       val startOffset = state.offset
       val strLength = state.str.length
       var offset = state.offset
@@ -1862,7 +1866,7 @@ object Parser {
         }
       }
       if (lastMatch < 0) {
-        state.error = Chain.one(Expectation.OneOfStr(startOffset, all))
+        state.error = Chain.one(Expectation.OneOfStr(startOffset, all.toList))
         state.offset = startOffset
       } else {
         state.offset = lastMatch
@@ -1883,11 +1887,11 @@ object Parser {
       override def parseMut(state: State): A = oneOf(ary, state)
     }
 
-    case class StringIn(all: List[String]) extends Parser[Unit] {
-      require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
-      require(!all.contains(""), "empty string is not allowed in alternatives")
-      private[this] val sorted = all.sorted
-      private[this] val tree = RadixNode.fromSortedStrings(NonEmptyList.fromListUnsafe(sorted))
+    case class StringIn(sorted: SortedSet[String]) extends Parser[Unit] {
+      require(sorted.size >= 2, s"expected more than two items, found: ${sorted.size}")
+      require(!sorted.contains(""), "empty string is not allowed in alternatives")
+      private[this] val tree =
+        RadixNode.fromSortedStrings(NonEmptyList.fromListUnsafe(sorted.toList))
 
       override def parseMut(state: State): Unit = stringIn(tree, sorted, state)
     }
