@@ -1011,6 +1011,7 @@ object Parser {
   def map0[A, B](p: Parser0[A])(fn: A => B): Parser0[B] =
     p match {
       case p1: Parser[A] => map(p1)(fn)
+      case Impl.Pure(a) => Impl.Pure(fn(a))
       case Impl.Map0(p0, f0) =>
         val f1 = f0 match {
           case Impl.ConstFn(a) => Impl.ConstFn(fn(a))
@@ -1364,9 +1365,13 @@ object Parser {
     */
   def as0[A, B](pa: Parser0[A], b: B): Parser0[B] =
     pa match {
-      case Impl.Pure(_) | Impl.Index => pure(b)
       case p1: Parser[A] => as(p1, b)
-      case _ => pa.void.map(Impl.ConstFn(b))
+      case _ =>
+        Impl.unmap0(pa) match {
+          case Impl.Pure(_) | Impl.Index => pure(b)
+          case notPure =>
+            Impl.Void0(notPure).map(Impl.ConstFn(b))
+        }
     }
 
   /** Replaces parsed values with the given value.
@@ -1479,6 +1484,16 @@ object Parser {
       def apply(any: Any) = result
     }
 
+    // this is used to make def unmap0 a pure function wrt `def equals`
+    case class UnmapDefer0(fn: () => Parser0[Any]) extends Function0[Parser0[Any]] {
+      def apply(): Parser0[Any] = unmap0(compute0(fn))
+    }
+
+    // this is used to make def unmap a pure function wrt `def equals`
+    case class UnmapDefer(fn: () => Parser[Any]) extends Function0[Parser[Any]] {
+      def apply(): Parser[Any] = unmap(compute(fn))
+    }
+
     final def doesBacktrackCheat(p: Parser0[Any]): Boolean =
       doesBacktrack(p)
 
@@ -1574,7 +1589,7 @@ object Parser {
               else SoftProd0(u1, u2)
           }
         case Defer0(fn) =>
-          Defer0(() => unmap0(compute0(fn)))
+          Defer0(UnmapDefer0(fn))
         case Rep0(p, _) => Rep0(unmap(p), Accumulator0.unitAccumulator0)
         case StartParser | EndParser | TailRecM0(_, _) | FlatMap0(_, _) =>
           // we can't transform this significantly
@@ -1656,7 +1671,7 @@ object Parser {
               else SoftProd(u1, u2)
           }
         case Defer(fn) =>
-          Defer(() => unmap(compute(fn)))
+          Defer(UnmapDefer(fn))
         case Rep(p, m, _) => Rep(unmap(p), m, Accumulator0.unitAccumulator0)
         case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
             TailRecM(_, _) | FlatMap(_, _) =>

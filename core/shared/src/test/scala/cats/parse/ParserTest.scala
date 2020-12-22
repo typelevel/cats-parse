@@ -1806,4 +1806,16 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(left.parse(str), right.parse(str))
     }
   }
+
+  property("p.as(a).map(fn) == p.as(fn(a))") {
+    forAll(ParserGen.gen, Gen.choose(0, 128), Gen.function1[Int, Int](Gen.choose(0, 128))) {
+      (p, a, fn) =>
+        assertEquals(p.fa.as(a).map(fn), p.fa.as(fn(a)))
+    }
+
+    forAll(ParserGen.gen0, Gen.choose(0, 128), Gen.function1[Int, Int](Gen.choose(0, 128))) {
+      (p0, a, fn) =>
+        assertEquals(p0.fa.as(a).map(fn), p0.fa.as(fn(a)))
+    }
+  }
 }

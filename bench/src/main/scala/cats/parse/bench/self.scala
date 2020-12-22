@@ -132,7 +132,7 @@ abstract class GenericStringUtil {
   def escapedString(q: Char): P[String] = {
     val end: P[Unit] = P.char(q)
     end *> ((simpleString <* end).backtrack
-      .orElse0(undelimitedString(end) <* end))
+      .orElse(undelimitedString(end) <* end))
   }
 
   def escape(quoteChar: Char, str: String): String = {
