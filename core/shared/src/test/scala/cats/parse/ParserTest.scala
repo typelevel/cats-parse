@@ -595,12 +595,9 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   test("longest match stringIn") {
-    parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foo", "foo")
-    parseTest(
-      Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string,
-      "foobat",
-      "foobat"
-    )
+    val alternatives = "foo" :: "foobar" :: "foofoo" :: "foobat" :: Nil
+    parseTest(Parser.stringIn(alternatives).string, "foo", "foo")
+    parseTest(Parser.stringIn(alternatives).string, "foobat", "foobat")
     parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foot", "foo")
     parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foobal", "foo")
   }
@@ -1858,6 +1855,28 @@ class ParserTest extends munit.ScalaCheckSuite {
       val ss1 = Random.shuffle(s :: ss)
       if (s.nonEmpty && Parser.string(s).parse(toParse).isRight)
         assert(Parser.stringIn(ss1).parse(toParse).isRight)
+    }
+  }
+
+  property("Union parser is stringIn if alternatives have no common prefix") {
+    forAll { (left0: List[String], right0: List[String], toParse: String) =>
+      val left = left0.filterNot(_.isEmpty)
+      val right = right0.filterNot(_.isEmpty)
+      val noPrefix = left.forall { s => !right.exists(_.startsWith(s)) }
+      if (noPrefix)
+        assert(
+          Parser.stringIn(left).orElse(Parser.stringIn(right)).parse(toParse).toOption ==
+            Parser.stringIn(left ::: right).parse(toParse).toOption
+        )
+    }
+  }
+
+  property("stringIn parse longest match") {
+    forAll { (ss0: List[String], toParse: String) =>
+      val ss = ss0.filterNot(_.isEmpty)
+      val left = Parser.stringIn(ss).parse(toParse).toOption
+      val right = ss.filter(toParse.startsWith(_)).sortBy { s => -s.length }
+      assertEquals(left.map(_._1), right.headOption)
     }
   }
 }
