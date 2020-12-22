@@ -2312,46 +2312,50 @@ object Parser {
      * the semantic issue is this:
      * oneOf matches the first, left to right
      * StringIn matches the longest.
-     * as long as there are no prefix overlaps, those are the same
+     * we can only merge into the left if
+     * there are no prefixes of the right inside the left
      */
     def mergeStrIn[A, P0 <: Parser0[A]](ps: List[P0]): List[P0] = {
       @annotation.tailrec
       def loop(ps: List[P0], front: SortedSet[String], result: Chain[P0]): Chain[P0] = {
         @inline
-        def res(front: SortedSet[String]): Chain[P0] =
+        def frontRes: Chain[P0] =
           if (front.isEmpty) Chain.nil
-          else if (front.size < 2) Chain.one(Str(front.head).asInstanceOf[P0])
+          else if (front.size == 1) Chain.one(Str(front.head).asInstanceOf[P0])
           else Chain.one(StringIn(front).asInstanceOf[P0])
 
+        def frontHasPrefixOf(s: String): Boolean =
+          front.exists(s.startsWith(_))
+
         ps match {
-          case Nil => result ++ res(front)
+          case Nil => result ++ frontRes
           case Str(s) :: tail =>
             if (front(s)) {
               // this is already matched
               loop(tail, front, result)
-            } else if (front.forall(RadixNode.commonPrefixLength(s, _) == 0)) {
+            } else if (frontHasPrefixOf(s)) {
+              // there is an overlap, so we need to match what we have first, then come here
+              loop(tail, SortedSet(s), result ++ frontRes)
+            } else {
               // there is no overlap in the tree, just merge it in:
               loop(tail, front + s, result)
-            } else {
-              // there is an overlap, so we need to match what we have first, then come here
-              loop(tail, SortedSet(s), result ++ res(front))
             }
           case StringIn(ss) :: tail =>
-            // filter all the items in ss that have no prefix
-            val leftss = ss.filter { s => front.forall(RadixNode.commonPrefixLength(s, _) == 0) }
-            val rightss = ss.filterNot { s =>
-              front.forall(RadixNode.commonPrefixLength(s, _) == 0)
-            }
-            val newFront = front | leftss
-            if (rightss.isEmpty) {
-              // we can merge all of these
-              loop(tail, newFront, result)
-            } else {
-              // there is an overlap, so we need to match what we have first, then come here
-              loop(tail, rightss, result ++ res(newFront))
+            ss.find(!frontHasPrefixOf(_)) match {
+              case None =>
+                // can't merge and
+                loop(tail, ss, result ++ frontRes)
+              case Some(h) =>
+                // we can merge head
+                val restss = ss - h
+                val ph =
+                  if (restss.size == 1) Str(restss.head)
+                  else StringIn(restss)
+
+                loop(ph.asInstanceOf[P0] :: tail, front + h, result)
             }
           case h :: tail =>
-            loop(tail, SortedSet.empty, (result ++ res(front)) :+ h)
+            loop(tail, SortedSet.empty, (result ++ frontRes) :+ h)
         }
       }
 
