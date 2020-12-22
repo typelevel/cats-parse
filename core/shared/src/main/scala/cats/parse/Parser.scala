@@ -1462,7 +1462,10 @@ object Parser {
 
     }
 
-  private[parse] final class State(val str: String) {
+  /*
+   * This is protected rather than private to avoid a warning on 2.12
+   */
+  protected[parse] final class State(val str: String) {
     var offset: Int = 0
     var error: Chain[Expectation] = null
     var capture: Boolean = true
