@@ -14,11 +14,11 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("3.0.0-M2", "3.0.0-M1", "2.12.12", "2.13.4")
+ThisBuild / crossScalaVersions := List("3.0.0-M3", "3.0.0-M2", "2.12.12", "2.13.4")
 
 ThisBuild / versionIntroduced := Map(
-  "3.0.0-M1" -> "0.1.99",
-  "3.0.0-M2" -> "0.1.99"
+  "3.0.0-M2" -> "0.1.99",
+  "3.0.0-M3" -> "0.1.99"
 )
 
 ThisBuild / spiewakCiReleaseSnapshots := true
