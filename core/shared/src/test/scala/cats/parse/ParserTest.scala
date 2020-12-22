@@ -1891,4 +1891,60 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(left.map(_._1), right.headOption)
     }
   }
+
+  property("a.string == a.string.string") {
+    forAll(ParserGen.gen0) { a =>
+      val pa = a.fa
+
+      val left = pa.string
+      val right = pa.string.string
+
+      assertEquals(left, right)
+    }
+  }
+
+  property("a.string ~ b.string == (a ~ b).string") {
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, toParse) =>
+      val pa = a.fa
+      val pb = b.fa
+
+      val left = (pa.string ~ pb.string).map { case (a, b) => a + b }
+      val right = (pa ~ pb).string
+
+      assertEquals(left.parse(toParse), right.parse(toParse))
+    }
+  }
+
+  property("a.string.soft ~ b.string == (a.soft ~ b).string") {
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, toParse) =>
+      val pa = a.fa
+      val pb = b.fa
+
+      val left = (pa.string.soft ~ pb.string).map { case (a, b) => a + b }
+      val right = (pa.soft ~ pb).string
+
+      assertEquals(left.parse(toParse), right.parse(toParse))
+    }
+  }
+
+  property("oneOf0(a.map(_.string)) ~ oneOf0(a).string") {
+    forAll(Gen.choose(0, 5).flatMap(Gen.listOfN(_, ParserGen.gen0)), Arbitrary.arbitrary[String]) {
+      (as, toParse) =>
+        val left = Parser.oneOf0(as.map(_.fa.string))
+        val right = Parser.oneOf0[Any](as.map(_.fa)).string
+
+        assertEquals(left.parse(toParse), right.parse(toParse))
+    }
+  }
+
+  property("oneOf(a.map(_.string)) ~ oneOf(a).string") {
+    forAll(Gen.choose(0, 5).flatMap(Gen.listOfN(_, ParserGen.gen)), Arbitrary.arbitrary[String]) {
+      (as, toParse) =>
+        val left = Parser.oneOf(as.map(_.fa.string))
+        val right = Parser.oneOf[Any](as.map(_.fa)).string
+
+        assertEquals(left.parse(toParse), right.parse(toParse))
+    }
+  }
+
 }

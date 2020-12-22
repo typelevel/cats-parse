@@ -617,6 +617,18 @@ object Parser {
             Impl.rangesFor(ary).map { case (l, u) => InRange(o, l, u) }.toList
           }
           .toList
+      // merge the OneOfStr
+      val oosMerge: List[OneOfStr] =
+        el
+          .collect { case OneOfStr(o, ss) => (o, ss) }
+          .groupBy(_._1)
+          .iterator
+          .map { case (o, ooss) =>
+            val ssb = SortedSet.newBuilder[String]
+            ooss.foreach { is => ssb ++= is._2 }
+            OneOfStr(o, ssb.result().toList)
+          }
+          .toList
 
       // we don't need Fails that point to duplicate offsets
       val nonFailOffsets: Set[Int] =
@@ -629,13 +641,16 @@ object Parser {
         }
       )
 
-      if (rangeMerge.isEmpty) errors1.distinct.sorted
+      if (rangeMerge.isEmpty && oosMerge.isEmpty) errors1.distinct.sorted
       else {
-        val nonRanges = errors1.toList.filterNot(_.isInstanceOf[InRange])
+        val nonMerged = errors1.toList.filterNot {
+          case (_: InRange) | (_: OneOfStr) => true
+          case _ => false
+        }
 
         NonEmptyList
           .fromListUnsafe(
-            (rangeMerge reverse_::: nonRanges).distinct
+            (oosMerge reverse_::: rangeMerge reverse_::: nonMerged).distinct
           )
           .sorted
       }
@@ -838,7 +853,8 @@ object Parser {
       }
 
     val flat = flatten(parsers, new ListBuffer)
-    Impl.mergeCharIn[A, Parser[A]](flat) match {
+    val cs = Impl.mergeCharIn[A, Parser[A]](flat)
+    Impl.mergeStrIn[A, Parser[A]](cs) match {
       case Nil => fail
       case p :: Nil => p
       case two => Impl.OneOf(two)
@@ -871,7 +887,8 @@ object Parser {
       }
 
     val flat = flatten(ps, new ListBuffer)
-    Impl.mergeCharIn[A, Parser0[A]](flat) match {
+    val cs = Impl.mergeCharIn[A, Parser0[A]](flat)
+    Impl.mergeStrIn[A, Parser0[A]](cs) match {
       case Nil => fail
       case p :: Nil => p
       case two => Impl.OneOf0(two)
@@ -1235,6 +1252,7 @@ object Parser {
     charWhere(fn).rep.string
 
   /** parse zero or more characters as long as they don't match p
+    *  this is useful for parsing comment strings, for instance.
     */
   def until0(p: Parser0[Any]): Parser0[String] =
     (not(p).with1 ~ anyChar).rep0.string
@@ -1290,8 +1308,8 @@ object Parser {
     */
   def string0(pa: Parser0[Any]): Parser0[String] =
     pa match {
-      case str @ Impl.StringP0(_) => str
       case s1: Parser[_] => string(s1)
+      case str if Impl.matchesString(str) => str.asInstanceOf[Parser0[String]]
       case _ =>
         Impl.unmap0(pa) match {
           case Impl.Pure(_) | Impl.Index => emptyStringParser0
@@ -1304,7 +1322,7 @@ object Parser {
     */
   def string(pa: Parser[Any]): Parser[String] =
     pa match {
-      case str @ Impl.StringP(_) => str
+      case str if Impl.matchesString(str) => str.asInstanceOf[Parser[String]]
       case _ =>
         Impl.unmap(pa) match {
           case len @ Impl.Length(_) => len
@@ -1522,12 +1540,25 @@ object Parser {
     final def doesBacktrack(p: Parser0[Any]): Boolean =
       p match {
         case Backtrack0(_) | Backtrack(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
-            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) | Not(_) =>
+            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) | Not(_) |
+            StringIn(_) =>
           true
         case Map0(p, _) => doesBacktrack(p)
         case Map(p, _) => doesBacktrack(p)
         case SoftProd0(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
         case SoftProd(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
+        case _ => false
+      }
+
+    // does this parser return the string it matches
+    def matchesString(p: Parser0[Any]): Boolean =
+      p match {
+        case StringP0(_) | StringP(_) | Pure("") | Length(_) | Fail() | FailWith(_) => true
+        case Map(Str(e1), ConstFn(e2)) => e1 == e2
+        case Map(ci @ Impl.CharIn(min, bs, _), ConstFn(e)) if BitSetUtil.isSingleton(bs) =>
+          e == min.toChar.toString
+        case OneOf(ss) => ss.forall(matchesString)
+        case OneOf0(ss) => ss.forall(matchesString)
         case _ => false
       }
 
@@ -2273,6 +2304,58 @@ object Parser {
       }
 
       loop(ps, Nil, Chain.nil).toList
+    }
+
+    /*
+     * Merge Str and StringIn
+     *
+     * the semantic issue is this:
+     * oneOf matches the first, left to right
+     * StringIn matches the longest.
+     * as long as there are no prefix overlaps, those are the same
+     */
+    def mergeStrIn[A, P0 <: Parser0[A]](ps: List[P0]): List[P0] = {
+      @annotation.tailrec
+      def loop(ps: List[P0], front: SortedSet[String], result: Chain[P0]): Chain[P0] = {
+        @inline
+        def res(front: SortedSet[String]): Chain[P0] =
+          if (front.isEmpty) Chain.nil
+          else if (front.size < 2) Chain.one(Str(front.head).asInstanceOf[P0])
+          else Chain.one(StringIn(front).asInstanceOf[P0])
+
+        ps match {
+          case Nil => result ++ res(front)
+          case Str(s) :: tail =>
+            if (front(s)) {
+              // this is already matched
+              loop(tail, front, result)
+            } else if (front.forall(RadixNode.commonPrefixLength(s, _) == 0)) {
+              // there is no overlap in the tree, just merge it in:
+              loop(tail, front + s, result)
+            } else {
+              // there is an overlap, so we need to match what we have first, then come here
+              loop(tail, SortedSet(s), result ++ res(front))
+            }
+          case StringIn(ss) :: tail =>
+            // filter all the items in ss that have no prefix
+            val leftss = ss.filter { s => front.forall(RadixNode.commonPrefixLength(s, _) == 0) }
+            val rightss = ss.filterNot { s =>
+              front.forall(RadixNode.commonPrefixLength(s, _) == 0)
+            }
+            val newFront = front | leftss
+            if (rightss.isEmpty) {
+              // we can merge all of these
+              loop(tail, newFront, result)
+            } else {
+              // there is an overlap, so we need to match what we have first, then come here
+              loop(tail, rightss, result ++ res(newFront))
+            }
+          case h :: tail =>
+            loop(tail, SortedSet.empty, (result ++ res(front)) :+ h)
+        }
+      }
+
+      loop(ps, SortedSet.empty, Chain.nil).toList
     }
 
     case object AnyChar extends Parser[Char] {
