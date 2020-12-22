@@ -25,7 +25,9 @@ import cats.{Eval, FunctorFilter, Monad, Defer, Alternative, FlatMap, Now, Monoi
 import cats.data.{AndThen, Chain, NonEmptyList}
 
 import cats.implicits._
+import scala.collection.immutable.SortedSet
 import scala.collection.mutable.ListBuffer
+import java.util.Arrays
 
 /** Parser0[A] attempts to extract an `A` value from the given input,
   * potentially moving its offset forward in the process.
@@ -520,7 +522,7 @@ object Parser {
   }
 
   object Expectation {
-    case class Str(offset: Int, str: String) extends Expectation
+    case class OneOfStr(offset: Int, strs: List[String]) extends Expectation
     // expected a character in a given range
     case class InRange(offset: Int, lower: Char, upper: Char) extends Expectation
     case class StartOfString(offset: Int) extends Expectation
@@ -540,24 +542,28 @@ object Parser {
           else {
             // these are never equal
             (left, right) match {
-              case (Str(_, s1), Str(_, s2)) => s1.compare(s2)
-              case (Str(_, _), _) => -1
-              case (InRange(_, _, _), Str(_, _)) => 1
+              case (OneOfStr(_, s1), OneOfStr(_, s2)) => s1.compare(s2)
+              case (OneOfStr(_, _), _) => -1
+              case (InRange(_, _, _), OneOfStr(_, _)) => 1
               case (InRange(_, l1, u1), InRange(_, l2, u2)) =>
                 val c1 = Character.compare(l1, l2)
                 if (c1 == 0) Character.compare(u1, u2)
                 else c1
               case (InRange(_, _, _), _) => -1
-              case (StartOfString(_), Str(_, _) | InRange(_, _, _)) => 1
+              case (StartOfString(_), OneOfStr(_, _) | InRange(_, _, _)) => 1
               case (StartOfString(_), _) =>
                 -1 // if they have the same offset, already handled above
-              case (EndOfString(_, _), Str(_, _) | InRange(_, _, _) | StartOfString(_)) => 1
+              case (
+                    EndOfString(_, _),
+                    OneOfStr(_, _) | InRange(_, _, _) | StartOfString(_)
+                  ) =>
+                1
               case (EndOfString(_, l1), EndOfString(_, l2)) =>
                 Integer.compare(l1, l2)
               case (EndOfString(_, _), _) => -1
               case (
                     Length(_, _, _),
-                    Str(_, _) | InRange(_, _, _) | StartOfString(_) | EndOfString(_, _)
+                    OneOfStr(_, _) | InRange(_, _, _) | StartOfString(_) | EndOfString(_, _)
                   ) =>
                 1
               case (Length(_, e1, a1), Length(_, e2, a2)) =>
@@ -861,6 +867,21 @@ object Parser {
       case two => Impl.OneOf0(two)
     }
   }
+
+  /** Parse the longest matching string between alternatives.
+    * The order of the strings does not matter.
+    *
+    * If no string matches, this parser results in an epsilon failure.
+    */
+  def stringIn(strings: Iterable[String]): Parser[Unit] =
+    strings.toList.distinct match {
+      case Nil => fail
+      case s :: Nil => string(s)
+      case two =>
+        Impl.StringIn(
+          SortedSet(two: _*)
+        ) // sadly scala 2.12 doesn't have the `SortedSet.from` constructor function
+    }
 
   /** If the first parser fails to parse its input with an epsilon error,
     * try the second parser instead.
@@ -1631,8 +1652,9 @@ object Parser {
         case Defer(fn) =>
           Defer(() => unmap(compute(fn)))
         case Rep(p, m, _) => Rep(unmap(p), m, Accumulator0.unitAccumulator0)
-        case AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) | Fail() | FailWith(_) | Length(_) |
-            TailRecM1(_, _) | FlatMap(_, _) =>
+        case AnyChar | CharIn(_, _, _) | Str(_) | StringIn(_) | IgnoreCase(_) | Fail() | FailWith(
+              _
+            ) | Length(_) | TailRecM1(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
 
@@ -1754,7 +1776,7 @@ object Parser {
           state.offset += message.length
           ()
         } else {
-          state.error = Chain.one(Expectation.Str(offset, message))
+          state.error = Chain.one(Expectation.OneOfStr(offset, message :: Nil))
           ()
         }
       }
@@ -1770,7 +1792,7 @@ object Parser {
           state.offset += message.length
           ()
         } else {
-          state.error = Chain.one(Expectation.Str(offset, message))
+          state.error = Chain.one(Expectation.OneOfStr(offset, message :: Nil))
           ()
         }
       }
@@ -1817,6 +1839,40 @@ object Parser {
       null.asInstanceOf[A]
     }
 
+    final def stringIn[A](radix: RadixNode, all: SortedSet[String], state: State): Unit = {
+      val startOffset = state.offset
+      val strLength = state.str.length
+      var offset = state.offset
+      var tree = radix
+      var cont = offset < strLength
+      var lastMatch = -1
+      while (cont) {
+        val c = state.str.charAt(offset)
+        val idx = Arrays.binarySearch(tree.fsts, c)
+        if (idx >= 0) {
+          val prefix = tree.prefixes(idx)
+          // accept the prefix fo this character
+          if (state.str.startsWith(prefix, offset)) {
+            val children = tree.children(idx)
+            offset += prefix.length
+            tree = children
+            cont = offset < strLength
+            if (children.word) lastMatch = offset
+          } else {
+            cont = false
+          }
+        } else {
+          cont = false
+        }
+      }
+      if (lastMatch < 0) {
+        state.error = Chain.one(Expectation.OneOfStr(startOffset, all.toList))
+        state.offset = startOffset
+      } else {
+        state.offset = lastMatch
+      }
+    }
+
     case class OneOf[A](all: List[Parser[A]]) extends Parser[A] {
       require(all.lengthCompare(2) >= 0, s"expected more than two items, found: ${all.size}")
       private[this] val ary: Array[Parser0[A]] = all.toArray
@@ -1829,6 +1885,15 @@ object Parser {
       private[this] val ary = all.toArray
 
       override def parseMut(state: State): A = oneOf(ary, state)
+    }
+
+    case class StringIn(sorted: SortedSet[String]) extends Parser[Unit] {
+      require(sorted.size >= 2, s"expected more than two items, found: ${sorted.size}")
+      require(!sorted.contains(""), "empty string is not allowed in alternatives")
+      private[this] val tree =
+        RadixNode.fromSortedStrings(NonEmptyList.fromListUnsafe(sorted.toList))
+
+      override def parseMut(state: State): Unit = stringIn(tree, sorted, state)
     }
 
     final def prod[A, B](pa: Parser0[A], pb: Parser0[B], state: State): (A, B) = {

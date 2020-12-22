@@ -28,6 +28,7 @@ import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Cogen}
 
 import cats.implicits._
+import scala.util.Random
 
 sealed abstract class GenT[F[_]] { self =>
   type A
@@ -99,6 +100,12 @@ object ParserGen {
       },
       Gen.const(GenT(Parser.anyChar))
     )
+
+  val stringIn: Gen[GenT[Parser]] =
+    Arbitrary.arbitrary[List[String]].map { cs =>
+      if (cs.exists(_.isEmpty)) GenT(Parser.fail: Parser[Unit])
+      else GenT(Parser.stringIn(cs))
+    }
 
   val expect1: Gen[GenT[Parser]] =
     Arbitrary.arbitrary[String].map { str =>
@@ -475,6 +482,7 @@ object ParserGen {
       (8, expect1),
       (2, ignoreCase),
       (8, charIn),
+      (8, stringIn),
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser.char(c)) }),
       (2, rec.map(void(_))),
       (2, rec.map(string(_))),
@@ -575,12 +583,23 @@ class ParserTest extends munit.ScalaCheckSuite {
 
     parseTest(Parser.oneOf(fooP :: barP :: Nil), "bar", ())
     parseTest(Parser.oneOf(fooP :: barP :: Nil), "foo", ())
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foo", ())
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "bar", ())
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foobar", ())
   }
 
   test("product tests") {
     parseTest(Parser.product01(fooP, barP), "foobar", ((), ()))
     parseTest(Parser.product10(fooP, barP), "foobar", ((), ()))
     parseTest(Parser.product0(fooP, barP), "foobar", ((), ()))
+  }
+
+  test("longest match stringIn") {
+    val alternatives = "foo" :: "foobar" :: "foofoo" :: "foobat" :: Nil
+    parseTest(Parser.stringIn(alternatives).string, "foo", "foo")
+    parseTest(Parser.stringIn(alternatives).string, "foobat", "foobat")
+    parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foot", "foo")
+    parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foobal", "foo")
   }
 
   property("Parser0 on success replaces parsed value") {
@@ -1804,6 +1823,60 @@ class ParserTest extends munit.ScalaCheckSuite {
       val right = Parser.oneOf(pa.map(_.toString) :: pb :: Nil)
 
       assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("oneOf(string(s)*) success => stringIn(s*) success") {
+    forAll { (ss0: List[String], toParse: String) =>
+      val ss = ss0.filterNot(_.isEmpty)
+      val oneOfs = Parser.oneOf(ss.map(Parser.string))
+      val stringIn = Parser.stringIn(ss)
+      if (oneOfs.parse(toParse).isRight) assert(stringIn.parse(toParse).isRight)
+    }
+  }
+
+  property("stringIn(List(s)) == string(s)") {
+    forAll { (s: String) =>
+      if (s.nonEmpty)
+        assertEquals(Parser.stringIn(List(s)), Parser.string(s))
+    }
+  }
+
+  property("stringIn(List(s, s)) == string(s)") {
+    forAll { (s: String) =>
+      if (s.nonEmpty)
+        assertEquals(Parser.stringIn(List(s, s)), Parser.string(s))
+    }
+  }
+
+  property("string(s) matches  => stringIn(ss) matches if s in ss") {
+    forAll { (s: String, ss0: List[String], toParse: String) =>
+      val ss = ss0.filterNot(_.isEmpty)
+      val ss1 = Random.shuffle(s :: ss)
+      if (s.nonEmpty && Parser.string(s).parse(toParse).isRight)
+        assert(Parser.stringIn(ss1).parse(toParse).isRight)
+    }
+  }
+
+  property("Union parser is stringIn if alternatives have no common prefix") {
+    forAll { (left0: List[String], right0: List[String], toParse: String) =>
+      val left = left0.filterNot(_.isEmpty)
+      val right = right0.filterNot(_.isEmpty)
+      val noPrefix = left.forall { s => !right.exists(_.startsWith(s)) }
+      if (noPrefix)
+        assert(
+          Parser.stringIn(left).orElse(Parser.stringIn(right)).parse(toParse).toOption ==
+            Parser.stringIn(left ::: right).parse(toParse).toOption
+        )
+    }
+  }
+
+  property("stringIn parse longest match") {
+    forAll { (ss0: List[String], toParse: String) =>
+      val ss = ss0.filterNot(_.isEmpty)
+      val left = Parser.stringIn(ss).parse(toParse).toOption
+      val right = ss.filter(toParse.startsWith(_)).sortBy { s => -s.length }
+      assertEquals(left.map(_._1), right.headOption)
     }
   }
 }
