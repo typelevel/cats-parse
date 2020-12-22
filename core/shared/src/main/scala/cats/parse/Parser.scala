@@ -1694,8 +1694,9 @@ object Parser {
         case Defer(fn) =>
           Defer(UnmapDefer(fn))
         case Rep(p, m, _) => Rep(unmap(p), m, Accumulator0.unitAccumulator0)
-        case AnyChar | CharIn(_, _, _) | Str(_) | StringIn(_) | IgnoreCase(_) | Fail() |
-          FailWith(_) | Length(_) | TailRecM(_, _) | FlatMap(_, _) =>
+        case AnyChar | CharIn(_, _, _) | Str(_) | StringIn(_) | IgnoreCase(_) | Fail() | FailWith(
+              _
+            ) | Length(_) | TailRecM(_, _) | FlatMap(_, _) =>
           // we can't transform this significantly
           pa
 
