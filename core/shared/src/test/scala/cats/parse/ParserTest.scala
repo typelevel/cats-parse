@@ -419,7 +419,7 @@ object ParserGen {
 
     Gen.zip(genFn1, genFn2).flatMap { case (f1, f2) =>
       Gen.oneOf(
-        GenT(ga.fa.map(f1).orElse0(gb.fa.map(f2))),
+        GenT(ga.fa.map(f1).orElse(gb.fa.map(f2))),
         GenT(MonoidK[Parser0].combineK(ga.fa.map(f1), gb.fa.map(f2)))
       )
     }
@@ -713,7 +713,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(Gen.listOf(ParserGen.gen0), Gen.listOf(ParserGen.gen0), Arbitrary.arbitrary[String]) {
       (genP1, genP2, str) =>
         val oneOf = Parser.oneOf0((genP1 ::: genP2).map(_.fa))
-        val oneOf2 = Parser.oneOf0(genP1.map(_.fa)).orElse0(Parser.oneOf0(genP2.map(_.fa)))
+        val oneOf2 = Parser.oneOf0(genP1.map(_.fa)).orElse(Parser.oneOf0(genP2.map(_.fa)))
 
         assertEquals(oneOf.parse(str), oneOf2.parse(str))
     }
@@ -754,7 +754,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("oneOf0 composes as expected") {
     forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
-      assertEquals(genP1.fa.orElse0(genP2.fa).parse(str), orElse(genP1.fa, genP2.fa, str))
+      assertEquals(genP1.fa.orElse(genP2.fa).parse(str), orElse(genP1.fa, genP2.fa, str))
     }
   }
 
@@ -764,10 +764,10 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("oneOf0 same as foldLeft(fail)(_.orElse0(_))") {
+  property("oneOf0 same as foldLeft(fail)(_.orElse(_))") {
     forAll(Gen.listOf(ParserGen.gen0), Arbitrary.arbitrary[String]) { (genP1, str) =>
       val oneOfImpl = genP1.foldLeft(Parser.fail: Parser0[Any]) { (leftp, p) =>
-        leftp.orElse0(p.fa)
+        leftp.orElse(p.fa)
       }
 
       assertEquals(oneOfImpl.parse(str), Parser.oneOf0(genP1.map(_.fa)).parse(str))
@@ -793,7 +793,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("backtrack orElse pure always succeeds") {
     forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
-      val p1 = genP.fa.backtrack.orElse0(Parser.pure(())): Parser0[Any]
+      val p1 = genP.fa.backtrack.orElse(Parser.pure(())): Parser0[Any]
 
       assert(p1.parse(str).isRight)
     }
@@ -1042,7 +1042,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         Defer[Parser0].fix[List[A]] { tail =>
           (pa ~ tail)
             .map { case (h, t) => h :: t }
-            .orElse0(Parser.pure(Nil))
+            .orElse(Parser.pure(Nil))
         }
 
       val lst1 = rep0(genP.fa)
@@ -1060,7 +1060,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         val repB = genP.fa
           .rep(min)
           .map(_.toList)
-          .orElse0(
+          .orElse(
             if (min == 0) Parser.pure(Nil)
             else Parser.fail
           )
@@ -1129,7 +1129,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("p orElse p == p") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.parse(str)
-      val res1 = genP.fa.orElse0(genP.fa).parse(str)
+      val res1 = genP.fa.orElse(genP.fa).parse(str)
       assertEquals(res1, res0)
     }
   }
@@ -1152,9 +1152,9 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("p1.backtrack.orElse0(p2) succeeds if either p1 or p2 do") {
+  property("p1.backtrack.orElse(p2) succeeds if either p1 or p2 do (Parser0)") {
     forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
-      val ores = p1.fa.backtrack.orElse0(p2.fa).parse(str)
+      val ores = p1.fa.backtrack.orElse(p2.fa).parse(str)
       val r1 = p1.fa.parse(str)
       val r = if (r1.isLeft) p2.fa.parse(str) else r1
       (ores, r) match {
@@ -1385,15 +1385,15 @@ class ParserTest extends munit.ScalaCheckSuite {
    *
    * Instead, we have some weakened versions of distributive laws
    */
-  property("b.orElse0(c) ~ a == (b ~ a).orElse0((!b) *> (c ~ a))") {
+  property("b.orElse(c) ~ a == (b ~ a).orElse((!b) *> (c ~ a))") {
     forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) {
       (a, b, c, str) =>
         val pa = a.fa
         val pb = b.fa
         val pc = c.fa
 
-        val left = pb.orElse0(pc) ~ pa
-        val right = (pb ~ pa).orElse0((!pb) *> (pc ~ pa))
+        val left = pb.orElse(pc) ~ pa
+        val right = (pb ~ pa).orElse((!pb) *> (pc ~ pa))
 
         val leftRes = left.parse(str).toOption
         val rightRes = right.parse(str).toOption
@@ -1419,15 +1419,15 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("a ~ b.orElse0(c) == (a.soft ~ b).orElse0(a ~ c)") {
+  property("a ~ b.orElse(c) == (a.soft ~ b).orElse(a ~ c)") {
     forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) {
       (a, b, c, str) =>
         val pa = a.fa
         val pb = b.fa
         val pc = c.fa
 
-        val left = pa ~ pb.orElse0(pc)
-        val right = (pa.soft ~ pb).orElse0(pa ~ pc)
+        val left = pa ~ pb.orElse(pc)
+        val right = (pa.soft ~ pb).orElse(pa ~ pc)
 
         val leftRes = left.parse(str).toOption
         val rightRes = right.parse(str).toOption
@@ -1443,7 +1443,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         val pc = c.fa
 
         val left = pa ~ pb.orElse(pc)
-        val right = (pa.soft.with1 ~ pb).orElse0(pa.with1 ~ pc)
+        val right = (pa.soft.with1 ~ pb).orElse(pa.with1 ~ pc)
 
         val leftRes = left.parse(str).toOption
         val rightRes = right.parse(str).toOption
@@ -1451,13 +1451,13 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("a.backtrack.orElse0(b) parses iff b.backtrack.orElse0(a)") {
+  property("a.backtrack.orElse(b) parses iff b.backtrack.orElse(a) (Parser0)") {
     forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val pa = a.fa
       val pb = b.fa
 
-      val left = pa.backtrack.orElse0(pb)
-      val right = pb.backtrack.orElse0(pa)
+      val left = pa.backtrack.orElse(pb)
+      val right = pb.backtrack.orElse(pa)
 
       val leftRes = left.parse(str)
       val rightRes = right.parse(str)
@@ -1559,13 +1559,13 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("a.backtrack.peek.orElse0(b.peek) == (a.backtrack.orElse0(b)).peek") {
+  property("a.backtrack.peek.orElse(b.peek) == (a.backtrack.orElse(b)).peek") {
     forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, str) =>
       val pa = a.fa.backtrack
       val pb = b.fa
 
-      val left = pa.peek.orElse0(pb.peek)
-      val right = pa.orElse0(pb).peek
+      val left = pa.peek.orElse(pb.peek)
+      val right = pa.orElse(pb).peek
 
       val leftRes = left.parse(str).toOption
       val rightRes = right.parse(str).toOption
@@ -1823,6 +1823,18 @@ class ParserTest extends munit.ScalaCheckSuite {
       val right = Parser.oneOf(pa.map(_.toString) :: pb :: Nil)
 
       assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("p.as(a).map(fn) == p.as(fn(a))") {
+    forAll(ParserGen.gen, Gen.choose(0, 128), Gen.function1[Int, Int](Gen.choose(0, 128))) {
+      (p, a, fn) =>
+        assertEquals(p.fa.as(a).map(fn), p.fa.as(fn(a)))
+    }
+
+    forAll(ParserGen.gen0, Gen.choose(0, 128), Gen.function1[Int, Int](Gen.choose(0, 128))) {
+      (p0, a, fn) =>
+        assertEquals(p0.fa.as(a).map(fn), p0.fa.as(fn(a)))
     }
   }
 

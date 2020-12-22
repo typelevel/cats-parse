@@ -21,7 +21,6 @@
 
 package cats.parse.bench.self
 
-import cats.implicits._
 import cats.parse.{Parser0 => P0, Parser => P, Numbers}
 import org.typelevel.jawn.ast._
 
@@ -132,7 +131,7 @@ abstract class GenericStringUtil {
   def escapedString(q: Char): P[String] = {
     val end: P[Unit] = P.char(q)
     end *> ((simpleString <* end).backtrack
-      .orElse0(undelimitedString(end) <* end))
+      .orElse(undelimitedString(end) <* end))
   }
 
   def escape(quoteChar: Char, str: String): String = {
