@@ -21,7 +21,6 @@
 
 package cats.parse.bench.self
 
-import cats.implicits._
 import cats.parse.{Parser0 => P0, Parser => P, Numbers}
 import org.typelevel.jawn.ast._
 
