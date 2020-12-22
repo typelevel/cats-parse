@@ -911,16 +911,27 @@ object Parser {
     * The order of the strings does not matter.
     *
     * If no string matches, this parser results in an epsilon failure.
+    *
+    * It is an error to pass the empty string here, if you
+    * need that see stringIn0
     */
-  def stringIn(strings: Iterable[String]): Parser[Unit] =
+  def stringIn(strings: Iterable[String]): Parser[String] =
     strings.toList.distinct match {
       case Nil => fail
-      case s :: Nil => string(s)
+      case s :: Nil => string(s).string
       case two =>
-        Impl.StringIn(
-          SortedSet(two: _*)
-        ) // sadly scala 2.12 doesn't have the `SortedSet.from` constructor function
+        Impl
+          .StringIn(
+            SortedSet(two: _*)
+          ) // sadly scala 2.12 doesn't have the `SortedSet.from` constructor function
+          .string
     }
+
+  /** Version of stringIn that allows the empty string
+    */
+  def stringIn0(strings: Iterable[String]): Parser0[String] =
+    if (strings.exists(_.isEmpty)) stringIn(strings.filter(_.nonEmpty)).orElse(emptyStringParser0)
+    else stringIn(strings)
 
   /** If the first parser fails to parse its input with an epsilon error,
     * try the second parser instead.
@@ -1311,6 +1322,8 @@ object Parser {
             // but scala can't see that, so we cast
             f.asInstanceOf[Parser[Unit]]
           case p: Impl.Str => p
+          case p: Impl.StringIn => p
+          case p: Impl.IgnoreCase => p
           case notVoid => Impl.Void(notVoid)
         }
     }

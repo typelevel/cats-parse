@@ -583,9 +583,9 @@ class ParserTest extends munit.ScalaCheckSuite {
 
     parseTest(Parser.oneOf(fooP :: barP :: Nil), "bar", ())
     parseTest(Parser.oneOf(fooP :: barP :: Nil), "foo", ())
-    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foo", ())
-    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "bar", ())
-    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foobar", ())
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foo", "foo")
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "bar", "bar")
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foobar", "foobar")
   }
 
   test("product tests") {
@@ -1850,14 +1850,14 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("stringIn(List(s)) == string(s)") {
     forAll { (s: String) =>
       if (s.nonEmpty)
-        assertEquals(Parser.stringIn(List(s)), Parser.string(s))
+        assertEquals(Parser.stringIn(List(s)), Parser.string(s).string)
     }
   }
 
   property("stringIn(List(s, s)) == string(s)") {
     forAll { (s: String) =>
       if (s.nonEmpty)
-        assertEquals(Parser.stringIn(List(s, s)), Parser.string(s))
+        assertEquals(Parser.stringIn(List(s, s)), Parser.string(s).string)
     }
   }
 
