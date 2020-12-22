@@ -32,17 +32,16 @@ class StringInBenchmarks {
   val inputs =
     List("foofoo", "bar", "foobat", "foot", "foobar")
 
-  val stringIn = Parser.stringIn1(List("foo", "bar", "foobar", "foofoo", "foobaz"))
+  val stringIn = Parser.stringIn("foo" :: "bar" :: "foobar" :: "foofoo" :: "foobaz" :: Nil)
 
   val oneOf =
-    Parser.oneOf1(
-      List(
-        Parser.string1("foobar"),
-        Parser.string1("foobaz"),
-        Parser.string1("foofoo"),
-        Parser.string1("foo"),
-        Parser.string1("bar")
-      )
+    Parser.oneOf(
+      Parser.string("foobar") ::
+        Parser.string("foobaz") ::
+        Parser.string("foofoo") ::
+        Parser.string("foo") ::
+        Parser.string("bar") ::
+        Nil
     )
 
   @Benchmark

@@ -30,47 +30,47 @@ object SemVer {
 
   case class SemVer(core: Core, preRelease: Option[String], buildMetadata: Option[String])
 
-  val dot: Parser1[Char] = Parser.charIn('.')
-  val hyphen: Parser1[Char] = Parser.charIn('-')
-  val plus: Parser1[Char] = Parser.charIn('+')
+  val dot: Parser[Char] = Parser.charIn('.')
+  val hyphen: Parser[Char] = Parser.charIn('-')
+  val plus: Parser[Char] = Parser.charIn('+')
 
-  val letter: Parser1[Char] = Parser.ignoreCaseCharIn('a' to 'z')
+  val letter: Parser[Char] = Parser.ignoreCaseCharIn('a' to 'z')
 
-  def positiveDigit: Parser1[Char] = Numbers.nonZeroDigit
+  def positiveDigit: Parser[Char] = Numbers.nonZeroDigit
 
-  val nonDigit: Parser1[Char] = letter.orElse1(hyphen)
+  val nonDigit: Parser[Char] = letter.orElse(hyphen)
 
-  val identifierChar: Parser1[Char] = Numbers.digit.orElse1(nonDigit)
+  val identifierChar: Parser[Char] = Numbers.digit.orElse(nonDigit)
 
-  val identifierChars: Parser1[String] = identifierChar.rep1.string
+  val identifierChars: Parser[String] = identifierChar.rep.string
 
-  def numericIdentifier: Parser1[String] = Numbers.nonNegativeIntString
+  def numericIdentifier: Parser[String] = Numbers.nonNegativeIntString
 
-  val alphanumericIdentifier: Parser1[String] = identifierChars
+  val alphanumericIdentifier: Parser[String] = identifierChars
 
-  val buildIdentifier: Parser1[String] = alphanumericIdentifier
+  val buildIdentifier: Parser[String] = alphanumericIdentifier
 
-  val preReleaseIdentifier: Parser1[String] = alphanumericIdentifier
+  val preReleaseIdentifier: Parser[String] = alphanumericIdentifier
 
-  val dotSeparatedBuildIdentifiers: Parser1[String] = Parser.rep1Sep(buildIdentifier, 1, dot).string
+  val dotSeparatedBuildIdentifiers: Parser[String] = Parser.repSep(buildIdentifier, 1, dot).string
 
-  val build: Parser1[String] = dotSeparatedBuildIdentifiers
+  val build: Parser[String] = dotSeparatedBuildIdentifiers
 
-  val dotSeparatedPreReleaseIdentifiers: Parser1[String] =
-    Parser.rep1Sep(preReleaseIdentifier, 1, dot).string
+  val dotSeparatedPreReleaseIdentifiers: Parser[String] =
+    Parser.repSep(preReleaseIdentifier, 1, dot).string
 
-  val preRelease: Parser1[String] = dotSeparatedPreReleaseIdentifiers
+  val preRelease: Parser[String] = dotSeparatedPreReleaseIdentifiers
 
-  val patch: Parser1[String] = numericIdentifier
-  val minor: Parser1[String] = numericIdentifier
-  val major: Parser1[String] = numericIdentifier
+  val patch: Parser[String] = numericIdentifier
+  val minor: Parser[String] = numericIdentifier
+  val major: Parser[String] = numericIdentifier
 
-  val core: Parser1[Core] = (major, dot *> minor, dot *> patch).mapN(Core)
-  val coreString: Parser1[String] = core.string
+  val core: Parser[Core] = (major, dot *> minor, dot *> patch).mapN(Core)
+  val coreString: Parser[String] = core.string
 
-  val semver: Parser1[SemVer] =
+  val semver: Parser[SemVer] =
     (core ~ (hyphen *> preRelease).? ~ (plus *> build).?).map { case ((c, p), b) =>
       SemVer(c, p, b)
     }
-  val semverString: Parser1[String] = semver.string
+  val semverString: Parser[String] = semver.string
 }

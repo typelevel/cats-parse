@@ -25,44 +25,44 @@ object Numbers {
 
   /** a single base 10 digit
     */
-  val digit: Parser1[Char] =
+  val digit: Parser[Char] =
     Parser.charIn('0' to '9')
 
   /** zero or more digit chars
     */
-  val digits: Parser[String] = digit.rep.string
+  val digits0: Parser0[String] = digit.rep0.string
 
   /** one or more digit chars
     */
-  val digits1: Parser1[String] = digit.rep1.string
+  val digits: Parser[String] = digit.rep.string
 
   /** a single base 10 digit excluding 0
     */
-  val nonZeroDigit: Parser1[Char] =
+  val nonZeroDigit: Parser[Char] =
     Parser.charIn('1' to '9')
 
   /** A String of either 1 '0' or
     * 1 non-zero digit followed by zero or more digits
     */
-  val nonNegativeIntString: Parser1[String] =
-    (nonZeroDigit ~ digits).void
-      .orElse1(Parser.char('0'))
+  val nonNegativeIntString: Parser[String] =
+    (nonZeroDigit ~ digits0).void
+      .orElse(Parser.char('0'))
       .string
 
   /** A nonNegativeIntString possibly preceded by '-'
     */
-  val signedIntString: Parser1[String] =
+  val signedIntString: Parser[String] =
     (Parser.char('-').?.with1 ~ nonNegativeIntString).string
 
   /** map a signedIntString into a BigInt
     */
-  val bigInt: Parser1[BigInt] =
+  val bigInt: Parser[BigInt] =
     signedIntString.map(BigInt(_))
 
   /** A string matching the json specification for numbers.
     * from: https://tools.ietf.org/html/rfc4627
     */
-  val jsonNumber: Parser1[String] = {
+  val jsonNumber: Parser[String] = {
     /*
      *     number = [ minus ] int [ frac ] [ exp ]
      *     decimal-point = %x2E       ; .
@@ -75,8 +75,8 @@ object Numbers {
      *     plus = %x2B                ; +
      *     zero = %x30                ; 0
      */
-    val frac: Parser1[Any] = Parser.char('.') ~ digits1
-    val exp: Parser1[Unit] = (Parser.charIn("eE") ~ Parser.charIn("+-").? ~ digits1).void
+    val frac: Parser[Any] = Parser.char('.') ~ digits
+    val exp: Parser[Unit] = (Parser.charIn("eE") ~ Parser.charIn("+-").? ~ digits).void
 
     (signedIntString ~ frac.? ~ exp.?).string
   }
