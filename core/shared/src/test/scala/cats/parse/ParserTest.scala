@@ -1381,15 +1381,6 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("BitSetUtil union works") {
-    forAll { (cs: List[List[Char]]) =>
-      val arys = cs.filter(_.nonEmpty).map(_.toArray.sorted)
-      val bs = arys.map { ary => (ary(0).toInt, BitSetUtil.bitSetFor(ary)) }
-      val sortedFlat = BitSetUtil.union(bs)
-      assertEquals(sortedFlat.toSet, cs.flatten.toSet)
-    }
-  }
-
   /*
    * it would be nice if parsers were purely distributive, but they are not.
    * While cats Alternative laws do require some weak distributivity, Haskell
@@ -1935,6 +1926,12 @@ class ParserTest extends munit.ScalaCheckSuite {
       val right = pa.string.string
 
       assertEquals(left, right)
+    }
+
+    // here is an case we want to be sure works:
+    forAll { (c: Char) =>
+      val c1 = Parser.char(c).string
+      assertEquals(c1.string, c1)
     }
   }
 

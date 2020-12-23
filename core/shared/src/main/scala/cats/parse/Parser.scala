@@ -1355,7 +1355,7 @@ object Parser {
           case ci @ Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
             // we can allocate the returned string once here
             val minStr = min.toChar.toString
-            ci.as(minStr)
+            Impl.Map(ci, Impl.ConstFn(minStr))
           case f @ (Impl.Fail() | Impl.FailWith(_)) =>
             // these are really Parser[Nothing]
             // but scala can't see that, so we cast
@@ -1441,12 +1441,18 @@ object Parser {
   /** Replaces parsed values with the given value.
     */
   def as[A, B](pa: Parser[A], b: B): Parser[B] =
-    (pa.void, b) match {
-      case (Impl.Void(ci @ Impl.CharIn(min, bs, _)), bc: Char)
-          if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
-        // this is putting the character back on a singleton CharIn, just return the char in
-        ci.asInstanceOf[Parser[B]]
-      case (notSingleChar, _) => notSingleChar.map(Impl.ConstFn(b))
+    pa.void match {
+      case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
+        // CharIn is common and cheap, no need to wrap
+        // with Void since CharIn always returns the char
+        // even when voided
+        b match {
+          case bc: Char if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
+            ci.asInstanceOf[Parser[B]]
+          case _ =>
+            Impl.Map(ci, Impl.ConstFn(b))
+        }
+      case notSingleChar => notSingleChar.map(Impl.ConstFn(b))
     }
 
   implicit val catsInstancesParser
@@ -1546,6 +1552,9 @@ object Parser {
 
     case class ConstFn[A](result: A) extends Function[Any, A] {
       def apply(any: Any) = result
+
+      override def andThen[B](that: Function[A, B]): ConstFn[B] =
+        ConstFn(that(result))
     }
 
     // this is used to make def unmap0 a pure function wrt `def equals`
