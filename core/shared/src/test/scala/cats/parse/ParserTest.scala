@@ -1921,9 +1921,9 @@ class ParserTest extends munit.ScalaCheckSuite {
   test("some stringIn unions with prefixes") {
     // these examples show us not unioning when
     // a previous stringIn has a prefix of the right
-    val p1 = Parser
+    val p1: Parser[String] = Parser
       .stringIn("foo" :: "fuzz" :: Nil)
-      .orElse(Parser.string("foobar"))
+      .orElse(Parser.string("foobar").string)
 
     assertEquals(p1.parse("foobar"), Right(("bar", "foo")))
 
