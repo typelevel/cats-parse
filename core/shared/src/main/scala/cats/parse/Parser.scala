@@ -852,12 +852,12 @@ object Parser {
           flatten(rest, acc += notOneOf)
       }
 
-    val flat0 = flatten(parsers, new ListBuffer)
+    val flattened = flatten(parsers, new ListBuffer)
     // we unmap if we can to make merging work better
-    val isStr = flat0.forall(Impl.matchesString)
-    val flat = if (isStr) flat0.map(Impl.unmap) else flat0
+    val isStr = flattened.forall(Impl.matchesString)
+    val maybeUnmap = if (isStr) flattened.map(Impl.unmap) else flattened
 
-    val cs = Impl.mergeCharIn[Any, Parser[Any]](flat)
+    val cs = Impl.mergeCharIn[Any, Parser[Any]](maybeUnmap)
     val res = Impl.mergeStrIn[Any, Parser[Any]](cs) match {
       case Nil => fail
       case p :: Nil => p
@@ -1589,7 +1589,7 @@ object Parser {
       p match {
         case StringP0(_) | StringP(_) | Pure("") | Length(_) | Fail() | FailWith(_) => true
         case Map(Str(e1), ConstFn(e2)) => e1 == e2
-        case Map(Impl.CharIn(min, bs, _), ConstFn(e)) if BitSetUtil.isSingleton(bs) =>
+        case Map(CharIn(min, bs, _), ConstFn(e)) if BitSetUtil.isSingleton(bs) =>
           e == min.toChar.toString
         case OneOf(ss) => ss.forall(matchesString)
         case OneOf0(ss) => ss.forall(matchesString)
