@@ -210,6 +210,11 @@ sealed abstract class Parser0[+A] {
   def orElse[A1 >: A](that: Parser0[A1]): Parser0[A1] =
     Parser.oneOf0(this :: that :: Nil)
 
+  /** Synonym for orElse
+    */
+  def |[A1 >: A](that: Parser0[A1]): Parser0[A1] =
+    orElse(that)
+
   /** Transform parsed values using the given function.
     *
     * This parser will match the same inputs as the underlying parser,
@@ -459,6 +464,11 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     */
   def orElse[A1 >: A](that: Parser[A1]): Parser[A1] =
     Parser.oneOf(this :: that :: Nil)
+
+  /** Synonym for orElse
+    */
+  def |[A1 >: A](that: Parser[A1]): Parser[A1] =
+    orElse(that)
 
   /** Use this parser to parse zero-or-more values.
     *
