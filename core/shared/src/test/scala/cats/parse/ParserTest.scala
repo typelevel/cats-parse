@@ -101,10 +101,25 @@ object ParserGen {
       Gen.const(GenT(Parser.anyChar))
     )
 
+  val char: Gen[GenT[Parser]] =
+    Gen.oneOf(
+      Gen.choose(Char.MinValue, Char.MaxValue).map { c =>
+        GenT(Parser.char(c))
+      },
+      Gen.choose(Char.MinValue, Char.MaxValue).map { c =>
+        GenT(Parser.char(c).string)
+      }
+    )
+
   val stringIn: Gen[GenT[Parser]] =
     Arbitrary.arbitrary[List[String]].map { cs =>
       if (cs.exists(_.isEmpty)) GenT(Parser.fail: Parser[Unit])
       else GenT(Parser.stringIn(cs))
+    }
+
+  val stringIn0: Gen[GenT[Parser0]] =
+    Arbitrary.arbitrary[List[String]].map { cs =>
+      GenT(Parser.stringIn0(cs))
     }
 
   val expect1: Gen[GenT[Parser]] =
@@ -459,6 +474,7 @@ object ParserGen {
       (1, failWith),
       (1, rec.map(void0(_))),
       (1, rec.map(string0(_))),
+      (1, stringIn0),
       (1, rec.map(backtrack0(_))),
       (1, rec.map(defer0(_))),
       (1, rec.map { gen => GenT(!gen.fa) }),
@@ -482,6 +498,7 @@ object ParserGen {
       (8, expect1),
       (2, ignoreCase),
       (8, charIn),
+      (2, char),
       (8, stringIn),
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser.char(c)) }),
       (2, rec.map(void(_))),
@@ -583,9 +600,9 @@ class ParserTest extends munit.ScalaCheckSuite {
 
     parseTest(Parser.oneOf(fooP :: barP :: Nil), "bar", ())
     parseTest(Parser.oneOf(fooP :: barP :: Nil), "foo", ())
-    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foo", ())
-    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "bar", ())
-    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foobar", ())
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foo", "foo")
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "bar", "bar")
+    parseTest(Parser.stringIn(List("foo", "bar", "foobar")), "foobar", "foobar")
   }
 
   test("product tests") {
@@ -1364,15 +1381,6 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("BitSetUtil union works") {
-    forAll { (cs: List[List[Char]]) =>
-      val arys = cs.filter(_.nonEmpty).map(_.toArray.sorted)
-      val bs = arys.map { ary => (ary(0).toInt, BitSetUtil.bitSetFor(ary)) }
-      val sortedFlat = BitSetUtil.union(bs)
-      assertEquals(sortedFlat.toSet, cs.flatten.toSet)
-    }
-  }
-
   /*
    * it would be nice if parsers were purely distributive, but they are not.
    * While cats Alternative laws do require some weak distributivity, Haskell
@@ -1850,14 +1858,14 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("stringIn(List(s)) == string(s)") {
     forAll { (s: String) =>
       if (s.nonEmpty)
-        assertEquals(Parser.stringIn(List(s)), Parser.string(s))
+        assertEquals(Parser.stringIn(List(s)), Parser.string(s).string)
     }
   }
 
   property("stringIn(List(s, s)) == string(s)") {
     forAll { (s: String) =>
       if (s.nonEmpty)
-        assertEquals(Parser.stringIn(List(s, s)), Parser.string(s))
+        assertEquals(Parser.stringIn(List(s, s)), Parser.string(s).string)
     }
   }
 
@@ -1867,6 +1875,14 @@ class ParserTest extends munit.ScalaCheckSuite {
       val ss1 = Random.shuffle(s :: ss)
       if (s.nonEmpty && Parser.string(s).parse(toParse).isRight)
         assert(Parser.stringIn(ss1).parse(toParse).isRight)
+    }
+  }
+
+  property("stringIn(s) is order independent") {
+    forAll { (ss0: List[String]) =>
+      val ss = ss0.filterNot(_.isEmpty)
+      val ss1 = Random.shuffle(ss)
+      assertEquals(Parser.stringIn(ss1), Parser.stringIn(ss))
     }
   }
 
@@ -1883,12 +1899,101 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("stringIn parse longest match") {
+  property("stringIn parses longest match") {
     forAll { (ss0: List[String], toParse: String) =>
       val ss = ss0.filterNot(_.isEmpty)
       val left = Parser.stringIn(ss).parse(toParse).toOption
-      val right = ss.filter(toParse.startsWith(_)).sortBy { s => -s.length }
-      assertEquals(left.map(_._1), right.headOption)
+      val right: Option[String] =
+        ss.filter(toParse.startsWith(_)).sortBy { s => -s.length }.headOption
+      assertEquals(left.map(_._2), right)
     }
   }
+
+  property("stringIn0 parses longest match") {
+    forAll { (ss: List[String], toParse: String) =>
+      val left = Parser.stringIn0(ss).parse(toParse).toOption
+      val right: Option[String] =
+        ss.filter(toParse.startsWith(_)).sortBy { s => -s.length }.headOption
+      assertEquals(left.map(_._2), right)
+    }
+  }
+
+  test("some stringIn unions with prefixes") {
+    // these examples show us not unioning when
+    // a previous stringIn has a prefix of the right
+    val p1: Parser[String] = Parser
+      .stringIn("foo" :: "fuzz" :: Nil)
+      .orElse(Parser.string("foobar").string)
+
+    assertEquals(p1.parse("foobar"), Right(("bar", "foo")))
+
+    val p2 = Parser
+      .stringIn("foo" :: "fuzz" :: Nil)
+      .orElse(Parser.stringIn("foobar" :: "fuzzbaz" :: Nil))
+
+    assertEquals(p2.parse("foobar"), Right(("bar", "foo")))
+    assertEquals(p2.parse("fuzzbaz"), Right(("baz", "fuzz")))
+  }
+
+  property("a.string == a.string.string") {
+    forAll(ParserGen.gen0) { a =>
+      val pa = a.fa
+
+      val left = pa.string
+      val right = pa.string.string
+
+      assertEquals(left, right)
+    }
+
+    // here is an case we want to be sure works:
+    forAll { (c: Char) =>
+      val c1 = Parser.char(c).string
+      assertEquals(c1.string, c1)
+    }
+  }
+
+  property("a.string ~ b.string == (a ~ b).string") {
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, toParse) =>
+      val pa = a.fa
+      val pb = b.fa
+
+      val left = (pa.string ~ pb.string).map { case (a, b) => a + b }
+      val right = (pa ~ pb).string
+
+      assertEquals(left.parse(toParse), right.parse(toParse))
+    }
+  }
+
+  property("a.string.soft ~ b.string == (a.soft ~ b).string") {
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (a, b, toParse) =>
+      val pa = a.fa
+      val pb = b.fa
+
+      val left = (pa.string.soft ~ pb.string).map { case (a, b) => a + b }
+      val right = (pa.soft ~ pb).string
+
+      assertEquals(left.parse(toParse), right.parse(toParse))
+    }
+  }
+
+  property("oneOf0(a.map(_.string)) ~ oneOf0(a).string") {
+    forAll(Gen.choose(0, 5).flatMap(Gen.listOfN(_, ParserGen.gen0)), Arbitrary.arbitrary[String]) {
+      (as, toParse) =>
+        val left = Parser.oneOf0(as.map(_.fa.string))
+        val right = Parser.oneOf0[Any](as.map(_.fa)).string
+
+        assertEquals(left.parse(toParse), right.parse(toParse))
+    }
+  }
+
+  property("oneOf(a.map(_.string)) ~ oneOf(a).string") {
+    forAll(Gen.choose(0, 5).flatMap(Gen.listOfN(_, ParserGen.gen)), Arbitrary.arbitrary[String]) {
+      (as, toParse) =>
+        val left = Parser.oneOf(as.map(_.fa.string))
+        val right = Parser.oneOf[Any](as.map(_.fa)).string
+
+        assertEquals(left.parse(toParse), right.parse(toParse))
+    }
+  }
+
 }

@@ -21,41 +21,24 @@
 
 package cats.parse
 
-import java.util.BitSet
+import org.scalacheck.Prop.forAll
 
-object BitSetUtil {
-  type Tpe = BitSet
-
-  @inline final val isScalaJs = false
-  @inline final val isScalaJvm = true
-
-  @inline final def isSet(b: BitSet, idx: Int): Boolean =
-    // BitSet can't deal with negatives, so mask those out
-    b.get(idx & Int.MaxValue)
-
-  // we require a sorted, nonEmpty, charArray
-  def bitSetFor(charArray: Array[Char]): BitSet = {
-    val min = charArray(0).toInt
-    val bs = new BitSet(charArray(charArray.length - 1).toInt + 1 - min)
-    var idx = 0
-    while (idx < charArray.length) {
-      bs.set(charArray(idx).toInt - min)
-      idx += 1
+class BitSetTest extends munit.ScalaCheckSuite {
+  property("BitSetUtil union works") {
+    forAll { (cs: List[List[Char]]) =>
+      val arys = cs.filter(_.nonEmpty).map(_.toArray.sorted)
+      val bs = arys.map { ary => (ary(0).toInt, BitSetUtil.bitSetFor(ary)) }
+      val sortedFlat = BitSetUtil.union(bs)
+      assertEquals(sortedFlat.toSet, cs.flatten.toSet)
     }
-
-    bs
   }
 
-  def isSingleton(t: Tpe): Boolean = t.cardinality() == 1
+  property("BitSet.isSingleton is correct") {
+    forAll { (c0: Char, cs: Set[Char]) =>
+      val set = cs + c0
+      val bs = BitSetUtil.bitSetFor(set.toArray.sorted)
 
-  // what are all the Chars in these bitsets
-  def union(bs: List[(Int, BitSet)]): Iterable[Char] = {
-    def toIter(m: Int, bs: BitSet): Iterator[Char] =
-      Iterator
-        .iterate(0) { m => bs.nextSetBit(m + 1) }
-        .takeWhile(_ >= 0)
-        .map { i => (m + i).toChar }
-
-    bs.flatMap { case (m, bs) => toIter(m, bs) }
+      assertEquals(BitSetUtil.isSingleton(bs), set.size == 1)
+    }
   }
 }
