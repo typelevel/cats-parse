@@ -1193,6 +1193,29 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("p1.orElse(p2) == p1 | p2") {
+    forAll(ParserGen.gen, ParserGen.gen) { (p1, p2) =>
+      val pa: Parser[Any] = p1.fa
+      val pb: Parser[Any] = p2.fa
+      assertEquals(pa.orElse(pb), pa | pb)
+    }
+    forAll(ParserGen.gen0, ParserGen.gen0) { (p1, p2) =>
+      val pa: Parser0[Any] = p1.fa
+      val pb: Parser0[Any] = p2.fa
+      assertEquals(pa.orElse(pb), pa | pb)
+    }
+    forAll(ParserGen.gen, ParserGen.gen0) { (p1, p2) =>
+      val pa: Parser[Any] = p1.fa
+      val pb: Parser0[Any] = p2.fa
+      assertEquals(pa.orElse(pb), pa | pb)
+    }
+    forAll(ParserGen.gen0, ParserGen.gen) { (p1, p2) =>
+      val pa: Parser0[Any] = p1.fa
+      val pb: Parser[Any] = p2.fa
+      assertEquals(pa.orElse(pb), pa | pb)
+    }
+  }
+
   test("charWhere(_ => true) == anyChar") {
     assertEquals(Parser.charWhere(_ => true), Parser.anyChar)
   }

@@ -31,7 +31,7 @@ object Rfc5234 {
   /** A-Z and a-z, without diacritics
     */
   val alpha: Parser[Char] =
-    Parser.charIn('A' to 'Z').orElse(Parser.charIn('a' to 'z'))
+    Parser.charIn('A' to 'Z') | Parser.charIn('a' to 'z')
 
   /** `0` or `1`
     */
@@ -74,7 +74,7 @@ object Rfc5234 {
   /** hexadecimal digit, case insensitive
     */
   val hexdig: Parser[Char] =
-    digit.orElse(Parser.ignoreCaseCharIn('A' to 'F'))
+    digit | Parser.ignoreCaseCharIn('A' to 'F')
 
   /** horizontal tab
     */
@@ -86,8 +86,7 @@ object Rfc5234 {
     Parser.char(' ')
 
   /** white space (space or horizontal tab) */
-  val wsp: Parser[Unit] =
-    sp.orElse(htab)
+  val wsp: Parser[Unit] = sp | htab
 
   /** linear white space.
     *

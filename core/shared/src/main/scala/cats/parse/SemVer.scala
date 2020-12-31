@@ -38,9 +38,9 @@ object SemVer {
 
   def positiveDigit: Parser[Char] = Numbers.nonZeroDigit
 
-  val nonDigit: Parser[Char] = letter.orElse(hyphen)
+  val nonDigit: Parser[Char] = letter | hyphen
 
-  val identifierChar: Parser[Char] = Numbers.digit.orElse(nonDigit)
+  val identifierChar: Parser[Char] = Numbers.digit | nonDigit
 
   val identifierChars: Parser[String] = identifierChar.rep.string
 
