@@ -1437,9 +1437,9 @@ object Parser {
 
   /** Replaces parsed values with the given value.
     */
-  def as0[A, B](pa: Parser0[A], b: B): Parser0[B] =
-    pa match {
-      case p1: Parser[A] => as(p1, b)
+  def as0[B](pa: Parser0[Any], b: B): Parser0[B] =
+    pa.void match {
+      case p1: Parser[_] => as(p1, b)
       case _ =>
         Impl.unmap0(pa) match {
           case Impl.Pure(_) | Impl.Index => pure(b)
@@ -1450,7 +1450,7 @@ object Parser {
 
   /** Replaces parsed values with the given value.
     */
-  def as[A, B](pa: Parser[A], b: B): Parser[B] =
+  def as[B](pa: Parser[Any], b: B): Parser[B] = {
     pa.void match {
       case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
         // CharIn is common and cheap, no need to wrap
@@ -1464,6 +1464,7 @@ object Parser {
         }
       case notSingleChar => notSingleChar.map(Impl.ConstFn(b))
     }
+  }
 
   implicit val catsInstancesParser
       : FlatMap[Parser] with Defer[Parser] with MonoidK[Parser] with FunctorFilter[Parser] =
