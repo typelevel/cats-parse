@@ -171,10 +171,32 @@ object ParserGen {
     GenT[Parser0, List[g.A]](g.fa.rep0)
   }
 
+  def rep0(min: Int, max: Int, g: GenT[Parser]): GenT[Parser0] = {
+    implicit val cg = g.cogen
+    GenT[Parser0, List[g.A]](g.fa.rep0(min = min, max = max))
+  }
+
+  def genRep0(g: GenT[Parser]): Gen[GenT[Parser0]] =
+    for {
+      min <- Gen.choose(0, Int.MaxValue)
+      max <- Gen.choose(min, Int.MaxValue)
+    } yield rep0(min, max, g)
+
   def rep(g: GenT[Parser]): GenT[Parser] = {
     implicit val cg = g.cogen
     GenT[Parser, List[g.A]](g.fa.rep.map(_.toList))
   }
+
+  def rep(min: Int, max: Int, g: GenT[Parser]): GenT[Parser] = {
+    implicit val cs = g.cogen
+    GenT[Parser, List[g.A]](g.fa.rep(min, max).map(_.toList))
+  }
+
+  def genRep(g: GenT[Parser]): Gen[GenT[Parser]] =
+    for {
+      min <- Gen.choose(1, Int.MaxValue)
+      max <- Gen.choose(min, Int.MaxValue)
+    } yield rep(min, max, g)
 
   def product0(ga: GenT[Parser0], gb: GenT[Parser0]): Gen[GenT[Parser0]] = {
     implicit val ca: Cogen[ga.A] = ga.cogen
@@ -478,7 +500,7 @@ object ParserGen {
       (1, rec.map(backtrack0(_))),
       (1, rec.map(defer0(_))),
       (1, rec.map { gen => GenT(!gen.fa) }),
-      (1, Gen.lzy(gen.map(rep0(_)))),
+      (1, Gen.lzy(gen.flatMap(genRep0(_)))),
       (1, rec.flatMap(mapped(_))),
       (1, rec.flatMap(selected(_))),
       (1, tailRecM(Gen.lzy(gen))),
@@ -505,7 +527,7 @@ object ParserGen {
       (2, rec.map(string(_))),
       (2, rec.map(backtrack(_))),
       (1, rec.map(defer(_))),
-      (1, rec.map(rep(_))),
+      (1, rec.flatMap(genRep(_))),
       (1, selected1(rec, gen0)),
       (1, rec.flatMap(mapped1(_))),
       (1, flatMapped1(gen0, rec)),
@@ -1083,6 +1105,66 @@ class ParserTest extends munit.ScalaCheckSuite {
           )
 
         assertEquals(repA.parse(str), repB.parse(str))
+    }
+  }
+
+  property("rep parses at most max entries") {
+    val validMinMax = for {
+      min <- Gen.choose(1, Int.MaxValue)
+      max <- Gen.choose(min, Int.MaxValue)
+    } yield (min, max)
+    forAll(ParserGen.gen, validMinMax, Arbitrary.arbitrary[String]) { (genP, minmax, str) =>
+      {
+        val (min, max) = minmax
+        genP.fa.rep0(min, max).parse(str).foreach { case (_, l) =>
+          assert(l.length <= max)
+        }
+      }
+    }
+  }
+
+  property("rep0 parses at most max entries") {
+    val validMinMax = for {
+      min <- Gen.choose(1, Int.MaxValue)
+      max <- Gen.choose(min, Int.MaxValue)
+    } yield (min, max)
+    forAll(ParserGen.gen, validMinMax, Arbitrary.arbitrary[String]) { (genP, minmax, str) =>
+      {
+        val (min, max) = minmax
+        genP.fa.rep0(min, max).parse(str).foreach { case (_, l) =>
+          assert(l.length <= max)
+        }
+      }
+    }
+  }
+
+  object Counter extends Accumulator0[Unit, Int] {
+    class Counter extends Appender[Unit, Int] {
+      var n = 0
+      def append(item: Unit) = {
+        n += 1
+        this
+      }
+      def finish(): Int = n
+    }
+    def newAppender(): Appender[Unit, Int] = new Counter()
+  }
+
+  property("repAs parses max entries when available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n
+      val p = Parser.char('a').repAs(min = n, max = n)(Counter)
+      val parsed = p.parseAll(toBeConsumed)
+      assertEquals(parsed, Right(n))
+    }
+  }
+
+  property("repAs parses max entries when more is available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n * 2
+      val p = Parser.char('a').repAs(min = n, max = n)(Counter)
+      val parsed = p.parse(toBeConsumed)
+      assertEquals(parsed, Right(("a" * n, n)))
     }
   }
 
