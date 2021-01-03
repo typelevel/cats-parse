@@ -1147,22 +1147,10 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  object Counter extends Accumulator0[Any, Int] {
-    class Counter extends Appender[Any, Int] {
-      var n = 0
-      def append(item: Any) = {
-        n += 1
-        this
-      }
-      def finish(): Int = n
-    }
-    def newAppender(): Appender[Any, Int] = new Counter()
-  }
-
   property("repAs parses max entries when available") {
     forAll(Gen.choose(1, 100)) { (n: Int) =>
       val toBeConsumed = "a" * n
-      val p = Parser.char('a').repAs(min = n, max = n)(Counter)
+      val p = Parser.char('a').repAs[Int](min = n, max = n)
       val parsed = p.parseAll(toBeConsumed)
       assertEquals(parsed, Right(n))
     }
@@ -1171,7 +1159,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("repAs parses max entries when more is available") {
     forAll(Gen.choose(1, 100)) { (n: Int) =>
       val toBeConsumed = "a" * (n + 1)
-      val p = Parser.char('a').repAs(min = 1, max = n)(Counter)
+      val p = Parser.char('a').repAs[Int](min = 1, max = n)
       val parsed = p.parse(toBeConsumed)
       assertEquals(parsed, Right(("a", n)))
     }
@@ -1180,7 +1168,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("repAs0 parses max entries when available") {
     forAll(Gen.choose(1, 100)) { (n: Int) =>
       val toBeConsumed = "a" * n
-      val p = Parser.anyChar.repAs0(max = n)(Counter)
+      val p = Parser.anyChar.repAs0[Int](max = n)
       val parsed = p.parseAll(toBeConsumed)
       assertEquals(parsed, Right(n))
     }
@@ -1189,7 +1177,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("repAs0 parses max entries when more is available") {
     forAll(Gen.choose(1, 100)) { (n: Int) =>
       val toBeConsumed = "a" * (n + 1)
-      val p = Parser.anyChar.repAs0(max = n)(Counter)
+      val p = Parser.anyChar.repAs0[Int](max = n)
       val parsed = p.parse(toBeConsumed)
       assertEquals(parsed, Right(("a", n)))
     }
