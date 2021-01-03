@@ -801,7 +801,7 @@ object Parser {
       Parser.repAs0(self)(acc)
 
     def repAs0[B](max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] =
-      Parser.repAs0(self, max)(acc)
+      Parser.repAs0(self, max = max)(acc)
 
     def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
       Parser.repAs(self, min = 1)(acc)
