@@ -606,64 +606,58 @@ object Parser {
         }
       }
 
+    private def mergeInRange(irs: List[InRange]): List[InRange] = {
+      @annotation.tailrec
+      def merge(rs: List[InRange], aux: Chain[InRange] = Chain.empty): Chain[InRange] =
+        rs match {
+          case x :: y :: rest =>
+            if (y.lower.toInt > x.upper.toInt + 1) merge(y :: rest, aux :+ x)
+            else merge(InRange(x.offset, x.lower, x.upper max y.upper) :: rest, aux)
+          case _ =>
+            aux ++ Chain.fromSeq(rs.reverse)
+        }
+      merge(irs.sortBy(_.lower)).toList
+    }
+
+    private def mergeOneOfStr(ooss: List[OneOfStr]): Option[OneOfStr] =
+      if (ooss.isEmpty) None
+      else {
+        val ssb = SortedSet.newBuilder[String]
+        ooss.foreach(ssb ++= _.strs)
+        Some(OneOfStr(ooss.head.offset, ssb.result().toList))
+      }
+
     /** Sort, dedup and unify ranges for the errors accumulated
       * This is called just before finally returning an error in Parser.parse
       */
     def unify(errors: NonEmptyList[Expectation]): NonEmptyList[Expectation] = {
-      val el = errors.toList
+      val result = errors
+        .groupBy(_.offset)
+        .iterator
+        .flatMap { case (_, list) =>
+          val rm = ListBuffer.empty[InRange]
+          val om = ListBuffer.empty[OneOfStr]
+          val fails = ListBuffer.empty[Fail]
+          val others = ListBuffer.empty[Expectation]
 
-      // merge all the ranges:
-      val rangeMerge: List[InRange] =
-        el
-          .collect { case InRange(o, l, u) => (o, l to u) }
-          .groupBy(_._1)
-          .iterator
-          .flatMap { case (o, ranges) =>
-            // TODO: this could be optimized to not enumerate the set
-            // for instance, a cheap thing to do is see if they
-            // overlap or not
-            val ary = ranges.iterator.map(_._2).flatten.toArray
-            java.util.Arrays.sort(ary)
-            Impl.rangesFor(ary).map { case (l, u) => InRange(o, l, u) }.toList
+          list.toList.foreach {
+            case ir: InRange => rm += ir
+            case os: OneOfStr => om += os
+            case fail: Fail => fails += fail
+            case other => others += other
           }
-          .toList
-      // merge the OneOfStr
-      val oosMerge: List[OneOfStr] =
-        el
-          .collect { case OneOfStr(o, ss) => (o, ss) }
-          .groupBy(_._1)
-          .iterator
-          .map { case (o, ooss) =>
-            val ssb = SortedSet.newBuilder[String]
-            ooss.foreach { is => ssb ++= is._2 }
-            OneOfStr(o, ssb.result().toList)
-          }
-          .toList
 
-      // we don't need Fails that point to duplicate offsets
-      val nonFailOffsets: Set[Int] =
-        el.iterator.filterNot(_.isInstanceOf[Fail]).map(_.offset).toSet
+          // merge all the ranges:
+          val rangeMerge = mergeInRange(rm.toList)
+          // merge the OneOfStr
+          val oossMerge = mergeOneOfStr(om.toList)
 
-      val errors1 = NonEmptyList.fromListUnsafe(
-        el.filterNot {
-          case Fail(off) => nonFailOffsets(off)
-          case _ => false
+          val errors = others.toList reverse_::: (oossMerge ++: rangeMerge)
+          if (errors.isEmpty) fails.toList else errors
         }
-      )
+        .toList
 
-      if (rangeMerge.isEmpty && oosMerge.isEmpty) errors1.distinct.sorted
-      else {
-        val nonMerged = errors1.toList.filterNot {
-          case (_: InRange) | (_: OneOfStr) => true
-          case _ => false
-        }
-
-        NonEmptyList
-          .fromListUnsafe(
-            (oosMerge reverse_::: rangeMerge reverse_::: nonMerged).distinct
-          )
-          .sorted
-      }
+      NonEmptyList.fromListUnsafe(result.distinct.sorted)
     }
   }
 
