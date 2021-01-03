@@ -1014,7 +1014,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     assert(p2.rep.parse("fboof").isLeft)
   }
 
-  test("defer does not run eagerly") {
+  test("defer Parser0 does not run eagerly") {
     var cnt = 0
     val res = Defer[Parser0].defer {
       cnt += 1
@@ -1027,7 +1027,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     assert(cnt == 1)
   }
 
-  test("defer does not run eagerly") {
+  test("defer Parser does not run eagerly") {
     var cnt = 0
     val res = Defer[Parser].defer {
       cnt += 1
@@ -1108,7 +1108,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("rep parses at most max entries") {
+  property("rep parses n entries, min <= n <= max") {
     val validMinMax = for {
       min <- Gen.choose(1, Int.MaxValue)
       max <- Gen.choose(min, Int.MaxValue)
@@ -1116,16 +1116,17 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen, validMinMax, Arbitrary.arbitrary[String]) { (genP, minmax, str) =>
       {
         val (min, max) = minmax
-        genP.fa.rep0(min, max).parse(str).foreach { case (_, l) =>
+        genP.fa.rep(min, max).parse(str).foreach { case (_, l) =>
           assert(l.length <= max)
+          assert(l.length >= min)
         }
       }
     }
   }
 
-  property("rep0 parses at most max entries") {
+  property("rep0 parses n entries, min <= n <= max") {
     val validMinMax = for {
-      min <- Gen.choose(1, Int.MaxValue)
+      min <- Gen.choose(0, Int.MaxValue)
       max <- Gen.choose(min, Int.MaxValue)
     } yield (min, max)
     forAll(ParserGen.gen, validMinMax, Arbitrary.arbitrary[String]) { (genP, minmax, str) =>
@@ -1133,8 +1134,16 @@ class ParserTest extends munit.ScalaCheckSuite {
         val (min, max) = minmax
         genP.fa.rep0(min, max).parse(str).foreach { case (_, l) =>
           assert(l.length <= max)
+          assert(l.length >= min)
         }
       }
+    }
+  }
+
+  property("rep0 parses at most max entries (min == 0)") {
+    forAll(ParserGen.gen, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
+      (genP, max, str) =>
+        genP.fa.rep0(0, max).parse(str).foreach { case (_, l) => assert(l.length <= max) }
     }
   }
 
@@ -1161,10 +1170,64 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("repAs parses max entries when more is available") {
     forAll(Gen.choose(1, 100)) { (n: Int) =>
-      val toBeConsumed = "a" * n * 2
-      val p = Parser.char('a').repAs(min = n, max = n)(Counter)
+      val toBeConsumed = "a" * (n + 1)
+      val p = Parser.char('a').repAs(min = 1, max = n)(Counter)
       val parsed = p.parse(toBeConsumed)
-      assertEquals(parsed, Right(("a" * n, n)))
+      assertEquals(parsed, Right(("a", n)))
+    }
+  }
+
+  property("repAs0 parses max entries when available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n
+      val p = Parser.char('a').repAs0(max = n)(Counter)
+      val parsed = p.parseAll(toBeConsumed)
+      assertEquals(parsed, Right(n))
+    }
+  }
+
+  property("repAs0 parses max entries when more is available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * (n + 1)
+      val p = Parser.char('a').repAs0(max = n)(Counter)
+      val parsed = p.parse(toBeConsumed)
+      assertEquals(parsed, Right(("a", n)))
+    }
+  }
+
+  property("rep parses max entries when available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n
+      val p = Parser.char('a').rep(min = n, max = n).map(_.length)
+      val parsed = p.parseAll(toBeConsumed)
+      assertEquals(parsed, Right(n))
+    }
+  }
+
+  property("rep parses max entries when more is available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * (n + 1)
+      val p = Parser.char('a').rep(min = 1, max = n).map(_.length)
+      val parsed = p.parse(toBeConsumed)
+      assertEquals(parsed, Right(("a", n)))
+    }
+  }
+
+  property("rep0 parses max entries when available") {
+    forAll(Gen.choose(0, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n
+      val p = Parser.char('a').rep0(min = n, max = n).map(_.length)
+      val parsed = p.parseAll(toBeConsumed)
+      assertEquals(parsed, Right(n))
+    }
+  }
+
+  property("rep0 parses max entries when more is available") {
+    forAll(Gen.choose(0, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * (n + 1)
+      val p = Parser.char('a').rep0(min = 0, max = n).map(_.length)
+      val parsed = p.parse(toBeConsumed)
+      assertEquals(parsed, Right(("a", n)))
     }
   }
 

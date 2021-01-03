@@ -500,7 +500,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     else this.repAs(min)
 
   def rep0(min: Int, max: Int): Parser0[List[A]] =
-    if (min == 0) rep0
+    if (min == 0) this.repAs0(max)
     else this.repAs(min, max)
 
   /** Use this parser to parse one-or-more values.
@@ -799,6 +799,9 @@ object Parser {
   implicit final class ParserMethods[A](private val self: Parser[A]) extends AnyVal {
     def repAs0[B](implicit acc: Accumulator0[A, B]): Parser0[B] =
       Parser.repAs0(self)(acc)
+
+    def repAs0[B](max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] =
+      Parser.repAs0(self, max)(acc)
 
     def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
       Parser.repAs(self, min = 1)(acc)
