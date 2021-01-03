@@ -66,7 +66,7 @@ class LocationMapTest extends munit.ScalaCheckSuite {
   }
 
   property("we can reassemble input with getLine") {
-    forAll { str: String =>
+    forAll { (str: String) =>
       val lm = LocationMap(str)
 
       val reconstruct = Iterator
@@ -105,7 +105,7 @@ class LocationMapTest extends munit.ScalaCheckSuite {
   }
 
   property("if a string is not empty, 0 offset is (0, 0)") {
-    forAll { s: String =>
+    forAll { (s: String) =>
       LocationMap(s).toLineCol(0) match {
         case Some(r) => assert(r == ((0, 0)))
         case None => assert(s.isEmpty)

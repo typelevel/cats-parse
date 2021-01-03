@@ -65,7 +65,7 @@ object SemVer {
   val minor: Parser[String] = numericIdentifier
   val major: Parser[String] = numericIdentifier
 
-  val core: Parser[Core] = (major, dot *> minor, dot *> patch).mapN(Core)
+  val core: Parser[Core] = (major, dot *> minor, dot *> patch).mapN(Core.apply)
   val coreString: Parser[String] = core.string
 
   val semver: Parser[SemVer] =
