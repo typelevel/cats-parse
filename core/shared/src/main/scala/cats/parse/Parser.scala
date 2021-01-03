@@ -1011,17 +1011,17 @@ object Parser {
     * note: this can wind up parsing nothing
     */
   def repAs0[A, B](p1: Parser[A], max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] =
-    Impl.Rep0(p1, max, acc)
+    Impl.Rep0(p1, max - 1, acc)
 
   /** Repeat this parser 1 or more times
     */
   def repAs[A, B](p1: Parser[A], min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
-    repAs(p1, min, Int.MaxValue)
+    Impl.Rep(p1, min, Int.MaxValue, acc)
 
   /** Repeat this parser 1 or more times
     */
   def repAs[A, B](p1: Parser[A], min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
-    Impl.Rep(p1, min, max, acc)
+    Impl.Rep(p1, min, max - 1, acc)
 
   /** Repeat 1 or more times with a separator
     */
@@ -2244,15 +2244,14 @@ object Parser {
     final def repCapture[A, B](
         p: Parser[A],
         min: Int,
-        max: Int,
+        maxMinusOne: Int,
         state: State,
         append: Appender[A, B]
     ): Boolean = {
       //require(max >= 0)
       var offset = state.offset
       var cnt = 0
-      //max == Int.MaxValue is a sentinel value meaning "forever"
-      val maxMinusOne = if (max == Int.MaxValue) max else max - 1
+      //maxMinusOne == Int.MaxValue is a sentinel value meaning "forever"
       while (cnt <= maxMinusOne) {
         val a = p.parseMut(state)
         if (state.error eq null) {
@@ -2277,12 +2276,10 @@ object Parser {
       true
     }
 
-    final def repNoCapture[A](p: Parser[A], min: Int, max: Int, state: State): Unit = {
+    final def repNoCapture[A](p: Parser[A], min: Int, maxMinusOne: Int, state: State): Unit = {
       var offset = state.offset
       var cnt = 0
-      //max == Int.MaxValue is a sentinel value meaning "forever"
-      val maxMinusOne = if (max == Int.MaxValue) max else max - 1
-
+      //maxMinusOne == Int.MaxValue is a sentinel value meaning "forever"
       while (cnt <= maxMinusOne) {
         p.parseMut(state)
         if (state.error eq null) {
@@ -2302,16 +2299,16 @@ object Parser {
       }
     }
 
-    case class Rep0[A, B](p1: Parser[A], max: Int, acc: Accumulator0[A, B]) extends Parser0[B] {
+    case class Rep0[A, B](p1: Parser[A], maxMinusOne: Int, acc: Accumulator0[A, B]) extends Parser0[B] {
       private[this] val ignore: B = null.asInstanceOf[B]
 
       override def parseMut(state: State): B = {
         if (state.capture) {
           val app = acc.newAppender()
-          if (repCapture(p1, 0, max, state, app)) app.finish()
+          if (repCapture(p1, 0, maxMinusOne, state, app)) app.finish()
           else ignore
         } else {
-          repNoCapture(p1, 0, max, state)
+          repNoCapture(p1, 0, maxMinusOne, state)
           ignore
         }
       }
@@ -2319,7 +2316,7 @@ object Parser {
 
     /** A parser that can repeats the underlying parser multiple times
       */
-    case class Rep[A, B](p1: Parser[A], min: Int, max: Int, acc1: Accumulator[A, B])
+    case class Rep[A, B](p1: Parser[A], min: Int, maxMinusOne: Int, acc1: Accumulator[A, B])
         extends Parser[B] {
       if (min < 1) throw new IllegalArgumentException(s"expected min >= 1, found: $min")
 
@@ -2327,7 +2324,7 @@ object Parser {
 
       override def parseMut(state: State): B = {
         val head = p1.parseMut(state)
-        def maxRemaining = if (max == Int.MaxValue) max else max - 1
+        def maxRemaining = if (maxMinusOne == Int.MaxValue) Int.MaxValue else maxMinusOne - 1
         if (state.error ne null) ignore
         else if (state.capture) {
           val app = acc1.newAppender(head)
