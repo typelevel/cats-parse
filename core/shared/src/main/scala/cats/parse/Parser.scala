@@ -2299,7 +2299,8 @@ object Parser {
       }
     }
 
-    case class Rep0[A, B](p1: Parser[A], maxMinusOne: Int, acc: Accumulator0[A, B]) extends Parser0[B] {
+    case class Rep0[A, B](p1: Parser[A], maxMinusOne: Int, acc: Accumulator0[A, B])
+        extends Parser0[B] {
       private[this] val ignore: B = null.asInstanceOf[B]
 
       override def parseMut(state: State): B = {
