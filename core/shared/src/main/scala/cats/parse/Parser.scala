@@ -2324,15 +2324,19 @@ object Parser {
       private[this] val ignore: B = null.asInstanceOf[B]
 
       override def parseMut(state: State): B = {
+        // first parse one, so we can initialize the appender with that value
+        // then do the rest, with min -> min - 1 and
+        // maxMinusOne -> maxMinusOne - 1 or Int.MaxValue as "forever" sentinel
         val head = p1.parseMut(state)
-        def maxRemaining = if (maxMinusOne == Int.MaxValue) Int.MaxValue else maxMinusOne - 1
+        def maxRemainingMinusOne =
+          if (maxMinusOne == Int.MaxValue) Int.MaxValue else maxMinusOne - 1
         if (state.error ne null) ignore
         else if (state.capture) {
           val app = acc1.newAppender(head)
-          if (repCapture(p1, min - 1, maxRemaining, state, app)) app.finish()
+          if (repCapture(p1, min - 1, maxRemainingMinusOne, state, app)) app.finish()
           else ignore
         } else {
-          repNoCapture(p1, min - 1, maxRemaining, state)
+          repNoCapture(p1, min - 1, maxRemainingMinusOne, state)
           ignore
         }
       }
