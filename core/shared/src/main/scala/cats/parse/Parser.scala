@@ -1550,7 +1550,7 @@ object Parser {
     var capture: Boolean = true
   }
 
-  private object Impl {
+  private[parse] object Impl {
 
     val allChars = Char.MinValue to Char.MaxValue
 
