@@ -1221,7 +1221,7 @@ object Parser {
     else {
       val ary = cs.toArray
       java.util.Arrays.sort(ary)
-      Impl.rangesFor(ary) match {
+      rangesFor(ary) match {
         case NonEmptyList((low, high), Nil) if low == Char.MinValue && high == Char.MaxValue =>
           anyChar
         case notAnyChar =>
@@ -1550,7 +1550,23 @@ object Parser {
     var capture: Boolean = true
   }
 
-  private[parse] object Impl {
+  // invariant: input must be sorted
+  private[parse] def rangesFor(charArray: Array[Char]): NonEmptyList[(Char, Char)] = {
+    def rangesFrom(start: Char, end: Char, idx: Int): NonEmptyList[(Char, Char)] =
+      if (idx >= charArray.length || (idx < 0)) NonEmptyList((start, end), Nil)
+      else {
+        val end1 = charArray(idx)
+        if ((end1.toInt == end.toInt + 1) || (end1 == end)) rangesFrom(start, end1, idx + 1)
+        else {
+          // we had a break:
+          (start, end) :: rangesFrom(end1, end1, idx + 1)
+        }
+      }
+
+    rangesFrom(charArray(0), charArray(0), 1)
+  }
+
+  private object Impl {
 
     val allChars = Char.MinValue to Char.MaxValue
 
@@ -2298,22 +2314,6 @@ object Parser {
           ignore
         }
       }
-    }
-
-    // invariant: input must be sorted
-    def rangesFor(charArray: Array[Char]): NonEmptyList[(Char, Char)] = {
-      def rangesFrom(start: Char, end: Char, idx: Int): NonEmptyList[(Char, Char)] =
-        if (idx >= charArray.length || (idx < 0)) NonEmptyList((start, end), Nil)
-        else {
-          val end1 = charArray(idx)
-          if ((end1.toInt == end.toInt + 1) || (end1 == end)) rangesFrom(start, end1, idx + 1)
-          else {
-            // we had a break:
-            (start, end) :: rangesFrom(end1, end1, idx + 1)
-          }
-        }
-
-      rangesFrom(charArray(0), charArray(0), 1)
     }
 
     /*
