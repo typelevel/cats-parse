@@ -1011,7 +1011,7 @@ object Parser {
 
   /** Repeat this parser 0 or more times, but no more than `max`
     *
-    * @throws IllegalArgumentException if max < 1
+    * @throws java.lang.IllegalArgumentException if max < 1
     *
     * @note this can wind up parsing nothing
     */
@@ -1024,7 +1024,7 @@ object Parser {
     *
     * The parser fails if it can't match at least `min` times
     *
-    * @throws IllegalArgumentException if min < 1
+    * @throws java.lang.IllegalArgumentException if min < 1
     */
   def repAs[A, B](p1: Parser[A], min: Int)(implicit acc: Accumulator[A, B]): Parser[B] = {
     require(min >= 1, s"min should be >= 1, was $min")
@@ -1036,7 +1036,7 @@ object Parser {
     * The parser fails if it can't match at least `min` times
     * After repeating the parser `max` times, the parser completes succesfully
     *
-    * @throws IllegalArgumentException if min < 1 or max < min
+    * @throws java.lang.IllegalArgumentException if min < 1 or max < min
     */
   def repAs[A, B](p1: Parser[A], min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] = {
     require(min >= 1, s"min should be >= 1, was $min")
@@ -1046,7 +1046,7 @@ object Parser {
 
   /** Repeat the parser exactly `times` times
     *
-    * @throws IllegalArgumentException if times < 1
+    * @throws java.lang.IllegalArgumentException if times < 1
     */
   def repExactlyAs[A, B](p: Parser[A], times: Int)(implicit acc: Accumulator[A, B]): Parser0[B] = {
     require(times >= 1, s"times should be >= 1, was $times")
