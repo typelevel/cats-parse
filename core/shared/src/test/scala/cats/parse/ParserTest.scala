@@ -29,6 +29,7 @@ import org.scalacheck.{Arbitrary, Gen, Cogen}
 
 import cats.implicits._
 import scala.util.Random
+import cats.data.NonEmptyVector
 
 sealed abstract class GenT[F[_]] { self =>
   type A
@@ -1108,6 +1109,15 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("repExactlyAs is consistent with repAs") {
+    forAll(ParserGen.gen, Gen.choose(1, Int.MaxValue), Arbitrary.arbitrary[String]) {
+      (genP, n, str) =>
+        val repA = genP.fa.repAs[NonEmptyVector[_]](n, n)
+        val repB = genP.fa.repExactlyAs[NonEmptyVector[_]](n)
+        assertEquals(repA.parse(str), repB.parse(str))
+    }
+  }
+
   property("rep parses n entries, min <= n <= max") {
     val validMinMax = for {
       min <- Gen.choose(1, Int.MaxValue)
@@ -1183,10 +1193,10 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("rep parses max entries when available") {
+  property("repExactlyAs parses exactly `times` entries when available") {
     forAll(Gen.choose(1, 100)) { (n: Int) =>
       val toBeConsumed = "a" * n
-      val p = Parser.char('a').rep(min = n, max = n).map(_.length)
+      val p = Parser.char('a').repExactlyAs[Int](n)
       val parsed = p.parseAll(toBeConsumed)
       assertEquals(parsed, Right(n))
     }
@@ -1202,7 +1212,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("rep0 parses max entries when available") {
-    forAll(Gen.choose(0, 100)) { (n: Int) =>
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
       val toBeConsumed = "a" * n
       val p = Parser.anyChar.rep0(min = n, max = n).map(_.length)
       val parsed = p.parseAll(toBeConsumed)
@@ -1211,7 +1221,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("rep0 parses max entries when more is available") {
-    forAll(Gen.choose(0, 100)) { (n: Int) =>
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
       val toBeConsumed = "a" * (n + 1)
       val p = Parser.anyChar.rep0(min = 0, max = n).map(_.length)
       val parsed = p.parse(toBeConsumed)
