@@ -2162,4 +2162,24 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("InRange expectation merge should work as expected") {
+    import Parser.Expectation
+    // merge happens for the same offset
+    val offset = 0
+    val inRangeGen = for {
+      min <- Gen.choose(Char.MinValue, Char.MaxValue)
+      max <- Gen.choose(min, Char.MaxValue)
+    } yield Expectation.InRange(offset, min, max)
+
+    forAll(Gen.choose(1, 10).flatMap(Gen.listOfN(_, inRangeGen))) { l =>
+      val ary = l.iterator.map(ir => ir.lower to ir.upper).flatten.toArray
+      _root_.java.util.Arrays.sort(ary)
+      val expected =
+        Parser.rangesFor(ary).map { case (l, u) => Expectation.InRange(offset, l, u) }.toList
+      val merged = Expectation.unify(NonEmptyList.fromListUnsafe(l)).toList
+
+      assertEquals(merged, expected)
+    }
+  }
+
 }
