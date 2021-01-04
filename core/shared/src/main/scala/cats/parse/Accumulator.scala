@@ -71,6 +71,16 @@ object Appender {
       def append(item: Any) = this
       def finish(): Unit = ()
     }
+
+  def intCounter(): Appender[Any, Int] =
+    new Appender[Any, Int] {
+      private[this] var n = 0
+      def append(item: Any) = {
+        n += 1
+        this
+      }
+      def finish(): Int = n
+    }
 }
 
 /** Creates an appender given the first item to be added
@@ -90,6 +100,10 @@ trait Accumulator0[-A, +B] extends Accumulator[A, B] {
 }
 
 object Accumulator0 {
+  implicit val intCounter0: Accumulator0[Any, Int] = new Accumulator0[Any, Int] {
+    override def newAppender(): Appender[Any, Int] = Appender.intCounter()
+  }
+
   implicit val charStringAccumulator0: Accumulator0[Char, String] =
     new Accumulator0[Char, String] {
       def newAppender() = Appender.charStringAppender()

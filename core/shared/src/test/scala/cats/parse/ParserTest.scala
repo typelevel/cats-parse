@@ -29,6 +29,7 @@ import org.scalacheck.{Arbitrary, Gen, Cogen}
 
 import cats.implicits._
 import scala.util.Random
+import cats.data.NonEmptyVector
 
 sealed abstract class GenT[F[_]] { self =>
   type A
@@ -171,10 +172,32 @@ object ParserGen {
     GenT[Parser0, List[g.A]](g.fa.rep0)
   }
 
+  def rep0(min: Int, max: Int, g: GenT[Parser]): GenT[Parser0] = {
+    implicit val cg = g.cogen
+    GenT[Parser0, List[g.A]](g.fa.rep0(min = min, max = max))
+  }
+
+  def genRep0(g: GenT[Parser]): Gen[GenT[Parser0]] =
+    for {
+      min <- Gen.choose(0, Int.MaxValue)
+      max <- Gen.choose(min, Int.MaxValue)
+    } yield rep0(min, max, g)
+
   def rep(g: GenT[Parser]): GenT[Parser] = {
     implicit val cg = g.cogen
     GenT[Parser, List[g.A]](g.fa.rep.map(_.toList))
   }
+
+  def rep(min: Int, max: Int, g: GenT[Parser]): GenT[Parser] = {
+    implicit val cs = g.cogen
+    GenT[Parser, List[g.A]](g.fa.rep(min, max).map(_.toList))
+  }
+
+  def genRep(g: GenT[Parser]): Gen[GenT[Parser]] =
+    for {
+      min <- Gen.choose(1, Int.MaxValue)
+      max <- Gen.choose(min, Int.MaxValue)
+    } yield rep(min, max, g)
 
   def product0(ga: GenT[Parser0], gb: GenT[Parser0]): Gen[GenT[Parser0]] = {
     implicit val ca: Cogen[ga.A] = ga.cogen
@@ -478,7 +501,7 @@ object ParserGen {
       (1, rec.map(backtrack0(_))),
       (1, rec.map(defer0(_))),
       (1, rec.map { gen => GenT(!gen.fa) }),
-      (1, Gen.lzy(gen.map(rep0(_)))),
+      (1, Gen.lzy(gen.flatMap(genRep0(_)))),
       (1, rec.flatMap(mapped(_))),
       (1, rec.flatMap(selected(_))),
       (1, tailRecM(Gen.lzy(gen))),
@@ -505,7 +528,7 @@ object ParserGen {
       (2, rec.map(string(_))),
       (2, rec.map(backtrack(_))),
       (1, rec.map(defer(_))),
-      (1, rec.map(rep(_))),
+      (1, rec.flatMap(genRep(_))),
       (1, selected1(rec, gen0)),
       (1, rec.flatMap(mapped1(_))),
       (1, flatMapped1(gen0, rec)),
@@ -992,7 +1015,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     assert(p2.rep.parse("fboof").isLeft)
   }
 
-  test("defer does not run eagerly") {
+  test("defer Parser0 does not run eagerly") {
     var cnt = 0
     val res = Defer[Parser0].defer {
       cnt += 1
@@ -1005,7 +1028,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     assert(cnt == 1)
   }
 
-  test("defer does not run eagerly") {
+  test("defer Parser does not run eagerly") {
     var cnt = 0
     val res = Defer[Parser].defer {
       cnt += 1
@@ -1083,6 +1106,126 @@ class ParserTest extends munit.ScalaCheckSuite {
           )
 
         assertEquals(repA.parse(str), repB.parse(str))
+    }
+  }
+
+  property("repExactlyAs is consistent with repAs") {
+    forAll(ParserGen.gen, Gen.choose(1, Int.MaxValue), Arbitrary.arbitrary[String]) {
+      (genP, n, str) =>
+        val repA = genP.fa.repAs[NonEmptyVector[_]](n, n)
+        val repB = genP.fa.repExactlyAs[NonEmptyVector[_]](n)
+        assertEquals(repA.parse(str), repB.parse(str))
+    }
+  }
+
+  property("rep parses n entries, min <= n <= max") {
+    val validMinMax = for {
+      min <- Gen.choose(1, Int.MaxValue)
+      max <- Gen.choose(min, Int.MaxValue)
+    } yield (min, max)
+    forAll(ParserGen.gen, validMinMax, Arbitrary.arbitrary[String]) { (genP, minmax, str) =>
+      {
+        val (min, max) = minmax
+        genP.fa.rep(min, max).parse(str).foreach { case (_, l) =>
+          assert(l.length <= max)
+          assert(l.length >= min)
+        }
+      }
+    }
+  }
+
+  property("rep0 parses n entries, min <= n <= max") {
+    val validMinMax = for {
+      min <- Gen.choose(0, Int.MaxValue)
+      max <- Gen.choose(min, Int.MaxValue)
+    } yield (min, max)
+    forAll(ParserGen.gen, validMinMax, Arbitrary.arbitrary[String]) { (genP, minmax, str) =>
+      {
+        val (min, max) = minmax
+        genP.fa.rep0(min, max).parse(str).foreach { case (_, l) =>
+          assert(l.length <= max)
+          assert(l.length >= min)
+        }
+      }
+    }
+  }
+
+  property("rep0 parses at most max entries (min == 0)") {
+    forAll(ParserGen.gen, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
+      (genP, max, str) =>
+        genP.fa.rep0(0, max).parse(str).foreach { case (_, l) => assert(l.length <= max) }
+    }
+  }
+
+  property("repAs parses max entries when available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n
+      val p = Parser.char('a').repAs[Int](min = n, max = n)
+      val parsed = p.parseAll(toBeConsumed)
+      assertEquals(parsed, Right(n))
+    }
+  }
+
+  property("repAs parses max entries when more is available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * (n + 1)
+      val p = Parser.char('a').repAs[Int](min = 1, max = n)
+      val parsed = p.parse(toBeConsumed)
+      assertEquals(parsed, Right(("a", n)))
+    }
+  }
+
+  property("repAs0 parses max entries when available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n
+      val p = Parser.anyChar.repAs0[Int](max = n)
+      val parsed = p.parseAll(toBeConsumed)
+      assertEquals(parsed, Right(n))
+    }
+  }
+
+  property("repAs0 parses max entries when more is available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * (n + 1)
+      val p = Parser.anyChar.repAs0[Int](max = n)
+      val parsed = p.parse(toBeConsumed)
+      assertEquals(parsed, Right(("a", n)))
+    }
+  }
+
+  property("repExactlyAs parses exactly `times` entries when available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n
+      val p = Parser.char('a').repExactlyAs[Int](n)
+      val parsed = p.parseAll(toBeConsumed)
+      assertEquals(parsed, Right(n))
+    }
+  }
+
+  property("rep parses max entries when more is available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * (n + 1)
+      val p = Parser.char('a').rep(min = 1, max = n).map(_.length)
+      val parsed = p.parse(toBeConsumed)
+      assertEquals(parsed, Right(("a", n)))
+    }
+  }
+
+  property("rep0 parses max entries when available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * n
+      val p = Parser.anyChar.rep0(min = n, max = n).map(_.length)
+      val parsed = p.parseAll(toBeConsumed)
+      assertEquals(parsed, Right(n))
+    }
+  }
+
+  property("rep0 parses max entries when more is available") {
+    forAll(Gen.choose(1, 100)) { (n: Int) =>
+      val toBeConsumed = "a" * (n + 1)
+      val p = Parser.anyChar.rep0(min = 0, max = n).map(_.length)
+      val parsed = p.parse(toBeConsumed)
+      assertEquals(parsed, Right(("a", n)))
     }
   }
 

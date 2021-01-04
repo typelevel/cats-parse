@@ -499,6 +499,10 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     if (min == 0) rep0
     else this.repAs(min)
 
+  def rep0(min: Int, max: Int): Parser0[List[A]] =
+    if (min == 0) this.repAs0(max)
+    else this.repAs(min, max)
+
   /** Use this parser to parse one-or-more values.
     *
     * This parser behaves like `rep0`, except that it must produce at
@@ -515,6 +519,9 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     */
   def rep(min: Int): Parser[NonEmptyList[A]] =
     Parser.repAs(this, min = min)
+
+  def rep(min: Int, max: Int): Parser[NonEmptyList[A]] =
+    Parser.repAs(this, min = min, max = max)
 
   /** This method overrides `Parser0#between` to refine the return type
     */
@@ -791,11 +798,20 @@ object Parser {
     def repAs0[B](implicit acc: Accumulator0[A, B]): Parser0[B] =
       Parser.repAs0(self)(acc)
 
+    def repAs0[B](max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] =
+      Parser.repAs0(self, max = max)(acc)
+
     def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
       Parser.repAs(self, min = 1)(acc)
 
     def repAs[B](min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
       Parser.repAs(self, min = min)(acc)
+
+    def repAs[B](min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
+      Parser.repAs(self, min = min, max = max)(acc)
+
+    def repExactlyAs[B](times: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
+      Parser.repAs(self, min = times, max = times)(acc)
   }
 
   /** Don't advance in the parsed string, just return a
@@ -987,15 +1003,55 @@ object Parser {
     Impl.Length(len)
 
   /** Repeat this parser 0 or more times
-    * note: this can wind up parsing nothing
+    *
+    * @note this can wind up parsing nothing
     */
   def repAs0[A, B](p1: Parser[A])(implicit acc: Accumulator0[A, B]): Parser0[B] =
-    Impl.Rep0(p1, acc)
+    Impl.Rep0(p1, Int.MaxValue, acc)
 
-  /** Repeat this parser 1 or more times
+  /** Repeat this parser 0 or more times, but no more than `max`
+    *
+    * @throws IllegalArgumentException if max < 1
+    *
+    * @note this can wind up parsing nothing
     */
-  def repAs[A, B](p1: Parser[A], min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
-    Impl.Rep(p1, min, acc)
+  def repAs0[A, B](p1: Parser[A], max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] = {
+    require(max >= 1, s"max should be >= 1, was $max")
+    Impl.Rep0(p1, max - 1, acc)
+  }
+
+  /** Repeat this parser `min` or more times
+    *
+    * The parser fails if it can't match at least `min` times
+    *
+    * @throws IllegalArgumentException if min < 1
+    */
+  def repAs[A, B](p1: Parser[A], min: Int)(implicit acc: Accumulator[A, B]): Parser[B] = {
+    require(min >= 1, s"min should be >= 1, was $min")
+    Impl.Rep(p1, min, Int.MaxValue, acc)
+  }
+
+  /** Repeat this parser `min` or more times, but no more than `max`
+    *
+    * The parser fails if it can't match at least `min` times
+    * After repeating the parser `max` times, the parser completes succesfully
+    *
+    * @throws IllegalArgumentException if min < 1 or max < min
+    */
+  def repAs[A, B](p1: Parser[A], min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] = {
+    require(min >= 1, s"min should be >= 1, was $min")
+    require(max >= min, s"max should be >= min, but $max < $min")
+    Impl.Rep(p1, min, max - 1, acc)
+  }
+
+  /** Repeat the parser exactly `times` times
+    *
+    * @throws IllegalArgumentException if times < 1
+    */
+  def repExactlyAs[A, B](p: Parser[A], times: Int)(implicit acc: Accumulator[A, B]): Parser0[B] = {
+    require(times >= 1, s"times should be >= 1, was $times")
+    Impl.Rep(p, times, times - 1, acc)
+  }
 
   /** Repeat 1 or more times with a separator
     */
@@ -1687,7 +1743,7 @@ object Parser {
           }
         case Defer0(fn) =>
           Defer0(UnmapDefer0(fn))
-        case Rep0(p, _) => Rep0(unmap(p), Accumulator0.unitAccumulator0)
+        case Rep0(p, max, _) => Rep0(unmap(p), max, Accumulator0.unitAccumulator0)
         case StartParser | EndParser | TailRecM0(_, _) | FlatMap0(_, _) =>
           // we can't transform this significantly
           pa
@@ -1769,7 +1825,7 @@ object Parser {
           }
         case Defer(fn) =>
           Defer(UnmapDefer(fn))
-        case Rep(p, m, _) => Rep(unmap(p), m, Accumulator0.unitAccumulator0)
+        case Rep(p, min, max, _) => Rep(unmap(p), min, max, Accumulator0.unitAccumulator0)
         case AnyChar | CharIn(_, _, _) | Str(_) | StringIn(_) | IgnoreCase(_) | Fail() | FailWith(
               _
             ) | Length(_) | TailRecM(_, _) | FlatMap(_, _) =>
@@ -2214,16 +2270,19 @@ object Parser {
       }
     }
 
+    /** capture parser p repeatedly, at least min times, at most max times
+      */
     final def repCapture[A, B](
         p: Parser[A],
         min: Int,
+        maxMinusOne: Int,
         state: State,
         append: Appender[A, B]
     ): Boolean = {
       var offset = state.offset
       var cnt = 0
-
-      while (true) {
+      //maxMinusOne == Int.MaxValue is a sentinel value meaning "forever"
+      while (cnt <= maxMinusOne) {
         val a = p.parseMut(state)
         if (state.error eq null) {
           cnt += 1
@@ -2238,22 +2297,20 @@ object Parser {
             return true
           } else {
             // else we did a partial read then failed
-            // but didn't read at least min items
+            // or didn't read at least min items
+            // (todo: or cnt overflowed)
             return false
           }
         }
       }
-      // $COVERAGE-OFF$
-      // unreachable due to infinite loop
-      return false
-      // $COVERAGE-ON$
+      true
     }
 
-    final def repNoCapture[A](p: Parser[A], min: Int, state: State): Unit = {
+    final def repNoCapture[A](p: Parser[A], min: Int, maxMinusOne: Int, state: State): Unit = {
       var offset = state.offset
       var cnt = 0
-
-      while (true) {
+      //maxMinusOne == Int.MaxValue is a sentinel value meaning "forever"
+      while (cnt <= maxMinusOne) {
         p.parseMut(state)
         if (state.error eq null) {
           cnt += 1
@@ -2272,36 +2329,44 @@ object Parser {
       }
     }
 
-    case class Rep0[A, B](p1: Parser[A], acc: Accumulator0[A, B]) extends Parser0[B] {
+    case class Rep0[A, B](p1: Parser[A], maxMinusOne: Int, acc: Accumulator0[A, B])
+        extends Parser0[B] {
       private[this] val ignore: B = null.asInstanceOf[B]
 
       override def parseMut(state: State): B = {
         if (state.capture) {
           val app = acc.newAppender()
-          if (repCapture(p1, 0, state, app)) app.finish()
+          if (repCapture(p1, 0, maxMinusOne, state, app)) app.finish()
           else ignore
         } else {
-          repNoCapture(p1, 0, state)
+          repNoCapture(p1, 0, maxMinusOne, state)
           ignore
         }
       }
     }
 
-    case class Rep[A, B](p1: Parser[A], min: Int, acc1: Accumulator[A, B]) extends Parser[B] {
+    /** A parser that can repeats the underlying parser multiple times
+      */
+    case class Rep[A, B](p1: Parser[A], min: Int, maxMinusOne: Int, acc1: Accumulator[A, B])
+        extends Parser[B] {
       if (min < 1) throw new IllegalArgumentException(s"expected min >= 1, found: $min")
 
       private[this] val ignore: B = null.asInstanceOf[B]
 
       override def parseMut(state: State): B = {
+        // first parse one, so we can initialize the appender with that value
+        // then do the rest, with min -> min - 1 and
+        // maxMinusOne -> maxMinusOne - 1 or Int.MaxValue as "forever" sentinel
         val head = p1.parseMut(state)
-
+        def maxRemainingMinusOne =
+          if (maxMinusOne == Int.MaxValue) Int.MaxValue else maxMinusOne - 1
         if (state.error ne null) ignore
         else if (state.capture) {
           val app = acc1.newAppender(head)
-          if (repCapture(p1, min - 1, state, app)) app.finish()
+          if (repCapture(p1, min - 1, maxRemainingMinusOne, state, app)) app.finish()
           else ignore
         } else {
-          repNoCapture(p1, min - 1, state)
+          repNoCapture(p1, min - 1, maxRemainingMinusOne, state)
           ignore
         }
       }
@@ -2514,6 +2579,13 @@ object Parser0 {
 
       def mapFilter[A, B](fa: Parser0[A])(f: A => Option[B]): Parser0[B] =
         fa.mapFilter(f)
+
+      override def replicateA[A](n: Int, fa: Parser0[A]): Parser0[List[A]] = {
+        fa match {
+          case p: Parser[A] if n >= 1 => Parser.repExactlyAs(p, n)
+          case _ => super.replicateA(n, fa)
+        }
+      }
 
       override def filter[A](fa: Parser0[A])(fn: A => Boolean): Parser0[A] =
         fa.filter(fn)
