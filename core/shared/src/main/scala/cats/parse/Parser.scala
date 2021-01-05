@@ -1009,13 +1009,24 @@ object Parser {
 
   /** Repeat this parser 0 or more times, but no more than `max`
     *
-    * @throws java.lang.IllegalArgumentException if max < 1
+    * It may seem weird to accept 0 here, but without, composing
+    * this method becomes more complex.
+    * Since and empty parse is possible for this method, we do
+    * allow max = 0
+    *
+    * @throws java.lang.IllegalArgumentException if max < 0
     *
     * @note this can wind up parsing nothing
     */
   def repAs0[A, B](p1: Parser[A], max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] = {
-    require(max >= 1, s"max should be >= 1, was $max")
-    Impl.Rep0(p1, max - 1, acc)
+    require(max >= 0, s"max should be >= 0, was $max")
+    if (max == 0) {
+      // exactly 0 times
+      pure(acc.newAppender().finish())
+    } else {
+      // 0 or more times
+      Impl.Rep0(p1, max - 1, acc)
+    }
   }
 
   /** Repeat this parser `min` or more times
@@ -1066,16 +1077,6 @@ object Parser {
     (p1 ~ rest).map { case (h, t) => NonEmptyList(h, t) }
   }
 
-  /** Repeat 0 or more times with a separator
-    */
-  def repSep0[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] = {
-    if (min <= 0) repSep(p1, 1, sep).?.map {
-      case None => Nil
-      case Some(nel) => nel.toList
-    }
-    else repSep(p1, min, sep).map(_.toList)
-  }
-
   /** Repeat 1 or more times with a separator
     */
   def repSep[A](p1: Parser[A], min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
@@ -1084,6 +1085,18 @@ object Parser {
 
     val rest = (sep.void.with1.soft *> p1).rep0(min = min - 1, max = max - 1)
     (p1 ~ rest).map { case (h, t) => NonEmptyList(h, t) }
+  }
+
+  /** Repeat 0 or more times with a separator
+    */
+  def repSep0[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] = {
+    if (min < 0) throw new IllegalArgumentException(s"require min >= 0, found: $min")
+
+    if (min == 0) repSep(p1, 1, sep).?.map {
+      case None => Nil
+      case Some(nel) => nel.toList
+    }
+    else repSep(p1, min, sep).map(_.toList)
   }
 
   /** Repeat 0 or more times with a separator
