@@ -401,7 +401,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   override def backtrack: Parser[A] =
     Parser.backtrack(this)
 
-  /** This method overrides `Parser#eitherOr` to refine the return type.
+  /** a version of eitherOr when both sides are not Parser0
     */
   def eitherOr[B](pb: Parser[B]): Parser[Either[B, A]] =
     Parser.eitherOr(this, pb)
@@ -647,11 +647,15 @@ object Parser {
           val fails = ListBuffer.empty[Fail]
           val others = ListBuffer.empty[Expectation]
 
-          list.toList.foreach {
-            case ir: InRange => rm += ir
-            case os: OneOfStr => om += os
-            case fail: Fail => fails += fail
-            case other => others += other
+          var items = list.toList
+          while (items.nonEmpty) {
+            items.head match {
+              case ir: InRange => rm += ir
+              case os: OneOfStr => om += os
+              case fail: Fail => fails += fail
+              case other => others += other
+            }
+            items = items.tail
           }
 
           // merge all the ranges:
@@ -805,7 +809,7 @@ object Parser {
       Parser.repAs(self, min = min, max = max)(acc)
 
     def repExactlyAs[B](times: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
-      Parser.repAs(self, min = times, max = times)(acc)
+      Parser.repExactlyAs(self, times = times)(acc)
   }
 
   /** Don't advance in the parsed string, just return a
@@ -1035,17 +1039,23 @@ object Parser {
   def repAs[A, B](p1: Parser[A], min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] = {
     require(min >= 1, s"min should be >= 1, was $min")
     require(max >= min, s"max should be >= min, but $max < $min")
-    Impl.Rep(p1, min, max - 1, acc)
+
+    if (min == max) repExactlyAs(p1, min)
+    else Impl.Rep(p1, min, max - 1, acc)
   }
 
   /** Repeat the parser exactly `times` times
     *
     * @throws java.lang.IllegalArgumentException if times < 1
     */
-  def repExactlyAs[A, B](p: Parser[A], times: Int)(implicit acc: Accumulator[A, B]): Parser0[B] = {
-    require(times >= 1, s"times should be >= 1, was $times")
-    Impl.Rep(p, times, times - 1, acc)
-  }
+  def repExactlyAs[A, B](p: Parser[A], times: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
+    if (times == 1) {
+      // a map can be removed by a subsequent .void or .string
+      p.map { a => acc.newAppender(a).finish() }
+    } else {
+      require(times > 1, s"times should be >= 1, was $times")
+      Impl.Rep(p, times, times - 1, acc)
+    }
 
   /** Repeat 1 or more times with a separator
     */
@@ -1058,12 +1068,37 @@ object Parser {
 
   /** Repeat 0 or more times with a separator
     */
-  def rep0Sep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] = {
+  def repSep0[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] = {
     if (min <= 0) repSep(p1, 1, sep).?.map {
       case None => Nil
       case Some(nel) => nel.toList
     }
     else repSep(p1, min, sep).map(_.toList)
+  }
+
+  /** Repeat 1 or more times with a separator
+    */
+  def repSep[A](p1: Parser[A], min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
+    if (min <= 0) throw new IllegalArgumentException(s"require min > 0, found: $min")
+    if (max < min) throw new IllegalArgumentException(s"require max >= min, found: $max < $min")
+
+    val rest = (sep.void.with1.soft *> p1).rep0(min = min - 1, max = max - 1)
+    (p1 ~ rest).map { case (h, t) => NonEmptyList(h, t) }
+  }
+
+  /** Repeat 0 or more times with a separator
+    */
+  def repSep0[A](p1: Parser[A], min: Int, max: Int, sep: Parser0[Any]): Parser0[List[A]] = {
+    if (min < 0) throw new IllegalArgumentException(s"require min >= 0, found: $min")
+
+    if (min == 0) {
+      if (max == 0) pure(Nil)
+      else
+        repSep(p1, 1, max, sep).?.map {
+          case None => Nil
+          case Some(nel) => nel.toList
+        }
+    } else repSep(p1, min, max, sep).map(_.toList)
   }
 
   /** parse first then second

@@ -25,6 +25,9 @@ project/plugins/project/
 # emacs
 TAGS
 
+# vim
+*.swp
+
 # vscode wants to put metals directories here
 .metals
 .bloop

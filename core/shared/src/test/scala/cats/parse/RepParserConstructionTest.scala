@@ -72,6 +72,9 @@ class RepParserConstructionTest extends munit.ScalaCheckSuite {
         intercept[IllegalArgumentException] {
           Parser.anyChar.rep(min = min, max = max)
         }
+        intercept[IllegalArgumentException] {
+          Parser.repSep(Parser.anyChar, min = min, max = max, Parser.pure(""))
+        }
         assert(true)
       }
     }
@@ -111,6 +114,9 @@ class RepParserConstructionTest extends munit.ScalaCheckSuite {
       case (min: Int, max: Int) => {
         intercept[IllegalArgumentException] {
           Parser.anyChar.rep0(min = min, max = max)
+        }
+        intercept[IllegalArgumentException] {
+          Parser.repSep0(Parser.anyChar, min = min, max = max, Parser.pure(""))
         }
         assert(true)
       }
