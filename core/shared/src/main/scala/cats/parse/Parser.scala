@@ -1109,7 +1109,7 @@ object Parser {
   /** Repeat 0 or more times with a separator
     */
   def repSep0[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] =
-    if (min == 0) repSep(p1, 1, sep).?.map {
+    if (min == 0) repSep(p1, sep).?.map {
       case None => Nil
       case Some(nel) => nel.toList
     }

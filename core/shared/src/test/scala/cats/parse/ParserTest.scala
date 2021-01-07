@@ -1297,7 +1297,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       assertEquals(
         genP.fa.parse(str),
-        Parser.repSep(genP.fa, 1, Parser.fail).parse(str).map { case (rest, nel) =>
+        Parser.repSep(genP.fa, Parser.fail).parse(str).map { case (rest, nel) =>
           (rest, nel.head)
         }
       )
