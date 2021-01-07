@@ -36,8 +36,6 @@ object SemVer {
 
   val letter: Parser[Char] = Parser.ignoreCaseCharIn('a' to 'z')
 
-  def positiveDigit: Parser[Char] = Numbers.nonZeroDigit
-
   val nonDigit: Parser[Char] = letter | hyphen
 
   val identifierChar: Parser[Char] = Numbers.digit | nonDigit
