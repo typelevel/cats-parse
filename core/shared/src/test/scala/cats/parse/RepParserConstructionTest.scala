@@ -25,18 +25,25 @@ import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
 class RepParserConstructionTest extends munit.ScalaCheckSuite {
+  import ParserGen.biasSmall
 
-  val validMin = Gen.choose(1, Int.MaxValue)
-  val validMin0 = Gen.choose(0, Int.MaxValue)
-  val validMax = Gen.choose(1, Int.MaxValue)
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters
+      .withMinSuccessfulTests(1000)
+      .withMaxDiscardRatio(10)
+
+  val validMin = biasSmall(1)
+  val validMin0 = biasSmall(0)
+  val validMax = validMin
 
   val validMinMax = for {
     min <- validMin
-    max <- Gen.choose(min, Int.MaxValue)
+    max <- biasSmall(min)
   } yield (min, max)
+
   val validMinMax0 = for {
     min <- validMin0
-    max <- Gen.choose(math.max(min, 1), Int.MaxValue)
+    max <- biasSmall(min)
   } yield (min, max)
 
   val invalidMin = Gen.choose(Int.MinValue, 0)
@@ -44,15 +51,17 @@ class RepParserConstructionTest extends munit.ScalaCheckSuite {
   val invalidMax = Gen.choose(Int.MinValue, 0)
 
   val invalidMinMax = Gen.oneOf(
-    for (min <- validMin; max <- Gen.choose(1, min)) yield (min, max),
-    for (min <- invalidMin; max <- Gen.choose(min, Int.MaxValue)) yield (min, max),
+    for (min <- validMin; maxDiff <- biasSmall(1))
+      yield (min, Integer.min(min - maxDiff, Int.MinValue)),
+    for (min <- invalidMin; max <- biasSmall(0)) yield (min, max),
     for (min <- invalidMin; max <- invalidMax) yield (min, max),
     for (min <- validMin; max <- invalidMax) yield (min, max)
   )
 
   val invalidMinMax0 = Gen.oneOf(
-    for (min <- validMin0; max <- Gen.choose(1, min)) yield (min, max),
-    for (min <- invalidMin0; max <- Gen.choose(min, Int.MaxValue)) yield (min, max),
+    for (min <- validMin0; maxDiff <- biasSmall(1))
+      yield (min, Integer.min(min - maxDiff, Int.MinValue)),
+    for (min <- invalidMin0; max <- biasSmall(0)) yield (min, max),
     for (min <- invalidMin0; max <- invalidMax) yield (min, max),
     for (min <- validMin0; max <- invalidMax) yield (min, max)
   )
@@ -71,6 +80,9 @@ class RepParserConstructionTest extends munit.ScalaCheckSuite {
       case (min: Int, max: Int) => {
         intercept[IllegalArgumentException] {
           Parser.anyChar.rep(min = min, max = max)
+        }
+        intercept[IllegalArgumentException] {
+          Parser.repSep(Parser.anyChar, min = min, max = max, Parser.pure(""))
         }
         assert(true)
       }
@@ -111,6 +123,9 @@ class RepParserConstructionTest extends munit.ScalaCheckSuite {
       case (min: Int, max: Int) => {
         intercept[IllegalArgumentException] {
           Parser.anyChar.rep0(min = min, max = max)
+        }
+        intercept[IllegalArgumentException] {
+          Parser.repSep0(Parser.anyChar, min = min, max = max, Parser.pure(""))
         }
         assert(true)
       }

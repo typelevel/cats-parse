@@ -177,10 +177,24 @@ object ParserGen {
     GenT[Parser0, List[g.A]](g.fa.rep0(min = min, max = max))
   }
 
+  // this makes an integer >= min, but with power law bias to smaller values
+  def biasSmall(min: Int): Gen[Int] = {
+    require(min >= 0, s"biasSmall($min) is invalid")
+
+    val max0 = Int.MaxValue - min
+    val pow = 32 - Integer.numberOfLeadingZeros(max0)
+    Gen
+      .choose(0, pow)
+      .flatMap { shifts =>
+        Gen.choose(0, max0 >> shifts)
+      }
+      .map(_ + min)
+  }
+
   def genRep0(g: GenT[Parser]): Gen[GenT[Parser0]] =
     for {
-      min <- Gen.choose(0, Int.MaxValue)
-      max <- Gen.choose(min, Int.MaxValue)
+      min <- biasSmall(0)
+      max <- biasSmall(min)
     } yield rep0(min, max, g)
 
   def rep(g: GenT[Parser]): GenT[Parser] = {
@@ -195,8 +209,8 @@ object ParserGen {
 
   def genRep(g: GenT[Parser]): Gen[GenT[Parser]] =
     for {
-      min <- Gen.choose(1, Int.MaxValue)
-      max <- Gen.choose(min, Int.MaxValue)
+      min <- biasSmall(1)
+      max <- biasSmall(min)
     } yield rep(min, max, g)
 
   def product0(ga: GenT[Parser0], gb: GenT[Parser0]): Gen[GenT[Parser0]] = {
@@ -567,7 +581,7 @@ object ParserGen {
 
 class ParserTest extends munit.ScalaCheckSuite {
 
-  import ParserGen.{arbParser0, arbParser}
+  import ParserGen.{arbParser0, arbParser, biasSmall}
 
   val tests: Int = if (BitSetUtil.isScalaJs) 50 else 2000
 
@@ -640,6 +654,18 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(Parser.stringIn(alternatives).string, "foobat", "foobat")
     parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foot", "foo")
     parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foobal", "foo")
+  }
+
+  property("biasSmall works") {
+    val genPair =
+      for {
+        min <- Gen.choose(0, Int.MaxValue)
+        small <- biasSmall(min)
+      } yield (min, small)
+
+    forAll(genPair) { case (min, s) =>
+      assert(s >= min)
+    }
   }
 
   property("Parser0 on success replaces parsed value") {
@@ -1093,19 +1119,13 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("rep0 is consistent with rep") {
-    forAll(ParserGen.gen, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
-      (genP, min0, str) =>
-        val min = min0 & Int.MaxValue
-        val repA = genP.fa.rep0(min)
-        val repB = genP.fa
-          .rep(min)
-          .map(_.toList)
-          .orElse(
-            if (min == 0) Parser.pure(Nil)
-            else Parser.fail
-          )
+    forAll(ParserGen.gen, biasSmall(1), Arbitrary.arbitrary[String]) { (genP, min, str) =>
+      val repA = genP.fa.rep0(min)
+      val repB = genP.fa
+        .rep(min)
+        .map(_.toList)
 
-        assertEquals(repA.parse(str), repB.parse(str))
+      assertEquals(repA.parse(str), repB.parse(str))
     }
   }
 
@@ -1136,9 +1156,10 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("rep0 parses n entries, min <= n <= max") {
     val validMinMax = for {
-      min <- Gen.choose(0, Int.MaxValue)
-      max <- Gen.choose(min, Int.MaxValue)
+      min <- biasSmall(0)
+      max <- biasSmall(min)
     } yield (min, max)
+
     forAll(ParserGen.gen, validMinMax, Arbitrary.arbitrary[String]) { (genP, minmax, str) =>
       {
         val (min, max) = minmax
@@ -1151,9 +1172,8 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("rep0 parses at most max entries (min == 0)") {
-    forAll(ParserGen.gen, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
-      (genP, max, str) =>
-        genP.fa.rep0(0, max).parse(str).foreach { case (_, l) => assert(l.length <= max) }
+    forAll(ParserGen.gen, biasSmall(0), Arbitrary.arbitrary[String]) { (genP, max, str) =>
+      genP.fa.rep0(0, max).parse(str).foreach { case (_, l) => assert(l.length <= max) }
     }
   }
 
@@ -1229,20 +1249,37 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("rep0Sep with unit sep is the same as rep0") {
-    forAll(ParserGen.gen, Gen.choose(0, Int.MaxValue), Arbitrary.arbitrary[String]) {
-      (genP, min0, str) =>
-        val min = min0 & Int.MaxValue
-        val p1a = Parser.rep0Sep(genP.fa, min = min, sep = Parser.unit)
-        val p1b = genP.fa.rep0(min = min)
+  property("repSep0 with unit sep is the same as rep0") {
 
-        assertEquals(p1a.parse(str), p1b.parse(str))
+    val minMax =
+      for {
+        min <- biasSmall(0)
+        max <- biasSmall(Integer.max(min, 1))
+      } yield (min, max)
 
-        val min1 = if (min < 1) 1 else min
-        val p2a = Parser.repSep(genP.fa, min = min1, sep = Parser.unit)
-        val p2b = genP.fa.rep(min = min1)
+    forAll(ParserGen.gen, biasSmall(0), Arbitrary.arbitrary[String]) { (genP, min, str) =>
+      val p1a = Parser.repSep0(genP.fa, min = min, sep = Parser.unit)
+      val p1b = genP.fa.rep0(min = min)
 
-        assertEquals(p2a.parse(str), p2b.parse(str))
+      assertEquals(p1a.parse(str), p1b.parse(str))
+
+      val min1 = if (min < 1) 1 else min
+      val p2a = Parser.repSep(genP.fa, min = min1, sep = Parser.unit)
+      val p2b = genP.fa.rep(min = min1)
+
+      assertEquals(p2a.parse(str), p2b.parse(str))
+    } &&
+    forAll(ParserGen.gen, minMax, Arbitrary.arbitrary[String]) { case (genP, (min, max), str) =>
+      val p1a = Parser.repSep0(genP.fa, min = min, max = max, sep = Parser.unit)
+      val p1b = genP.fa.rep0(min = min, max = max)
+
+      assertEquals(p1a.parse(str), p1b.parse(str))
+
+      val min1 = if (min < 1) 1 else min
+      val p2a = Parser.repSep(genP.fa, min = min1, max = max, sep = Parser.unit)
+      val p2b = genP.fa.rep(min = min1, max = max)
+
+      assertEquals(p2a.parse(str), p2b.parse(str))
     }
   }
 
@@ -1341,17 +1378,17 @@ class ParserTest extends munit.ScalaCheckSuite {
       val pa: Parser[Any] = p1.fa
       val pb: Parser[Any] = p2.fa
       assertEquals(pa.orElse(pb), pa | pb)
-    }
+    } &&
     forAll(ParserGen.gen0, ParserGen.gen0) { (p1, p2) =>
       val pa: Parser0[Any] = p1.fa
       val pb: Parser0[Any] = p2.fa
       assertEquals(pa.orElse(pb), pa | pb)
-    }
+    } &&
     forAll(ParserGen.gen, ParserGen.gen0) { (p1, p2) =>
       val pa: Parser[Any] = p1.fa
       val pb: Parser0[Any] = p2.fa
       assertEquals(pa.orElse(pb), pa | pb)
-    }
+    } &&
     forAll(ParserGen.gen0, ParserGen.gen) { (p1, p2) =>
       val pa: Parser0[Any] = p1.fa
       val pb: Parser[Any] = p2.fa
