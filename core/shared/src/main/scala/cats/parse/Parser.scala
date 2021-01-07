@@ -1077,7 +1077,7 @@ object Parser {
 
   /** Repeat `min` or more times with a separator, at least once.
     *
-    * @throws IllegalArgumentException if `min <= 0`
+    * @throws java.lang.IllegalArgumentException if `min <= 0`
     */
   def repSep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
     // we validate here so the message matches what the user passes
@@ -1090,7 +1090,7 @@ object Parser {
 
   /** Repeat `min` or more, up to `max` times with a separator, at least once.
     *
-    * @throws IllegalArgumentException if `min <= 0` or `max < min`
+    * @throws java.lang.IllegalArgumentException if `min <= 0` or `max < min`
     */
   def repSep[A](p1: Parser[A], min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
     // we validate here so the message matches what the user passes
