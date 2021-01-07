@@ -894,7 +894,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         for {
           pair1 <- p1.fa.parse(str)
           (s1, a1) = pair1
-          off = if (s1 == "") str.length else str.indexOf(s1)
+          off = if (s1 == "") str.length else str.lastIndexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
@@ -919,7 +919,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         for {
           pair1 <- p1.fa.parse(str)
           (s1, a1) = pair1
-          off = if (s1 == "") str.length else str.indexOf(s1)
+          off = if (s1 == "") str.length else str.lastIndexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
           p3 = Parser.length0(off) *> p2.fa
@@ -940,7 +940,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         for {
           pair1 <- p1.fa.parse(str)
           (s1, a1) = pair1
-          off = if (s1 == "") str.length else str.indexOf(s1)
+          off = if (s1 == "") str.length else str.lastIndexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
           p3 = Parser.length0(off) *> p2.fa
@@ -961,7 +961,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         for {
           pair1 <- p1.fa.parse(str)
           (s1, a1) = pair1
-          off = if (s1 == "") str.length else str.indexOf(s1)
+          off = if (s1 == "") str.length else str.lastIndexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
@@ -985,7 +985,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         for {
           pair1 <- p1.fa.parse(str)
           (s1, a1) = pair1
-          off = if (s1 == "") str.length else str.indexOf(s1)
+          off = if (s1 == "") str.length else str.lastIndexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
@@ -1009,7 +1009,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         for {
           pair1 <- p1.fa.parse(str)
           (s1, a1) = pair1
-          off = if (s1 == "") str.length else str.indexOf(s1)
+          off = if (s1 == "") str.length else str.lastIndexOf(s1)
           // make the offsets the same
           sfix = " " * off + s1
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
