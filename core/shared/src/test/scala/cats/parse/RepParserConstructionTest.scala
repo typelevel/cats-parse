@@ -51,14 +51,16 @@ class RepParserConstructionTest extends munit.ScalaCheckSuite {
   val invalidMax = Gen.choose(Int.MinValue, 0)
 
   val invalidMinMax = Gen.oneOf(
-    for (min <- validMin; maxDiff <- biasSmall(1)) yield (min, min - maxDiff),
+    for (min <- validMin; maxDiff <- biasSmall(1))
+      yield (min, Integer.min(min - maxDiff, Int.MinValue)),
     for (min <- invalidMin; max <- biasSmall(0)) yield (min, max),
     for (min <- invalidMin; max <- invalidMax) yield (min, max),
     for (min <- validMin; max <- invalidMax) yield (min, max)
   )
 
   val invalidMinMax0 = Gen.oneOf(
-    for (min <- validMin0; maxDiff <- biasSmall(1)) yield (min, min - maxDiff),
+    for (min <- validMin0; maxDiff <- biasSmall(1))
+      yield (min, Integer.min(min - maxDiff, Int.MinValue)),
     for (min <- invalidMin0; max <- biasSmall(0)) yield (min, max),
     for (min <- invalidMin0; max <- invalidMax) yield (min, max),
     for (min <- validMin0; max <- invalidMax) yield (min, max)

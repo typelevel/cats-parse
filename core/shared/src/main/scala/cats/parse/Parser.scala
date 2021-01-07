@@ -1000,14 +1000,14 @@ object Parser {
   def length(len: Int): Parser[String] =
     Impl.Length(len)
 
-  /** Repeat this parser 0 or more times
+  /** Repeat the parser 0 or more times
     *
     * @note this can wind up parsing nothing
     */
   def repAs0[A, B](p1: Parser[A])(implicit acc: Accumulator0[A, B]): Parser0[B] =
     Impl.Rep0(p1, Int.MaxValue, acc)
 
-  /** Repeat this parser 0 or more times, but no more than `max`
+  /** Repeat the parser 0 or more times, but no more than `max`
     *
     * It may seem weird to accept 0 here, but without, composing
     * this method becomes more complex.
@@ -1029,7 +1029,7 @@ object Parser {
     }
   }
 
-  /** Repeat this parser `min` or more times
+  /** Repeat the parser `min` or more times
     *
     * The parser fails if it can't match at least `min` times
     *
@@ -1040,7 +1040,7 @@ object Parser {
     Impl.Rep(p1, min, Int.MaxValue, acc)
   }
 
-  /** Repeat this parser `min` or more times, but no more than `max`
+  /** Repeat the parser `min` or more times, but no more than `max`
     *
     * The parser fails if it can't match at least `min` times
     * After repeating the parser `max` times, the parser completes succesfully
@@ -1049,10 +1049,12 @@ object Parser {
     */
   def repAs[A, B](p1: Parser[A], min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] = {
     require(min >= 1, s"min should be >= 1, was $min")
-    require(max >= min, s"max should be >= min, but $max < $min")
 
     if (min == max) repExactlyAs(p1, min)
-    else Impl.Rep(p1, min, max - 1, acc)
+    else {
+      require(max > min, s"max should be >= min, but $max < $min")
+      Impl.Rep(p1, min, max - 1, acc)
+    }
   }
 
   /** Repeat the parser exactly `times` times
@@ -1087,8 +1089,12 @@ object Parser {
     if (min <= 0) throw new IllegalArgumentException(s"require min > 0, found: $min")
     if (max < min) throw new IllegalArgumentException(s"require max >= min, found: $max < $min")
 
-    val rest = (sep.void.with1.soft *> p1).rep0(min = min - 1, max = max - 1)
-    (p1 ~ rest).map { case (h, t) => NonEmptyList(h, t) }
+    if ((min == 1) && (max == 1)) {
+      p1.map(NonEmptyList(_, Nil))
+    } else {
+      val rest = (sep.void.with1.soft *> p1).rep0(min = min - 1, max = max - 1)
+      (p1 ~ rest).map { case (h, t) => NonEmptyList(h, t) }
+    }
   }
 
   /** Repeat 0 or more times with a separator

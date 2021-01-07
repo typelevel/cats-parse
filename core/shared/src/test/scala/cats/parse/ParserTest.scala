@@ -182,7 +182,7 @@ object ParserGen {
     require(min >= 0, s"biasSmall($min) is invalid")
 
     val max0 = Int.MaxValue - min
-    val pow = 31 - Integer.numberOfLeadingZeros(max0)
+    val pow = 32 - Integer.numberOfLeadingZeros(max0)
     Gen
       .choose(0, pow)
       .flatMap { shifts =>
