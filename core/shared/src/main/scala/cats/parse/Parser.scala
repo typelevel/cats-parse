@@ -1072,6 +1072,13 @@ object Parser {
 
   /** Repeat 1 or more times with a separator
     */
+  def repSep[A](p1: Parser[A], sep: Parser0[Any]): Parser[NonEmptyList[A]] =
+    repSep(p1, min = 1, sep)
+
+  /** Repeat `min` or more times with a separator, at least once.
+    *
+    * @throws java.lang.IllegalArgumentException if `min <= 0`
+    */
   def repSep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
     // we validate here so the message matches what the user passes
     // instead of transforming to min - 1 below
@@ -1081,7 +1088,9 @@ object Parser {
     (p1 ~ rest).map { case (h, t) => NonEmptyList(h, t) }
   }
 
-  /** Repeat 1 or more times with a separator
+  /** Repeat `min` or more, up to `max` times with a separator, at least once.
+    *
+    * @throws java.lang.IllegalArgumentException if `min <= 0` or `max < min`
     */
   def repSep[A](p1: Parser[A], min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
     // we validate here so the message matches what the user passes
@@ -1100,7 +1109,7 @@ object Parser {
   /** Repeat 0 or more times with a separator
     */
   def repSep0[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] =
-    if (min == 0) repSep(p1, 1, sep).?.map {
+    if (min == 0) repSep(p1, sep).?.map {
       case None => Nil
       case Some(nel) => nel.toList
     }
