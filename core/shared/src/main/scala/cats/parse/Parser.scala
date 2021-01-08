@@ -523,6 +523,44 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   def rep(min: Int, max: Int): Parser[NonEmptyList[A]] =
     Parser.repAs(this, min = min, max = max)
 
+  /** Repeat 0 or more times with a separator
+    */
+  def repSep0(sep: Parser0[Any]): Parser0[List[A]] =
+    Parser.repSep0(this, sep)
+
+  /** Repeat `min` or more times with a separator.
+    *
+    * @throws java.lang.IllegalArgumentException if `min < 0`
+    */
+  def repSep0(min: Int, sep: Parser0[Any]): Parser0[List[A]] =
+    Parser.repSep0(this, min = min, sep = sep)
+
+  /** Repeat `min` or more, up to `max` times with a separator.
+    *
+    * @throws java.lang.IllegalArgumentException if `min < 0` or `max < min`
+    */
+  def repSep0(min: Int, max: Int, sep: Parser0[Any]): Parser0[List[A]] =
+    Parser.repSep0(this, min = min, max = max, sep = sep)
+
+  /** Repeat 1 or more times with a separator
+    */
+  def repSep(sep: Parser0[Any]): Parser[NonEmptyList[A]] =
+    Parser.repSep(this, sep)
+
+  /** Repeat `min` or more times with a separator, at least once.
+    *
+    * @throws java.lang.IllegalArgumentException if `min <= 0`
+    */
+  def repSep(min: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] =
+    Parser.repSep(this, min = min, sep = sep)
+
+  /** Repeat `min` or more, up to `max` times with a separator, at least once.
+    *
+    * @throws java.lang.IllegalArgumentException if `min <= 0` or `max < min`
+    */
+  def repSep(min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] =
+    Parser.repSep(this, min = min, max = max, sep = sep)
+
   /** This method overrides `Parser0#between` to refine the return type
     */
   override def between(b: Parser0[Any], c: Parser0[Any]): Parser[A] =
@@ -1108,6 +1146,13 @@ object Parser {
 
   /** Repeat 0 or more times with a separator
     */
+  def repSep0[A](p1: Parser[A], sep: Parser0[Any]): Parser0[List[A]] =
+    repSep0(p1, 0, sep)
+
+  /** Repeat `min` or more times with a separator.
+    *
+    * @throws java.lang.IllegalArgumentException if `min < 0`
+    */
   def repSep0[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] =
     if (min == 0) repSep(p1, sep).?.map {
       case None => Nil
@@ -1115,7 +1160,9 @@ object Parser {
     }
     else repSep(p1, min, sep).map(_.toList)
 
-  /** Repeat 0 or more times with a separator
+  /** Repeat `min` or more, up to `max` times with a separator.
+    *
+    * @throws java.lang.IllegalArgumentException if `min < 0` or `max < min`
     */
   def repSep0[A](p1: Parser[A], min: Int, max: Int, sep: Parser0[Any]): Parser0[List[A]] =
     if (min == 0) {
