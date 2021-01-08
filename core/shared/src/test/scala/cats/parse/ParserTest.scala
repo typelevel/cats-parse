@@ -1258,25 +1258,25 @@ class ParserTest extends munit.ScalaCheckSuite {
       } yield (min, max)
 
     forAll(ParserGen.gen, biasSmall(0), Arbitrary.arbitrary[String]) { (genP, min, str) =>
-      val p1a = Parser.repSep0(genP.fa, min = min, sep = Parser.unit)
+      val p1a = genP.fa.repSep0(min = min, sep = Parser.unit)
       val p1b = genP.fa.rep0(min = min)
 
       assertEquals(p1a.parse(str), p1b.parse(str))
 
       val min1 = if (min < 1) 1 else min
-      val p2a = Parser.repSep(genP.fa, min = min1, sep = Parser.unit)
+      val p2a = genP.fa.repSep(min = min1, sep = Parser.unit)
       val p2b = genP.fa.rep(min = min1)
 
       assertEquals(p2a.parse(str), p2b.parse(str))
     } &&
     forAll(ParserGen.gen, minMax, Arbitrary.arbitrary[String]) { case (genP, (min, max), str) =>
-      val p1a = Parser.repSep0(genP.fa, min = min, max = max, sep = Parser.unit)
+      val p1a = genP.fa.repSep0(min = min, max = max, sep = Parser.unit)
       val p1b = genP.fa.rep0(min = min, max = max)
 
       assertEquals(p1a.parse(str), p1b.parse(str))
 
       val min1 = if (min < 1) 1 else min
-      val p2a = Parser.repSep(genP.fa, min = min1, max = max, sep = Parser.unit)
+      val p2a = genP.fa.repSep(min = min1, max = max, sep = Parser.unit)
       val p2b = genP.fa.rep(min = min1, max = max)
 
       assertEquals(p2a.parse(str), p2b.parse(str))
@@ -1288,7 +1288,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       {
         val p = genP.fa
         val psep = genPSep.fa
-        assertEquals(Parser.repSep(p, min = 1, psep).parse(str), Parser.repSep(p, psep).parse(str))
+        assertEquals(p.repSep(min = 1, psep).parse(str), p.repSep(psep).parse(str))
       }
     }
   }
