@@ -2051,8 +2051,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen, Gen.choose(0, 128), Gen.function1[Int, Int](Gen.choose(0, 128))) {
       (p, a, fn) =>
         assertEquals(p.fa.as(a).map(fn), p.fa.as(fn(a)))
-    }
-
+    } &&
     forAll(ParserGen.gen0, Gen.choose(0, 128), Gen.function1[Int, Int](Gen.choose(0, 128))) {
       (p0, a, fn) =>
         assertEquals(p0.fa.as(a).map(fn), p0.fa.as(fn(a)))
@@ -2156,10 +2155,9 @@ class ParserTest extends munit.ScalaCheckSuite {
       val right = pa.string.string
 
       assertEquals(left, right)
-    }
-
-    // here is an case we want to be sure works:
+    } &&
     forAll { (c: Char) =>
+      // here is an case we want to be sure works:
       val c1 = Parser.char(c).string
       assertEquals(c1.string, c1)
     }
