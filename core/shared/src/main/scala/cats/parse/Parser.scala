@@ -561,6 +561,16 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   def repSep(min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] =
     Parser.repSep(this, min = min, max = max, sep = sep)
 
+  /** Repeat this parser 0 or more times until `end` Parser succeeds.
+    */
+  def until0(end: Parser[Any]): Parser0[List[A]] =
+    Parser.until0(this, end)
+
+  /** Repeat this parser 1 or more times until `end` Parser succeeds.
+    */
+  def until(end: Parser[Any]): Parser[NonEmptyList[A]] =
+    Parser.until(this, end)
+
   /** This method overrides `Parser0#between` to refine the return type
     */
   override def between(b: Parser0[Any], c: Parser0[Any]): Parser[A] =
@@ -1446,12 +1456,23 @@ object Parser {
     *  this is useful for parsing comment strings, for instance.
     */
   def until0(p: Parser0[Any]): Parser0[String] =
-    (not(p).with1 ~ anyChar).rep0.string
+    (not(p).void.with1 ~ anyChar).rep0.string
 
   /** parse one or more characters as long as they don't match p
     */
   def until(p: Parser0[Any]): Parser[String] =
-    (not(p).with1 ~ anyChar).rep.string
+    (not(p).void.with1 ~ anyChar).rep.string
+
+  /** parse zero or more times until Parser `end` succeeds.
+    */
+  def until0[A](p: Parser[A], end: Parser[Any]): Parser0[List[A]] = {
+    (not(end).void.with1 ~ p).rep0.map(_.map(_._2))
+  }
+
+  /** parse one or more times until Parser `end` succeeds.
+    */
+  def until[A](p: Parser[A], end: Parser[Any]): Parser[NonEmptyList[A]] =
+    (not(end).void.with1 ~ p).rep.map(_.map(_._2))
 
   /** discard the value in a Parser.
     *  This is an optimization because we remove trailing
