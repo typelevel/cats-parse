@@ -600,7 +600,7 @@ object Parser {
 
     implicit val catsOrderExpectation: Order[Expectation] =
       new Order[Expectation] {
-        def compare(left: Expectation, right: Expectation): Int = {
+        override def compare(left: Expectation, right: Expectation): Int = {
           val c = Integer.compare(left.offset, right.offset)
           if (c != 0) c
           else if (left == right) 0
@@ -1627,17 +1627,17 @@ object Parser {
   implicit val catsInstancesParser
       : FlatMap[Parser] with Defer[Parser] with MonoidK[Parser] with FunctorFilter[Parser] =
     new FlatMap[Parser] with Defer[Parser] with MonoidK[Parser] with FunctorFilter[Parser] {
-      def empty[A] = Fail
+      override def empty[A] = Fail
 
-      def defer[A](pa: => Parser[A]): Parser[A] =
+      override def defer[A](pa: => Parser[A]): Parser[A] =
         Parser.this.defer(pa)
 
-      def functor = this
+      override def functor = this
 
-      def map[A, B](fa: Parser[A])(fn: A => B): Parser[B] =
+      override def map[A, B](fa: Parser[A])(fn: A => B): Parser[B] =
         Parser.this.map(fa)(fn)
 
-      def mapFilter[A, B](fa: Parser[A])(f: A => Option[B]): Parser[B] =
+      override def mapFilter[A, B](fa: Parser[A])(f: A => Option[B]): Parser[B] =
         fa.mapFilter(f)
 
       override def filter[A](fa: Parser[A])(fn: A => Boolean): Parser[A] =
@@ -1646,7 +1646,7 @@ object Parser {
       override def filterNot[A](fa: Parser[A])(fn: A => Boolean): Parser[A] =
         fa.filter { a => !fn(a) }
 
-      def flatMap[A, B](fa: Parser[A])(fn: A => Parser[B]): Parser[B] =
+      override def flatMap[A, B](fa: Parser[A])(fn: A => Parser[B]): Parser[B] =
         Parser.this.flatMap10(fa)(fn)
 
       override def product[A, B](pa: Parser[A], pb: Parser[B]): Parser[(A, B)] =
@@ -1666,10 +1666,10 @@ object Parser {
       override def ap[A, B](pf: Parser[A => B])(pa: Parser[A]): Parser[B] =
         map(product(pf, pa)) { case (fn, a) => fn(a) }
 
-      def tailRecM[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
+      override def tailRecM[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
         Parser.this.tailRecM(init)(fn)
 
-      def combineK[A](pa: Parser[A], pb: Parser[A]): Parser[A] =
+      override def combineK[A](pa: Parser[A], pb: Parser[A]): Parser[A] =
         Parser.oneOf(pa :: pb :: Nil)
 
       override def void[A](pa: Parser[A]): Parser[Unit] =
@@ -2669,17 +2669,17 @@ object Parser0 {
   implicit val catInstancesParser0
       : Monad[Parser0] with Alternative[Parser0] with Defer[Parser0] with FunctorFilter[Parser0] =
     new Monad[Parser0] with Alternative[Parser0] with Defer[Parser0] with FunctorFilter[Parser0] {
-      def pure[A](a: A): Parser0[A] = Parser.pure(a)
+      override def pure[A](a: A): Parser0[A] = Parser.pure(a)
 
-      def defer[A](a: => Parser0[A]) = Parser.defer0(a)
+      override def defer[A](a: => Parser0[A]) = Parser.defer0(a)
 
-      def empty[A]: Parser0[A] = Parser.Fail
+      override def empty[A]: Parser0[A] = Parser.Fail
 
-      def functor = this
+      override def functor = this
 
       override def map[A, B](fa: Parser0[A])(fn: A => B): Parser0[B] = Parser.map0(fa)(fn)
 
-      def mapFilter[A, B](fa: Parser0[A])(f: A => Option[B]): Parser0[B] =
+      override def mapFilter[A, B](fa: Parser0[A])(f: A => Option[B]): Parser0[B] =
         fa.mapFilter(f)
 
       override def replicateA[A](n: Int, fa: Parser0[A]): Parser0[List[A]] = {
@@ -2712,13 +2712,13 @@ object Parser0 {
       override def ap[A, B](pf: Parser0[A => B])(pa: Parser0[A]): Parser0[B] =
         map(product(pf, pa)) { case (fn, a) => fn(a) }
 
-      def flatMap[A, B](fa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
+      override def flatMap[A, B](fa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
         Parser.flatMap0(fa)(fn)
 
-      def combineK[A](pa: Parser0[A], pb: Parser0[A]): Parser0[A] =
+      override def combineK[A](pa: Parser0[A], pb: Parser0[A]): Parser0[A] =
         Parser.oneOf0(pa :: pb :: Nil)
 
-      def tailRecM[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
+      override def tailRecM[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
         Parser.tailRecM0(init)(fn)
 
       override def void[A](pa: Parser0[A]): Parser0[Unit] =
