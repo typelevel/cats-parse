@@ -480,8 +480,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * an epsilon failure, the parsed values (if any) are returned in a
     * list as a successful parse.
     */
-  def rep0: Parser0[List[A]] =
-    Parser.repAs0[A, List[A]](this)
+  def rep0: Parser0[List[A]] = repAs0
 
   /** Use this parser to parse at least `min` values (where `min >= 0`).
     *
@@ -497,11 +496,18 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     */
   def rep0(min: Int): Parser0[List[A]] =
     if (min == 0) rep0
-    else this.repAs(min)
+    else repAs(min)
 
+  /** Repeat the parser `min` or more times, but no more than `max`
+    *
+    * The parser fails if it can't match at least `min` times
+    * After repeating the parser `max` times, the parser completes succesfully
+    *
+    * @throws java.lang.IllegalArgumentException if min < 0 or max < min
+    */
   def rep0(min: Int, max: Int): Parser0[List[A]] =
-    if (min == 0) this.repAs0(max)
-    else this.repAs(min, max)
+    if (min == 0) repAs0(max)
+    else repAs(min, max)
 
   /** Use this parser to parse one-or-more values.
     *
@@ -509,8 +515,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * least one value, and is guaranteed to consume input on successful
     * parses.
     */
-  def rep: Parser[NonEmptyList[A]] =
-    Parser.repAs(this, min = 1)
+  def rep: Parser[NonEmptyList[A]] = repAs
 
   /** Use this parser to parse at least `min` values (where `min >= 1`).
     *
@@ -518,10 +523,69 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     * values are produced an arresting failure will be returned.
     */
   def rep(min: Int): Parser[NonEmptyList[A]] =
-    Parser.repAs(this, min = min)
+    repAs(min = min)
 
+  /** Repeat the parser `min` or more times, but no more than `max`
+    *
+    * The parser fails if it can't match at least `min` times
+    * After repeating the parser `max` times, the parser completes succesfully
+    *
+    * @throws java.lang.IllegalArgumentException if min < 1 or max < min
+    */
   def rep(min: Int, max: Int): Parser[NonEmptyList[A]] =
-    Parser.repAs(this, min = min, max = max)
+    repAs(min = min, max = max)
+
+  /** Repeat the parser 0 or more times
+    *
+    * @note this can wind up parsing nothing
+    */
+  def repAs0[B](implicit acc: Accumulator0[A, B]): Parser0[B] =
+    Parser.repAs0(this)(acc)
+
+  /** Repeat the parser 0 or more times, but no more than `max`
+    *
+    * It may seem weird to accept 0 here, but without, composing
+    * this method becomes more complex.
+    * Since and empty parse is possible for this method, we do
+    * allow max = 0
+    *
+    * @throws java.lang.IllegalArgumentException if max < 0
+    *
+    * @note this can wind up parsing nothing
+    */
+  def repAs0[B](max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] =
+    Parser.repAs0(this, max = max)(acc)
+
+  /** Repeat the parser 1 or more times
+    */
+  def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
+    repAs(min = 1)
+
+  /** Repeat the parser `min` or more times
+    *
+    * The parser fails if it can't match at least `min` times
+    *
+    * @throws java.lang.IllegalArgumentException if min < 1
+    */
+  def repAs[B](min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
+    Parser.repAs(this, min = min)(acc)
+
+  /** Repeat the parser `min` or more times, but no more than `max`
+    *
+    * The parser fails if it can't match at least `min` times
+    * After repeating the parser `max` times, the parser completes succesfully
+    *
+    * @throws java.lang.IllegalArgumentException if min < 1 or max < min
+    */
+  def repAs[B](min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
+    Parser.repAs(this, min = min, max = max)(acc)
+
+  /** Repeat the parser exactly `times` times
+    *
+    * @throws java.lang.IllegalArgumentException if times < 1
+    */
+  def repExactlyAs[B](times: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
+    Parser.repExactlyAs(this, times = times)(acc)
 
   /** Repeat 0 or more times with a separator
     */
@@ -826,28 +890,6 @@ object Parser {
 
     def <*[B](that: Parser[B]): Parser[A] =
       softProduct01(parser, void(that)).map(_._1)
-  }
-
-  /** Methods with complex variance type signatures due to covariance.
-    */
-  implicit final class ParserMethods[A](private val self: Parser[A]) extends AnyVal {
-    def repAs0[B](implicit acc: Accumulator0[A, B]): Parser0[B] =
-      Parser.repAs0(self)(acc)
-
-    def repAs0[B](max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] =
-      Parser.repAs0(self, max = max)(acc)
-
-    def repAs[B](implicit acc: Accumulator[A, B]): Parser[B] =
-      Parser.repAs(self, min = 1)(acc)
-
-    def repAs[B](min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
-      Parser.repAs(self, min = min)(acc)
-
-    def repAs[B](min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
-      Parser.repAs(self, min = min, max = max)(acc)
-
-    def repExactlyAs[B](times: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
-      Parser.repExactlyAs(self, times = times)(acc)
   }
 
   /** Don't advance in the parsed string, just return a
