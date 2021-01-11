@@ -33,8 +33,7 @@ object Json {
     * where speed won't matter: feeding it into a program that will convert it to bosatsu
     * structured data
     */
-  val parser: P[JValue] = {
-    val recurse = P.defer(parser)
+  val parser: P[JValue] = P.recursive[JValue] { recurse =>
     val pnull = P.string("null").as(JNull)
     val bool = P.string("true").as(JBool.True).orElse(P.string("false").as(JBool.False))
     val justStr = JsonStringUtil.escapedString('"')
