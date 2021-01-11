@@ -152,7 +152,7 @@ typelevel/cats-parse
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.3-33-fff9846
+<i class="md-icon" title="Version">label_outline</i> 0.3-34-8108cab
 </label>
 </li>
 </ul>
@@ -210,8 +210,7 @@ object Json {
   private[this] val whitespace: P[Unit] = P.charIn(&quot; \t\r\n&quot;).void
   private[this] val whitespaces0: P[Unit] = whitespace.rep.void
 
-  val parser: P[JValue] = {
-    val recurse = P.defer(parser)
+  val parser: P[JValue] = P.recursive[JValue] { recurse =&gt;
     val pnull = P.string(&quot;null&quot;).as(JNull)
     val bool = P.string(&quot;true&quot;).as(JBool.True).orElse(P.string(&quot;false&quot;).as(JBool.False))
     val justStr = JsonStringUtil.escapedString(&#39;&quot;&#39;)
@@ -284,13 +283,13 @@ object Json {
 <p>We welcome new contributors and new maintainers. Please feel free to open issues and PRs. If you have any problem using the library, an issue is the best way to ask a question until we flush out more documentation.</p>
 </div>
 <div>
-<a href="https://github.com/typelevel/cats-parse/tree/v0.3-33-fff9846/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/typelevel/cats-parse/tree/v0.3-34-8108cab/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.3-33-fff9846
+0.3-34-8108cab
 </span>
 </div>
 </article>
