@@ -1587,7 +1587,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("Parser.repUntil end Parser succeeds works as expected") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p, end, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p, end, str) =>
       val left = Parser.repUntil(p.fa.string, end.fa).parse(str)
       val right = (Parser.not(end.fa).void.with1 ~ p.fa.string).rep.map(_.map(_._2)).parse(str)
 
@@ -1603,7 +1603,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         case Left(_) => ()
       }
     } &&
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p, end, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p, end, str) =>
       val left = Parser.repUntil0(p.fa.string, end.fa).parse(str)
       val right = (Parser.not(end.fa).void.with1 ~ p.fa.string).rep0.map(_.map(_._2)).parse(str)
 
@@ -1622,7 +1622,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("a.repUntilAs(end) matches a.repUntil(end)") {
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p, end, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p, end, str) =>
       val left = p.fa.string.repUntilAs[NonEmptyList[String]](end.fa).parse(str)
       val right = p.fa.string.repUntil(end.fa).parse(str)
 
@@ -1638,7 +1638,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         case Left(_) => ()
       }
     } &&
-    forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (p, end, str) =>
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (p, end, str) =>
       val left = p.fa.string.repUntilAs0[List[String]](end.fa).parse(str)
       val right = p.fa.string.repUntil0(end.fa).parse(str)
 
