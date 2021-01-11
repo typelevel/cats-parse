@@ -2297,4 +2297,41 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("recursive works for a parens or int") {
+    sealed abstract class PorI {
+      def render: String
+    }
+    case class I(toInt: Int) extends PorI {
+      def render = toInt.toString
+    }
+    case class P(pOrI: PorI) extends PorI {
+      def render = s"(${pOrI.render})"
+    }
+
+    val genPorI: Gen[PorI] =
+      Gen
+        .geometric(5.0)
+        .flatMap { cnt =>
+          Gen
+            .choose(Int.MinValue, Int.MaxValue)
+            .map { root =>
+              (0 until cnt).foldLeft(I(root): PorI) { (pori, _) =>
+                P(pori)
+              }
+            }
+        }
+
+    val parsePorI = Parser.recursive[PorI] { rec =>
+      val parens = rec.between(Parser.char('('), Parser.char(')')).map(P(_))
+      Numbers.signedIntString.map { str => I(str.toInt) } | parens
+    }
+
+    forAll(genPorI) { pori =>
+      parsePorI.parseAll(pori.render) match {
+        case Right(p1) => assertEquals(p1, pori)
+        case Left(err) => fail(err.toString)
+      }
+    }
+  }
+
 }

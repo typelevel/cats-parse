@@ -44,8 +44,7 @@ object Json {
   private[this] val whitespace: P[Unit] = P.charIn(" \t\r\n").void
   private[this] val whitespaces0: P[Unit] = whitespace.rep.void
 
-  val parser: P[JValue] = {
-    val recurse = P.defer(parser)
+  val parser: P[JValue] = P.recursive[JValue] { recurse =>
     val pnull = P.string("null").as(JNull)
     val bool = P.string("true").as(JBool.True).orElse(P.string("false").as(JBool.False))
     val justStr = JsonStringUtil.escapedString('"')

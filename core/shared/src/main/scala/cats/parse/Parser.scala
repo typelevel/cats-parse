@@ -1414,6 +1414,14 @@ object Parser {
   def defer0[A](pa: => Parser0[A]): Parser0[A] =
     Impl.Defer0(() => pa)
 
+  /** Build a recursive parser by assuming you have it
+    * Useful for parsing recurive structures, like for instance JSON.
+    */
+  def recursive[A](fn: Parser[A] => Parser[A]): Parser[A] = {
+    lazy val result: Parser[A] = fn(defer(result))
+    result
+  }
+
   /** A parser that always fails with an epsilon failure
     */
   val Fail: Parser[Nothing] = Impl.Fail()
@@ -1717,6 +1725,9 @@ object Parser {
 
       override def defer[A](pa: => Parser[A]): Parser[A] =
         Parser.this.defer(pa)
+
+      override def fix[A](fn: Parser[A] => Parser[A]): Parser[A] =
+        Parser.recursive(fn)
 
       override def functor = this
 
