@@ -501,7 +501,7 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   /** Repeat the parser `min` or more times, but no more than `max`
     *
     * The parser fails if it can't match at least `min` times
-    * After repeating the parser `max` times, the parser completes succesfully
+    * After repeating the parser `max` times, the parser completes successfully
     *
     * @throws java.lang.IllegalArgumentException if min < 0 or max < min
     */
