@@ -625,6 +625,26 @@ sealed abstract class Parser[+A] extends Parser0[A] {
   def repSep(min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] =
     Parser.repSep(this, min = min, max = max, sep = sep)
 
+  /** Repeat this parser 0 or more times until `end` Parser succeeds.
+    */
+  def repUntil0(end: Parser0[Any]): Parser0[List[A]] =
+    Parser.repUntil0(this, end)
+
+  /** Repeat this parser 1 or more times until `end` Parser succeeds.
+    */
+  def repUntil(end: Parser0[Any]): Parser[NonEmptyList[A]] =
+    Parser.repUntil(this, end)
+
+  /** Repeat this parser 0 or more times until `end` Parser succeeds.
+    */
+  def repUntilAs0[B](end: Parser0[Any])(implicit acc: Accumulator0[A, B]): Parser0[B] =
+    Parser.repUntilAs0(this, end)
+
+  /** Repeat this parser 1 or more times until `end` Parser succeeds.
+    */
+  def repUntilAs[B](end: Parser0[Any])(implicit acc: Accumulator[A, B]): Parser[B] =
+    Parser.repUntilAs(this, end)
+
   /** This method overrides `Parser0#between` to refine the return type
     */
   override def between(b: Parser0[Any], c: Parser0[Any]): Parser[A] =
@@ -1494,6 +1514,30 @@ object Parser {
     */
   def until(p: Parser0[Any]): Parser[String] =
     (not(p).with1 ~ anyChar).rep.string
+
+  /** parse zero or more times until Parser `end` succeeds.
+    */
+  def repUntil0[A](p: Parser[A], end: Parser0[Any]): Parser0[List[A]] =
+    (not(end).with1 *> p).rep0
+
+  /** parse one or more times until Parser `end` succeeds.
+    */
+  def repUntil[A](p: Parser[A], end: Parser0[Any]): Parser[NonEmptyList[A]] =
+    (not(end).with1 *> p).rep
+
+  /** parse zero or more times until Parser `end` succeeds.
+    */
+  def repUntilAs0[A, B](p: Parser[A], end: Parser0[Any])(implicit
+      acc: Accumulator0[A, B]
+  ): Parser0[B] =
+    (not(end).with1 *> p).repAs0
+
+  /** parse one or more times until Parser `end` succeeds.
+    */
+  def repUntilAs[A, B](p: Parser[A], end: Parser0[Any])(implicit
+      acc: Accumulator[A, B]
+  ): Parser[B] =
+    (not(end).with1 *> p).repAs
 
   /** discard the value in a Parser.
     *  This is an optimization because we remove trailing
