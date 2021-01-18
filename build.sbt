@@ -62,9 +62,10 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 ThisBuild / githubWorkflowPublish ++= Seq(
   WorkflowStep.Sbt(List("docs/makeSite")),
   WorkflowStep.Use(
-    "JamesIves",
-    "github-pages-deploy-action",
-    "3.7.1",
+    UseRef.Public(
+      "JamesIves",
+      "github-pages-deploy-action",
+      "3.7.1"),
     params = Map(
       "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
       "BRANCH" -> "gh-pages",
