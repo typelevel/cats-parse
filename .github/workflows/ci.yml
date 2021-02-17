@@ -57,8 +57,7 @@ jobs:
 
       - run: |
           sbt ++${{ matrix.scala }} fmtCheck \
-              "++${{ matrix.scala }} test" \
-              "++${{ matrix.scala }} mimaReportBinaryIssues"
+              "++${{ matrix.scala }} test"
 
       - name: Compress target directories
         run: tar cf targets.tar target core/js/target core/jvm/target project/target
@@ -218,3 +217,14 @@ jobs:
       - run: sbt ++${{ matrix.scala }} coverage test coverageAggregate
 
       - run: 'bash <(curl -s https://codecov.io/bash)'
+
+  mima:
+    name: Check binary compatibility
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.12.13, 2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: sbt ++${{ matrix.scala }} mimaReportBinaryIssues

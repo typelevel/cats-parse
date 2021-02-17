@@ -29,8 +29,7 @@ ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Run(
     List(
       """sbt ++${{ matrix.scala }} fmtCheck \
-        |    "++${{ matrix.scala }} test" \
-        |    "++${{ matrix.scala }} mimaReportBinaryIssues"""".stripMargin
+        |    "++${{ matrix.scala }} test"""".stripMargin
     )
   )
 )
@@ -55,6 +54,18 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
       WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate")),
       WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
+    )
+  ),
+  WorkflowJob(
+    id = "mima",
+    name = "Check binary compatibility",
+    scalas = (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2")).toList,
+    steps = List(
+      WorkflowStep.Run(
+        List(
+          """sbt ++${{ matrix.scala }} mimaReportBinaryIssues"""
+        )
+      )
     )
   )
 )
