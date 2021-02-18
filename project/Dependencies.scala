@@ -2,10 +2,9 @@ import sbt._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Dependencies {
-  lazy val cats = Def.setting("org.typelevel" %%% "cats-core" % "2.4.1")
-  lazy val munit = Def.setting("org.scalameta" %%% "munit" % "0.7.21")
-  lazy val munitScalacheck = Def.setting("org.scalameta" %%% "munit-scalacheck" % "0.7.21")
-  lazy val scalaCheck = Def.setting("org.scalacheck" %%% "scalacheck" % "1.14.3")
+  lazy val cats = Def.setting("org.typelevel" %%% "cats-core" % "2.4.2")
+  lazy val munit = Def.setting("org.scalameta" %%% "munit" % "0.7.22")
+  lazy val munitScalacheck = Def.setting("org.scalameta" %%% "munit-scalacheck" % "0.7.22")
   lazy val fastParse = "com.lihaoyi" %% "fastparse" % "2.3.1"
   lazy val parsley = "org.http4s" %% "parsley" % "1.5.0-M3"
   lazy val jawnAst = "org.typelevel" %% "jawn-ast" % "1.0.3"
