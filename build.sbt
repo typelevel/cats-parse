@@ -14,7 +14,7 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("3.0.0-M3", "3.0.0-RC1", "2.12.13", "2.13.4")
+ThisBuild / crossScalaVersions := List("3.0.0-M3", "3.0.0-RC1", "2.13.5", "2.13.4")
 
 ThisBuild / versionIntroduced := Map(
   "3.0.0-M2" -> "0.1.99",
