@@ -211,6 +211,8 @@ sealed abstract class Parser0[+A] {
     Parser.oneOf0(this :: that :: Nil)
 
   /** Synonym for orElse
+    *  Note this is not commutative: if this has an arresting failure we
+    *  do not continue onto the next.
     */
   def |[A1 >: A](that: Parser0[A1]): Parser0[A1] =
     orElse(that)
@@ -466,6 +468,8 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     Parser.oneOf(this :: that :: Nil)
 
   /** Synonym for orElse
+    *  Note this is not commutative: if this has an arresting failure we
+    *  do not continue onto the next.
     */
   def |[A1 >: A](that: Parser[A1]): Parser[A1] =
     orElse(that)
@@ -962,6 +966,11 @@ object Parser {
     *  see @backtrack if you want to do backtracking.
     *
     *  This is the same as parsers.foldLeft(fail)(_.orElse(_))
+    *
+    *  recommended style: oneOf(p1 :: p2 :: p3 :: Nil) rather than
+    *  oneOf(List(p1, p2, p3))
+    *
+    *  Note: order matters here, since we don't backtrack by default.
     */
   def oneOf[A](parsers: List[Parser[A]]): Parser[A] = {
     @annotation.tailrec
@@ -996,6 +1005,11 @@ object Parser {
     *  see @backtrack if you want to do backtracking.
     *
     *  This is the same as parsers.foldLeft(fail)(_.orElse(_))
+    *
+    *  recommended style: oneOf(p1 :: p2 :: p3 :: Nil) rather than
+    *  oneOf(List(p1, p2, p3))
+    *
+    *  Note: order matters here, since we don't backtrack by default.
     */
   def oneOf0[A](ps: List[Parser0[A]]): Parser0[A] = {
     @annotation.tailrec
