@@ -1964,7 +1964,6 @@ object Parser {
         case Map0(p, _) => alwaysSucceeds(p)
         case SoftProd0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
-        case WithContextP(_, p) => alwaysSucceeds(p)
         case WithContextP0(_, p) => alwaysSucceeds(p)
         // by construction we never build a Not(Fail()) since
         // it would just be the same as unit
