@@ -177,6 +177,16 @@ object ParserGen {
     GenT[Parser0, List[g.A]](g.fa.rep0(min = min, max = max))
   }
 
+  def withContext0(g: GenT[Parser0]): Gen[GenT[Parser0]] =
+    Arbitrary.arbitrary[String].map { ctx =>
+      GenT(Parser.withContext0(g.fa, ctx))(g.cogen)
+    }
+
+  def withContext(g: GenT[Parser]): Gen[GenT[Parser]] =
+    Arbitrary.arbitrary[String].map { ctx =>
+      GenT(Parser.withContext(g.fa, ctx))(g.cogen)
+    }
+
   // this makes an integer >= min, but with power law bias to smaller values
   def biasSmall(min: Int): Gen[Int] = {
     require(min >= 0, s"biasSmall($min) is invalid")
@@ -523,7 +533,8 @@ object ParserGen {
       (1, flatMapped(rec)),
       (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => product0(g1, g2) }),
       (1, Gen.zip(rec, rec).flatMap { case (g1, g2) => softProduct0(g1, g2) }),
-      (1, Gen.zip(rec, rec, pures).flatMap { case (g1, g2, p) => orElse0(g1, g2, p) })
+      (1, Gen.zip(rec, rec, pures).flatMap { case (g1, g2, p) => orElse0(g1, g2, p) }),
+      (1, rec.flatMap(withContext0(_)))
     )
   }
 
@@ -548,6 +559,7 @@ object ParserGen {
       (1, flatMapped1(gen0, rec)),
       (1, tailRecM1(rec)),
       (1, Gen.choose(1, 10).map { l => GenT(Parser.length(l)) }),
+      (1, rec.flatMap(withContext(_))),
       (
         2,
         Gen.frequency(
@@ -2334,4 +2346,37 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("a context0 added is always at the top") {
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[List[String]], Arbitrary.arbitrary[String]) {
+      (genP, ctx, str) =>
+        ctx.foldLeft(genP.fa)(_.withContext(_)).parse(str) match {
+          case Left(err) =>
+            err.expected.toList.foreach { exp =>
+              val ectx = exp.context
+              assert(ectx.length >= ctx.length)
+              exp.context.zip(ctx.reverse).foreach { case (l, r) =>
+                assertEquals(l, r)
+              }
+            }
+          case _ => ()
+        }
+    }
+  }
+
+  property("a context added is always at the top") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[List[String]], Arbitrary.arbitrary[String]) {
+      (genP, ctx, str) =>
+        ctx.foldLeft(genP.fa)(_.withContext(_)).parse(str) match {
+          case Left(err) =>
+            err.expected.toList.foreach { exp =>
+              val ectx = exp.context
+              assert(ectx.length >= ctx.length)
+              exp.context.zip(ctx.reverse).foreach { case (l, r) =>
+                assertEquals(l, r)
+              }
+            }
+          case _ => ()
+        }
+    }
+  }
 }
