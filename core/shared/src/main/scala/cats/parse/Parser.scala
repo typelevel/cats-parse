@@ -354,6 +354,12 @@ sealed abstract class Parser0[+A] {
   def surroundedBy(b: Parser0[Any]): Parser0[A] =
     between(b, b)
 
+  /** Add a string context to any Errors on parsing
+    *  this is useful for debugging failing parsers.
+    */
+  def withContext(str: String): Parser0[A] =
+    Parser.withContext0(this, str)
+
   /** Internal (mutable) parsing method.
     *
     * This method should only be called internally by parser instances.
@@ -663,6 +669,13 @@ sealed abstract class Parser[+A] extends Parser0[A] {
     */
   override def soft: Parser.Soft[A] =
     new Parser.Soft(this)
+
+  /** This method overrides `Parser0#withContext` to refine the return type.
+    *  add a string context to any Errors on parsing
+    *  this is useful for debugging failing parsers.
+    */
+  override def withContext(str: String): Parser[A] =
+    Parser.withContext(this, str)
 }
 
 object Parser {
@@ -672,6 +685,16 @@ object Parser {
     */
   sealed abstract class Expectation {
     def offset: Int
+
+    /** This is a reverse order stack (most recent context first)
+      * of this parsing error
+      */
+    def context: List[String] =
+      this match {
+        case Expectation.WithContext(ctx, inner) =>
+          ctx :: inner.context
+        case _ => Nil
+      }
   }
 
   object Expectation {
@@ -685,6 +708,9 @@ object Parser {
     // this is the result of oneOf0(Nil) at a given location
     case class Fail(offset: Int) extends Expectation
     case class FailWith(offset: Int, message: String) extends Expectation
+    case class WithContext(contextStr: String, expect: Expectation) extends Expectation {
+      def offset: Int = expect.offset
+    }
 
     implicit val catsOrderExpectation: Order[Expectation] =
       new Order[Expectation] {
@@ -724,16 +750,21 @@ object Parser {
                 if (c1 == 0) Integer.compare(a1, a2)
                 else c1
               case (Length(_, _, _), _) => -1
-              case (ExpectedFailureAt(_, _), Fail(_)) => -1
-              case (ExpectedFailureAt(_, _), FailWith(_, _)) => -1
+              case (ExpectedFailureAt(_, _), Fail(_) | FailWith(_, _) | WithContext(_, _)) => -1
               case (ExpectedFailureAt(_, m1), ExpectedFailureAt(_, m2)) =>
                 m1.compare(m2)
               case (ExpectedFailureAt(_, _), _) => 1
-              case (Fail(_), FailWith(_, _)) => -1
+              case (Fail(_), FailWith(_, _) | WithContext(_, _)) => -1
               case (Fail(_), _) => 1
+              case (FailWith(_, _), WithContext(_, _)) => -1
               case (FailWith(_, s1), FailWith(_, s2)) =>
                 s1.compare(s2)
               case (FailWith(_, _), _) => 1
+              case (WithContext(lctx, lexp), WithContext(rctx, rexp)) =>
+                val c = compare(lexp, rexp)
+                if (c != 0) c
+                else lctx.compareTo(rctx)
+              case (WithContext(_, _), _) => 1
             }
           }
         }
@@ -760,14 +791,28 @@ object Parser {
         Some(OneOfStr(ooss.head.offset, ssb.result().toList))
       }
 
+    @annotation.tailrec
+    private def stripContext(ex: Expectation): Expectation =
+      ex match {
+        case WithContext(_, inner) => stripContext(inner)
+        case _ => ex
+      }
+
+    @annotation.tailrec
+    private def addContext(revCtx: List[String], ex: Expectation): Expectation =
+      revCtx match {
+        case Nil => ex
+        case h :: tail => addContext(tail, WithContext(h, ex))
+      }
+
     /** Sort, dedup and unify ranges for the errors accumulated
       * This is called just before finally returning an error in Parser.parse
       */
     def unify(errors: NonEmptyList[Expectation]): NonEmptyList[Expectation] = {
       val result = errors
-        .groupBy(_.offset)
+        .groupBy { ex => (ex.offset, ex.context) }
         .iterator
-        .flatMap { case (_, list) =>
+        .flatMap { case ((_, ctx), list) =>
           val rm = ListBuffer.empty[InRange]
           val om = ListBuffer.empty[OneOfStr]
           val fails = ListBuffer.empty[Fail]
@@ -775,7 +820,7 @@ object Parser {
 
           var items = list.toList
           while (items.nonEmpty) {
-            items.head match {
+            stripContext(items.head) match {
               case ir: InRange => rm += ir
               case os: OneOfStr => om += os
               case fail: Fail => fails += fail
@@ -790,7 +835,11 @@ object Parser {
           val oossMerge = mergeOneOfStr(om.toList)
 
           val errors = others.toList reverse_::: (oossMerge ++: rangeMerge)
-          if (errors.isEmpty) fails.toList else errors
+          val finals = if (errors.isEmpty) fails.toList else errors
+          if (ctx.nonEmpty) {
+            val revCtx = ctx.reverse
+            finals.map(addContext(revCtx, _))
+          } else finals
         }
         .toList
 
@@ -1732,6 +1781,16 @@ object Parser {
     }
   }
 
+  /** Add a context string to Errors to aid debugging
+    */
+  def withContext0[A](p0: Parser0[A], ctx: String): Parser0[A] =
+    Impl.WithContextP0(ctx, p0)
+
+  /** Add a context string to Errors to aid debugging
+    */
+  def withContext[A](p: Parser[A], ctx: String): Parser[A] =
+    Impl.WithContextP(ctx, p)
+
   implicit val catsInstancesParser
       : FlatMap[Parser] with Defer[Parser] with MonoidK[Parser] with FunctorFilter[Parser] =
     new FlatMap[Parser] with Defer[Parser] with MonoidK[Parser] with FunctorFilter[Parser] {
@@ -1877,6 +1936,8 @@ object Parser {
         case Map(p, _) => doesBacktrack(p)
         case SoftProd0(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
         case SoftProd(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
+        case WithContextP(_, p) => doesBacktrack(p)
+        case WithContextP0(_, p) => doesBacktrack(p)
         case _ => false
       }
 
@@ -1889,6 +1950,8 @@ object Parser {
           e == min.toChar.toString
         case OneOf(ss) => ss.forall(matchesString)
         case OneOf0(ss) => ss.forall(matchesString)
+        case WithContextP(_, p) => matchesString(p)
+        case WithContextP0(_, p) => matchesString(p)
         case _ => false
       }
 
@@ -1901,6 +1964,7 @@ object Parser {
         case Map0(p, _) => alwaysSucceeds(p)
         case SoftProd0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case WithContextP0(_, p) => alwaysSucceeds(p)
         // by construction we never build a Not(Fail()) since
         // it would just be the same as unit
         //case Not(Fail() | FailWith(_)) => true
@@ -1973,6 +2037,7 @@ object Parser {
         case Defer0(fn) =>
           Defer0(UnmapDefer0(fn))
         case Rep0(p, max, _) => Rep0(unmap(p), max, Accumulator0.unitAccumulator0)
+        case WithContextP0(ctx, p0) => WithContextP0(ctx, unmap0(p0))
         case StartParser | EndParser | TailRecM0(_, _) | FlatMap0(_, _) =>
           // we can't transform this significantly
           pa
@@ -2055,6 +2120,8 @@ object Parser {
         case Defer(fn) =>
           Defer(UnmapDefer(fn))
         case Rep(p, min, max, _) => Rep(unmap(p), min, max, Accumulator0.unitAccumulator0)
+        case WithContextP(ctx, p) =>
+          WithContextP(ctx, unmap(p))
         case AnyChar | CharIn(_, _, _) | Str(_) | StringIn(_) | IgnoreCase(_) | Fail() | FailWith(
               _
             ) | Length(_) | TailRecM(_, _) | FlatMap(_, _) =>
@@ -2770,6 +2837,26 @@ object Parser {
         }
         // else under failed, so we fail
         ()
+      }
+    }
+
+    case class WithContextP0[A](context: String, under: Parser0[A]) extends Parser0[A] {
+      override def parseMut(state: State): A = {
+        val a = under.parseMut(state)
+        if (state.error ne null) {
+          state.error = state.error.map(Expectation.WithContext(context, _))
+        }
+        a
+      }
+    }
+
+    case class WithContextP[A](context: String, under: Parser[A]) extends Parser[A] {
+      override def parseMut(state: State): A = {
+        val a = under.parseMut(state)
+        if (state.error ne null) {
+          state.error = state.error.map(Expectation.WithContext(context, _))
+        }
+        a
       }
     }
   }
