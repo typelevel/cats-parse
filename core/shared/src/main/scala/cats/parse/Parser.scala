@@ -58,7 +58,7 @@ import java.util.Arrays
   * Rewinding tends to make error reporting more difficult and can lead
   * to exponential parser behavior it is not the default behavior.
   */
-sealed abstract class Parser0[+A] {
+sealed abstract class Parser0[+A] extends Product {
 
   /** Attempt to parse an `A` value out of `str`.
     *
@@ -365,6 +365,10 @@ sealed abstract class Parser0[+A] {
     * This method should only be called internally by parser instances.
     */
   private[parse] def parseMut(state: Parser.State): A
+
+  /** This method overrides `Object#hashCode` to cache its result for performance reasons.
+    */
+  override lazy val hashCode: Int = scala.runtime.ScalaRunTime._hashCode(this)
 }
 
 /** Parser[A] is a Parser0[A] that will always consume one-or-more
