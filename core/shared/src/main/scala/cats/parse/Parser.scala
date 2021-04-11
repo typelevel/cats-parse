@@ -58,7 +58,7 @@ import java.util.Arrays
   * Rewinding tends to make error reporting more difficult and can lead
   * to exponential parser behavior it is not the default behavior.
   */
-sealed abstract class Parser0[+A] extends Product {
+sealed abstract class Parser0[+A] { self: Product =>
 
   /** Attempt to parse an `A` value out of `str`.
     *
@@ -386,7 +386,7 @@ sealed abstract class Parser0[+A] extends Product {
   * Parser doesn't provide any additional guarantees over Parser0 on
   * what kind of parsing failures it can return.
   */
-sealed abstract class Parser[+A] extends Parser0[A] {
+sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
 
   /** This method overrides `Parser0#filter` to refine the return type.
     */
