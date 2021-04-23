@@ -14,7 +14,7 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("3.0.0-RC2", "3.0.0-RC1", "2.12.13", "2.13.4")
+ThisBuild / crossScalaVersions := List("3.0.0-RC2", "3.0.0-RC3", "2.12.13", "2.13.5")
 
 ThisBuild / versionIntroduced := Map(
   "3.0.0-M2" -> "0.1.99",
@@ -39,7 +39,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "build-docs",
     name = "Build docs",
-    scalas = List("2.13.4"),
+    scalas = List("2.13.5"),
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.SetupScala
@@ -48,7 +48,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
-    scalas = List("2.13.4"),
+    scalas = List("2.13.5"),
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.SetupScala
@@ -88,7 +88,7 @@ lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, bench)
   .enablePlugins(NoPublishPlugin, SonatypeCiReleasePlugin)
-  .settings(scalaVersion := "2.13.4")
+  .settings(scalaVersion := "2.13.5")
 
 lazy val docs = project
   .enablePlugins(
