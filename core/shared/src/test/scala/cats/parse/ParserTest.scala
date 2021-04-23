@@ -610,7 +610,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         assert(false, errs.toString)
     }
 
-  def parseFail[A: Eq](p: Parser0[A], str: String) =
+  def parseFail[A](p: Parser0[A], str: String) =
     p.parse(str) match {
       case Right(res) =>
         assert(false, s"expected to not parse, but found: $res")
