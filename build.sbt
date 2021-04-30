@@ -101,7 +101,7 @@ lazy val docs = project
   .settings(
     name := "paradox-docs",
     libraryDependencies += jawnAst,
-    paradoxProperties in Compile ++= Map(
+    Compile / paradoxProperties ++= Map(
       "empty" -> "",
       "version" -> version.value
     ),
@@ -131,7 +131,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   )
   .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
   .jsSettings(
-    scalaJSStage in Global := FastOptStage,
+    Global / scalaJSStage := FastOptStage,
     parallelExecution := false,
     jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
     // batch mode decreases the amount of memory needed to compile scala.js code
