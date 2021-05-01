@@ -14,7 +14,7 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("3.0.0-RC2", "3.0.0-RC3", "2.12.13", "2.13.5")
+ThisBuild / crossScalaVersions := List("3.0.0-RC2", "3.0.0-RC3", "2.11.12", "2.12.13", "2.13.5")
 
 ThisBuild / versionIntroduced := Map(
   "3.0.0-M2" -> "0.1.99",
@@ -122,12 +122,15 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .settings(
     name := "cats-parse",
-    libraryDependencies ++=
+    libraryDependencies ++= {
+      val partialVersion = CrossVersion.partialVersion(scalaVersion.value)
+      val isScala211 = partialVersion.contains((2, 11))
       Seq(
-        cats.value,
+        if (isScala211) cats211.value else cats.value,
         munit.value % Test,
         munitScalacheck.value % Test
       )
+    }
   )
   .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
   .jsSettings(
@@ -150,7 +153,9 @@ lazy val bench = project
   .settings(
     name := "bench",
     coverageEnabled := false,
-    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2.")),
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter { v =>
+      v.startsWith("2.12") || v.startsWith("2.13")
+    },
     libraryDependencies ++=
       Seq(
         fastParse,
