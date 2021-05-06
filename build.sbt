@@ -17,8 +17,7 @@ ThisBuild / publishFullName := "P. Oscar Boykin"
 ThisBuild / crossScalaVersions := List("3.0.0-RC2", "3.0.0-RC3", "2.11.12", "2.12.13", "2.13.5")
 
 ThisBuild / versionIntroduced := Map(
-  "3.0.0-M2" -> "0.1.99",
-  "3.0.0-M3" -> "0.1.99"
+  "2.11.12" -> "0.3.4"
 )
 
 ThisBuild / spiewakCiReleaseSnapshots := true
@@ -132,7 +131,8 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     },
     scalacOptions ++= {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
-      if (isScala211) List("-Ypatmat-exhaust-depth 40") else Nil
+      // this code seems to trigger a bug in 2.11 pattern analysis
+      if (isScala211) List("-Xno-patmat-analysis") else Nil
     }
   )
   .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
