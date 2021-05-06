@@ -14,12 +14,7 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("3.0.0-RC2", "3.0.0-RC3", "2.12.13", "2.13.5")
-
-ThisBuild / versionIntroduced := Map(
-  "3.0.0-M2" -> "0.1.99",
-  "3.0.0-M3" -> "0.1.99"
-)
+ThisBuild / crossScalaVersions := List("3.0.0-RC2", "3.0.0-RC3", "2.11.12", "2.12.13", "2.13.5")
 
 ThisBuild / spiewakCiReleaseSnapshots := true
 
@@ -122,15 +117,27 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .settings(
     name := "cats-parse",
-    libraryDependencies ++=
+    libraryDependencies ++= {
+      val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       Seq(
-        cats.value,
+        if (isScala211) cats211.value else cats.value,
         munit.value % Test,
         munitScalacheck.value % Test
       )
+    },
+    scalacOptions ++= {
+      val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
+      // this code seems to trigger a bug in 2.11 pattern analysis
+      if (isScala211) List("-Xno-patmat-analysis") else Nil
+    },
+    mimaPreviousArtifacts := {
+      val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
+      if (isScala211) Set.empty else mimaPreviousArtifacts.value
+    }
   )
   .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
   .jsSettings(
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
     Global / scalaJSStage := FastOptStage,
     parallelExecution := false,
     jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
@@ -150,7 +157,9 @@ lazy val bench = project
   .settings(
     name := "bench",
     coverageEnabled := false,
-    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter(_.startsWith("2.")),
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter { v =>
+      v.startsWith("2.12") || v.startsWith("2.13")
+    },
     libraryDependencies ++=
       Seq(
         fastParse,

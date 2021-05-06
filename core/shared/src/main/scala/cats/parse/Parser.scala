@@ -1803,9 +1803,6 @@ object Parser {
       override def defer[A](pa: => Parser[A]): Parser[A] =
         Parser.this.defer(pa)
 
-      override def fix[A](fn: Parser[A] => Parser[A]): Parser[A] =
-        Parser.recursive(fn)
-
       override def functor = this
 
       override def map[A, B](fa: Parser[A])(fn: A => B): Parser[B] =
@@ -1816,9 +1813,6 @@ object Parser {
 
       override def filter[A](fa: Parser[A])(fn: A => Boolean): Parser[A] =
         fa.filter(fn)
-
-      override def filterNot[A](fa: Parser[A])(fn: A => Boolean): Parser[A] =
-        fa.filter { a => !fn(a) }
 
       override def flatMap[A, B](fa: Parser[A])(fn: A => Parser[B]): Parser[B] =
         Parser.this.flatMap10(fa)(fn)
@@ -2893,9 +2887,6 @@ object Parser0 {
 
       override def filter[A](fa: Parser0[A])(fn: A => Boolean): Parser0[A] =
         fa.filter(fn)
-
-      override def filterNot[A](fa: Parser0[A])(fn: A => Boolean): Parser0[A] =
-        fa.filter { a => !fn(a) }
 
       override def product[A, B](fa: Parser0[A], fb: Parser0[B]): Parser0[(A, B)] =
         Parser.product0(fa, fb)

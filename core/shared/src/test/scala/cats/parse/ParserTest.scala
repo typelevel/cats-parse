@@ -1117,11 +1117,15 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("rep0 can be reimplemented with oneOf0 and defer") {
     forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
       def rep0[A](pa: Parser[A]): Parser0[List[A]] =
-        Defer[Parser0].fix[List[A]] { tail =>
-          (pa ~ tail)
-            .map { case (h, t) => h :: t }
-            .orElse(Parser.pure(Nil))
-        }
+        Parser
+          .recursive[List[A]] { tail =>
+            (pa ~ tail.?)
+              .map {
+                case (h, Some(t)) => h :: t
+                case (h, None) => h :: Nil
+              }
+          }
+          .orElse(Parser.pure(Nil))
 
       val lst1 = rep0(genP.fa)
       val lst2 = genP.fa.rep0
