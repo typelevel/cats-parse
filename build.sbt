@@ -16,10 +16,6 @@ ThisBuild / publishFullName := "P. Oscar Boykin"
 
 ThisBuild / crossScalaVersions := List("3.0.0-RC2", "3.0.0-RC3", "2.11.12", "2.12.13", "2.13.5")
 
-ThisBuild / versionIntroduced := Map(
-  "2.11.12" -> "0.3.4"
-)
-
 ThisBuild / spiewakCiReleaseSnapshots := true
 
 ThisBuild / spiewakMainBranches := List("main")
@@ -133,6 +129,10 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       // this code seems to trigger a bug in 2.11 pattern analysis
       if (isScala211) List("-Xno-patmat-analysis") else Nil
+    },
+    mimaPreviousArtifacts := {
+      val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
+      if (isScala211) Set.empty else mimaPreviousArtifacts.value
     }
   )
   .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
