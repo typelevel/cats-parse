@@ -123,13 +123,16 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   .settings(
     name := "cats-parse",
     libraryDependencies ++= {
-      val partialVersion = CrossVersion.partialVersion(scalaVersion.value)
-      val isScala211 = partialVersion.contains((2, 11))
+      val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       Seq(
         if (isScala211) cats211.value else cats.value,
         munit.value % Test,
         munitScalacheck.value % Test
       )
+    },
+    scalacOptions ++= {
+      val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
+      if (isScala211) List("-Ypatmat-exhaust-depth 40") else Nil
     }
   )
   .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
