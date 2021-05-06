@@ -1803,11 +1803,6 @@ object Parser {
       override def defer[A](pa: => Parser[A]): Parser[A] =
         Parser.this.defer(pa)
 
-      /*
-      override def fix[A](fn: Parser[A] => Parser[A]): Parser[A] =
-        Parser.recursive(fn)
-       */
-
       override def functor = this
 
       override def map[A, B](fa: Parser[A])(fn: A => B): Parser[B] =
