@@ -134,6 +134,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   )
   .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
   .jsSettings(
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
     Global / scalaJSStage := FastOptStage,
     parallelExecution := false,
     jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
