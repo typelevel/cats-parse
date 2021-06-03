@@ -14,7 +14,7 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("3.0.0", "2.11.12", "2.12.14", "2.13.5")
+ThisBuild / crossScalaVersions := List("3.0.0", "2.11.12", "2.12.13", "2.13.6")
 
 ThisBuild / spiewakCiReleaseSnapshots := true
 
@@ -34,7 +34,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "build-docs",
     name = "Build docs",
-    scalas = List("2.13.5"),
+    scalas = List("2.13.6"),
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.SetupScala
@@ -43,7 +43,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
-    scalas = List("2.13.5"),
+    scalas = List("2.13.6"),
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.SetupScala
@@ -83,7 +83,7 @@ lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, bench)
   .enablePlugins(NoPublishPlugin, SonatypeCiReleasePlugin)
-  .settings(scalaVersion := "2.13.5")
+  .settings(scalaVersion := "2.13.6")
 
 lazy val docs = project
   .enablePlugins(
@@ -135,7 +135,6 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       if (isScala211) Set.empty else mimaPreviousArtifacts.value
     }
   )
-  .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
     Global / scalaJSStage := FastOptStage,
