@@ -135,7 +135,6 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       if (isScala211) Set.empty else mimaPreviousArtifacts.value
     }
   )
-  .settings(dottyJsSettings(ThisBuild / crossScalaVersions))
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
     Global / scalaJSStage := FastOptStage,
