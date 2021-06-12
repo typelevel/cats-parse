@@ -360,6 +360,24 @@ sealed abstract class Parser0[+A] { self: Product =>
   def withContext(str: String): Parser0[A] =
     Parser.withContext0(this, str)
 
+  /** return the result of the parser together
+    * with the position of the starting of the consumption
+    */
+  def withCaret: Parser0[(A, Caret)] =
+    Parser.withCaret0(this)
+
+  /** replace the result of the parser with with the
+    * span of position of the string it consumed
+    */
+  def span: Parser0[Span] =
+    Parser.span0(this)
+
+  /** return the result of the parser together
+    * with the span of the string it consumed
+    */
+  def withSpan: Parser0[(A, Span)] =
+    Parser.withSpan0(this)
+
   /** Internal (mutable) parsing method.
     *
     * This method should only be called internally by parser instances.
@@ -680,6 +698,21 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
     */
   override def withContext(str: String): Parser[A] =
     Parser.withContext(this, str)
+
+  /** This method overrides `Parser0#withCaret` to refine the return type.
+    */
+  override def withCaret: Parser[(A, Caret)] =
+    Parser.withCaret(this)
+
+  /** This method overrides `Parser0#span`` to refine the return type.
+    */
+  override def span: Parser[Span] =
+    Parser.span(this)
+
+  /** This method overrides `Parser0#withSpan` to refine the return type.
+    */
+  override def withSpan: Parser[(A, Span)] =
+    Parser.withSpan(this)
 }
 
 object Parser {
@@ -1666,7 +1699,7 @@ object Parser {
       case str if Impl.matchesString(str) => str.asInstanceOf[Parser0[String]]
       case _ =>
         Impl.unmap0(pa) match {
-          case Impl.Pure(_) | Impl.Index => emptyStringParser0
+          case Impl.Pure(_) | Impl.Index | Impl.WithCaret => emptyStringParser0
           case notEmpty => Impl.StringP0(notEmpty)
         }
     }
@@ -1731,6 +1764,46 @@ object Parser {
     */
   def end: Parser0[Unit] = Impl.EndParser
 
+  /** return the position the parser is at
+    */
+  def caret: Parser0[Caret] = Impl.WithCaret
+
+  /** return the result of the parser together
+    * with the position of the starting of the consumption
+    */
+  def withCaret0[A](pa: Parser0[A]): Parser0[(A, Caret)] =
+    (caret ~ pa).map { case (l, x) => (x, l) }
+
+  /** return the result of the parser together
+    * with the position of the starting of the consumption
+    */
+  def withCaret[A](pa: Parser[A]): Parser[(A, Caret)] =
+    (caret.with1 ~ pa).map { case (l, x) => (x, l) }
+
+  /** replace the result of the parser with with the
+    * span of position of the string it consumed
+    */
+  def span0[A](pa: Parser0[A]): Parser0[Span] =
+    (caret ~ (pa *> caret)).map { case (l, r) => Span(l, r) }
+
+  /** replace the result of the parser with with the
+    * span of position of the string it consumed
+    */
+  def span[A](pa: Parser[A]): Parser[Span] =
+    (caret.with1 ~ (pa *> caret)).map { case (l, r) => Span(l, r) }
+
+  /** return the result of the parser together
+    * with the span of the string it consumed
+    */
+  def withSpan0[A](pa: Parser0[A]): Parser0[(A, Span)] =
+    (caret, pa, caret).mapN { case (l, x, r) => (x, Span(l, r)) }
+
+  /** return the result of the parser together
+    * with the span of the string it consumed
+    */
+  def withSpan[A](pa: Parser[A]): Parser[(A, Span)] =
+    (caret.with1 ~ pa ~ caret).map { case ((l, x), r) => (x, Span(l, r)) }
+
   /** If we fail, rewind the offset back so that
     * we can try other branches. This tends
     * to harm debuggability and ideally should be
@@ -1761,7 +1834,7 @@ object Parser {
       case p1: Parser[_] => as(p1, b)
       case _ =>
         Impl.unmap0(pa) match {
-          case Impl.Pure(_) | Impl.Index => pure(b)
+          case Impl.Pure(_) | Impl.Index | Impl.WithCaret => pure(b)
           case notPure =>
             Impl.Void0(notPure).map(Impl.ConstFn(b))
         }
@@ -1878,6 +1951,7 @@ object Parser {
    * This is protected rather than private to avoid a warning on 2.12
    */
   protected[parse] final class State(val str: String) {
+    lazy val locMap: LocationMap = LocationMap(str)
     var offset: Int = 0
     var error: Chain[Expectation] = null
     var capture: Boolean = true
@@ -1927,8 +2001,9 @@ object Parser {
     final def doesBacktrack(p: Parser0[Any]): Boolean =
       p match {
         case Backtrack0(_) | Backtrack(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
-            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) | Not(_) |
-            StringIn(_) =>
+            Length(_) | StartParser | EndParser | Index | WithCaret | Pure(_) | Fail() | FailWith(
+              _
+            ) | Not(_) | StringIn(_) =>
           true
         case Map0(p, _) => doesBacktrack(p)
         case Map(p, _) => doesBacktrack(p)
@@ -1958,7 +2033,7 @@ object Parser {
     // and by construction, a oneOf0 never always succeeds
     final def alwaysSucceeds(p: Parser0[Any]): Boolean =
       p match {
-        case Index | Pure(_) => true
+        case Index | WithCaret | Pure(_) => true
         case Map0(p, _) => alwaysSucceeds(p)
         case SoftProd0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
@@ -1978,7 +2053,7 @@ object Parser {
     def unmap0(pa: Parser0[Any]): Parser0[Any] =
       pa match {
         case p1: Parser[Any] => unmap(p1)
-        case Pure(_) | Index => Parser.unit
+        case Pure(_) | Index | WithCaret => Parser.unit
         case s if alwaysSucceeds(s) => Parser.unit
         case Map0(p, _) =>
           // we discard any allocations done by fn
@@ -2207,6 +2282,15 @@ object Parser {
 
     case object Index extends Parser0[Int] {
       override def parseMut(state: State): Int = state.offset
+    }
+
+    case object WithCaret extends Parser0[Caret] {
+      override def parseMut(state: State): Caret = {
+        val (row, col) = state.locMap
+          .toLineCol(state.offset)
+          .getOrElse(throw new IllegalStateException("the offset is larger than the input size"))
+        Caret(state.offset, row, col)
+      }
     }
 
     final def backtrack[A](pa: Parser0[A], state: State): A = {

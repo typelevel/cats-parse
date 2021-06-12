@@ -668,6 +668,18 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foobal", "foo")
   }
 
+  test("Parser.careted and spanned works") {
+    val str = "foo bar\n\nbaz\n"
+    val pa = (
+      Parser.string("foo bar"),
+      Rfc5234.lf.rep.string,
+      Parser.peek(Parser.charWhere(_.isLetter))
+    ).tupled map { x => "foo bar" + x._2 }
+    parseTest(pa, str, "foo bar\n\n")
+    parseTest(pa.withCaret, str, ("foo bar\n\n", Caret(0, 0, 0)))
+    parseTest(pa.span, str, Span(Caret(0, 0, 0), Caret(9, 2, 0)))
+  }
+
   property("biasSmall works") {
     val genPair =
       for {
