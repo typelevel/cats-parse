@@ -155,6 +155,26 @@ object ParserGen {
   def string(g: GenT[Parser]): GenT[Parser] =
     GenT(Parser.string(g.fa))
 
+  private implicit val cogenCaret: Cogen[Caret] =
+    Cogen
+      .tuple3(Cogen.cogenInt, Cogen.cogenInt, Cogen.cogenInt)
+      .contramap { x => (x.offset, x.row, x.col) }
+
+  private implicit val cogenSpan: Cogen[Span] =
+    Cogen.tuple2(cogenCaret, cogenCaret).contramap { x => (x.from, x.to) }
+
+  def span0(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Parser.span0(g.fa))
+
+  def span(g: GenT[Parser]): GenT[Parser] =
+    GenT(Parser.span(g.fa))
+
+  def withSpan0(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Parser.withSpan0(g.fa))(Cogen.tuple2(g.cogen, cogenSpan))
+
+  def withSpan(g: GenT[Parser]): GenT[Parser] =
+    GenT(Parser.withSpan(g.fa))(Cogen.tuple2(g.cogen, cogenSpan))
+
   def backtrack0(g: GenT[Parser0]): GenT[Parser0] =
     GenT(g.fa.backtrack)(g.cogen)
 
