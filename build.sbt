@@ -14,7 +14,7 @@ ThisBuild / organizationName := "Typelevel"
 ThisBuild / publishGithubUser := "johnynek"
 ThisBuild / publishFullName := "P. Oscar Boykin"
 
-ThisBuild / crossScalaVersions := List("3.0.0", "2.11.12", "2.12.14", "2.13.6")
+ThisBuild / crossScalaVersions := List("3.0.1", "2.11.12", "2.12.14", "2.13.6")
 
 ThisBuild / spiewakCiReleaseSnapshots := true
 
