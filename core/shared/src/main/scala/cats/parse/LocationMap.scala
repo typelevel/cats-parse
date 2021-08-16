@@ -21,6 +21,8 @@
 
 package cats.parse
 
+import cats.kernel.Eq
+
 import java.util.Arrays
 
 /** This is a class to convert linear offset in
@@ -90,4 +92,14 @@ class LocationMap(val input: String) {
 
 object LocationMap {
   def apply(str: String): LocationMap = new LocationMap(str)
+}
+
+case class Caret(offset: Int, row: Int, col: Int)
+object Caret {
+  implicit val eqCatsCaret: Eq[Caret] = Eq.fromUniversalEquals
+}
+
+case class Span(from: Caret, to: Caret)
+object Span {
+  implicit val eqCatsCaret: Eq[Span] = Eq.fromUniversalEquals
 }

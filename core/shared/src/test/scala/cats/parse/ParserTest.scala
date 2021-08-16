@@ -155,6 +155,26 @@ object ParserGen {
   def string(g: GenT[Parser]): GenT[Parser] =
     GenT(Parser.string(g.fa))
 
+  private implicit val cogenCaret: Cogen[Caret] =
+    Cogen
+      .tuple3(Cogen.cogenInt, Cogen.cogenInt, Cogen.cogenInt)
+      .contramap { x => (x.offset, x.row, x.col) }
+
+  private implicit val cogenSpan: Cogen[Span] =
+    Cogen.tuple2(cogenCaret, cogenCaret).contramap { x => (x.from, x.to) }
+
+  def span0(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Parser.span0(g.fa))
+
+  def span(g: GenT[Parser]): GenT[Parser] =
+    GenT(Parser.span(g.fa))
+
+  def withSpan0(g: GenT[Parser0]): GenT[Parser0] =
+    GenT(Parser.withSpan0(g.fa))(Cogen.tuple2(g.cogen, cogenSpan))
+
+  def withSpan(g: GenT[Parser]): GenT[Parser] =
+    GenT(Parser.withSpan(g.fa))(Cogen.tuple2(g.cogen, cogenSpan))
+
   def backtrack0(g: GenT[Parser0]): GenT[Parser0] =
     GenT(g.fa.backtrack)(g.cogen)
 
@@ -666,6 +686,18 @@ class ParserTest extends munit.ScalaCheckSuite {
     parseTest(Parser.stringIn(alternatives).string, "foobat", "foobat")
     parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foot", "foo")
     parseTest(Parser.stringIn(List("foo", "foobar", "foofoo", "foobat")).string, "foobal", "foo")
+  }
+
+  test("Parser.careted and spanned works") {
+    val str = "foo bar\n\nbaz\n"
+    val pa = (
+      Parser.string("foo bar"),
+      Rfc5234.lf.rep.string,
+      Parser.peek(Parser.charWhere(_.isLetter))
+    ).tupled map { x => "foo bar" + x._2 }
+    parseTest(pa, str, "foo bar\n\n")
+    parseTest(pa.withCaret, str, ("foo bar\n\n", Caret(0, 0, 0)))
+    parseTest(pa.span, str, Span(Caret(0, 0, 0), Caret(9, 2, 0)))
   }
 
   property("biasSmall works") {
