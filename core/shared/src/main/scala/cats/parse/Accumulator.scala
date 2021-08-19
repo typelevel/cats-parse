@@ -83,15 +83,14 @@ object Appender {
     }
 }
 
-/** Creates an appender given the first item to be added
-  * This is used to build the result in Parser.repAs
+/** Creates an appender given the first item to be added This is used to build the result in
+  * Parser.repAs
   */
 trait Accumulator[-A, +B] {
   def newAppender(first: A): Appender[A, B]
 }
 
-/** Creates an appender
-  * This is used to build the result in Parser.repAs0
+/** Creates an appender This is used to build the result in Parser.repAs0
   */
 trait Accumulator0[-A, +B] extends Accumulator[A, B] {
   def newAppender(): Appender[A, B]
@@ -124,10 +123,8 @@ object Accumulator0 {
       def newAppender() = Appender.fromBuilder(Vector.newBuilder[A])
     }
 
-  /** An accumulator that does nothing and returns Unit
-    * Note, this should not generally be used with repAs0
-    * because internal allocations still happen. Instead
-    * use .rep0.void
+  /** An accumulator that does nothing and returns Unit Note, this should not generally be used with
+    * repAs0 because internal allocations still happen. Instead use .rep0.void
     */
   val unitAccumulator0: Accumulator0[Any, Unit] =
     new Accumulator0[Any, Unit] {

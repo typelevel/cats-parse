@@ -26,8 +26,8 @@ import scala.annotation.switch
 import org.parboiled2._
 import org.typelevel.jawn.ast._
 
-/** This is a feature-complete JSON parser implementation that almost directly
-  * models the JSON grammar presented at http://www.json.org as a parboiled2 PEG parser.
+/** This is a feature-complete JSON parser implementation that almost directly models the JSON
+  * grammar presented at http://www.json.org as a parboiled2 PEG parser.
   */
 class JsonParser(val input: ParserInput) extends Parser with StringBuilding {
   import CharPredicate.{Digit, Digit19, HexDigit}

@@ -21,10 +21,10 @@
 
 package cats.parse
 
-/** Parsers for the common rules of RFC5234. These rules are
-  * referenced by several RFCs.
+/** Parsers for the common rules of RFC5234. These rules are referenced by several RFCs.
   *
-  * @see [[https://tools.ietf.org/html/rfc5234]]
+  * @see
+  *   [[https://tools.ietf.org/html/rfc5234]]
   */
 object Rfc5234 {
 
@@ -90,12 +90,10 @@ object Rfc5234 {
 
   /** linear white space.
     *
-    * Use of this rule permits lines containing only white space that
-    * are no longer legal in mail headers and have caused
-    * interoperability problems in other contexts.
+    * Use of this rule permits lines containing only white space that are no longer legal in mail
+    * headers and have caused interoperability problems in other contexts.
     *
-    * Do not use when defining mail headers and use with caution in
-    * other contexts.
+    * Do not use when defining mail headers and use with caution in other contexts.
     */
   val lwsp: Parser0[Unit] =
     Parser.repAs0[Unit, List[Unit]](wsp.orElse(crlf *> wsp)).void
