@@ -41,8 +41,7 @@ object Numbers {
   val nonZeroDigit: Parser[Char] =
     Parser.charIn('1' to '9')
 
-  /** A String of either 1 '0' or
-    * 1 non-zero digit followed by zero or more digits
+  /** A String of either 1 '0' or 1 non-zero digit followed by zero or more digits
     */
   val nonNegativeIntString: Parser[String] =
     (nonZeroDigit ~ digits0).void
@@ -59,8 +58,8 @@ object Numbers {
   val bigInt: Parser[BigInt] =
     signedIntString.map(BigInt(_))
 
-  /** A string matching the json specification for numbers.
-    * from: https://tools.ietf.org/html/rfc4627
+  /** A string matching the json specification for numbers. from:
+    * https://tools.ietf.org/html/rfc4627
     */
   val jsonNumber: Parser[String] = {
     /*

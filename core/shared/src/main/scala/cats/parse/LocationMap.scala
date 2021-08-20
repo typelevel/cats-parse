@@ -23,11 +23,10 @@ package cats.parse
 
 import java.util.Arrays
 
-/** This is a class to convert linear offset in
-  * a string into lines, or the column and line numbers.
+/** This is a class to convert linear offset in a string into lines, or the column and line numbers.
   *
-  * This is useful for display to humans who in text
-  * editors think in terms of line and column numbers
+  * This is useful for display to humans who in text editors think in terms of line and column
+  * numbers
   */
 class LocationMap(val input: String) {
   private[this] val lines: Array[String] =

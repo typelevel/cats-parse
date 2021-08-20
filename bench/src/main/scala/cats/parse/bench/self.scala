@@ -29,9 +29,8 @@ object Json {
   private[this] val whitespace: P[Unit] = P.charIn(" \t\r\n").void
   private[this] val whitespaces0: P0[Unit] = whitespace.rep0.void
 
-  /** This doesn't have to be super fast (but is fairly fast) since we use it in places
-    * where speed won't matter: feeding it into a program that will convert it to bosatsu
-    * structured data
+  /** This doesn't have to be super fast (but is fairly fast) since we use it in places where speed
+    * won't matter: feeding it into a program that will convert it to bosatsu structured data
     */
   val parser: P[JValue] = P.recursive[JValue] { recurse =>
     val pnull = P.string("null").as(JNull)

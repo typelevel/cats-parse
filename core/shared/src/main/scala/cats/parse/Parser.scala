@@ -29,41 +29,35 @@ import scala.collection.immutable.SortedSet
 import scala.collection.mutable.ListBuffer
 import java.util.Arrays
 
-/** Parser0[A] attempts to extract an `A` value from the given input,
-  * potentially moving its offset forward in the process.
+/** Parser0[A] attempts to extract an `A` value from the given input, potentially moving its offset
+  * forward in the process.
   *
   * When calling `parse`, one of three outcomes occurs:
   *
-  *   - Success: The parser consumes zero-or-more characters of input
-  *     and successfully extracts a value. The input offset will be
-  *     moved forward by the number of characters consumed.
+  *   - Success: The parser consumes zero-or-more characters of input and successfully extracts a
+  *     value. The input offset will be moved forward by the number of characters consumed.
   *
-  *   - Epsilon failure: The parser fails to extract a value without
-  *     consuming any characters of input. The input offset will not be
-  *     changed.
+  *   - Epsilon failure: The parser fails to extract a value without consuming any characters of
+  *     input. The input offset will not be changed.
   *
-  *   - Arresting failure: The parser fails to extract a value but does
-  *     consume one-or-more characters of input. The input offset will
-  *     be moved forward by the number of characters consumed and all
-  *     parsing will stop (unless a higher-level parser backtracks).
+  *   - Arresting failure: The parser fails to extract a value but does consume one-or-more
+  *     characters of input. The input offset will be moved forward by the number of characters
+  *     consumed and all parsing will stop (unless a higher-level parser backtracks).
   *
-  * Operations such as `x.orElse(y)` will only consider parser `y` if
-  * `x` returns an epsilon failure; these methods cannot recover from
-  * an arresting failure. Arresting failures can be "rewound" using
-  * methods such as `x.backtrack` (which converts arresting failures
-  * from `x` into epsilon failures), or `softProduct(x, y)` (which can
-  * rewind successful parses by `x` that are followed by epsilon
-  * failures for `y`).
+  * Operations such as `x.orElse(y)` will only consider parser `y` if `x` returns an epsilon
+  * failure; these methods cannot recover from an arresting failure. Arresting failures can be
+  * "rewound" using methods such as `x.backtrack` (which converts arresting failures from `x` into
+  * epsilon failures), or `softProduct(x, y)` (which can rewind successful parses by `x` that are
+  * followed by epsilon failures for `y`).
   *
-  * Rewinding tends to make error reporting more difficult and can lead
-  * to exponential parser behavior it is not the default behavior.
+  * Rewinding tends to make error reporting more difficult and can lead to exponential parser
+  * behavior it is not the default behavior.
   */
 sealed abstract class Parser0[+A] { self: Product =>
 
   /** Attempt to parse an `A` value out of `str`.
     *
-    * This method will either return a failure, or else the remaining
-    * string and the parsed value.
+    * This method will either return a failure, or else the remaining string and the parsed value.
     *
     * To require the entire input to be consumed, see `parseAll`.
     */
@@ -79,8 +73,7 @@ sealed abstract class Parser0[+A] { self: Product =>
 
   /** Attempt to parse all of the input `str` into an `A` value.
     *
-    * This method will return a failure unless all of `str` is consumed
-    * during parsing.
+    * This method will return a failure unless all of `str` is consumed during parsing.
     *
     * `p.parseAll(s)` is equivalent to `(p <* Parser.end).parse(s).map(_._2)`.
     */
@@ -104,25 +97,20 @@ sealed abstract class Parser0[+A] { self: Product =>
 
   /** Convert epsilon failures into None values.
     *
-    * Normally if a parser fails to consume any input it fails with an
-    * epsilon failure. The `?` method converts these failures into
-    * None values (and wraps other values in `Some(_)`).
+    * Normally if a parser fails to consume any input it fails with an epsilon failure. The `?`
+    * method converts these failures into None values (and wraps other values in `Some(_)`).
     *
-    * If the underlying parser failed with other errors, this parser
-    * will still fail.
+    * If the underlying parser failed with other errors, this parser will still fail.
     */
   def ? : Parser0[Option[A]] =
     Parser.oneOf0(Parser.map0(this)(Some(_)) :: Parser.optTail)
 
-  /** If this parser fails to parse its input with an epsilon error,
-    * try the given parser instead.
+  /** If this parser fails to parse its input with an epsilon error, try the given parser instead.
     *
-    * If this parser fails with an arresting error, the next parser
-    * won't be tried.
+    * If this parser fails with an arresting error, the next parser won't be tried.
     *
-    * Backtracking may be used on the left parser to allow the right
-    * one to pick up after any error, resetting any state that was
-    * modified by the left parser.
+    * Backtracking may be used on the left parser to allow the right one to pick up after any error,
+    * resetting any state that was modified by the left parser.
     *
     * This method is similar to Parser#orElse but returns Either.
     */
@@ -131,109 +119,94 @@ sealed abstract class Parser0[+A] { self: Product =>
 
   /** Parse without capturing values.
     *
-    * Calling `void` on a parser can be a significant optimization --
-    * it allows the parser to avoid allocating results to return.
+    * Calling `void` on a parser can be a significant optimization -- it allows the parser to avoid
+    * allocating results to return.
     *
-    * Other methods like `as`, `*>`, and `<*` use `void` internally to
-    * discard allocations, since they will ignore the original parsed
-    * result.
+    * Other methods like `as`, `*>`, and `<*` use `void` internally to discard allocations, since
+    * they will ignore the original parsed result.
     */
   def void: Parser0[Unit] =
     Parser.void0(this)
 
   /** Return the string matched by this parser.
     *
-    * When parsing an input string that the underlying parser matches,
-    * this parser will return the matched substring instead of any
-    * value that the underlying parser would have returned. It will
+    * When parsing an input string that the underlying parser matches, this parser will return the
+    * matched substring instead of any value that the underlying parser would have returned. It will
     * still match exactly the same inputs as the original parser.
     *
-    * This method is very efficient: similarly to `void`, we can avoid
-    * allocating results to return.
+    * This method is very efficient: similarly to `void`, we can avoid allocating results to return.
     */
   def string: Parser0[String] =
     Parser.string0(this)
 
-  /** If this parser fails to match, rewind the offset to the starting
-    * point before moving on to other parser.
+  /** If this parser fails to match, rewind the offset to the starting point before moving on to
+    * other parser.
     *
-    * This method converts arresting failures into epsilon failures,
-    * which includes rewinding the offset to that used before parsing
-    * began.
+    * This method converts arresting failures into epsilon failures, which includes rewinding the
+    * offset to that used before parsing began.
     *
-    * This method will most often be used before calling methods such
-    * as `orElse`, `~`, or `flatMap` which involve a subsequent parser
-    * picking up where this one left off.
+    * This method will most often be used before calling methods such as `orElse`, `~`, or `flatMap`
+    * which involve a subsequent parser picking up where this one left off.
     */
   def backtrack: Parser0[A] =
     Parser.backtrack0(this)
 
-  /** Sequence another parser after this one, combining both results
-    * into a tuple.
+  /** Sequence another parser after this one, combining both results into a tuple.
     *
-    * This combinator returns a product of parsers. If this parser
-    * successfully produces an `A` value, the other parser is run on
-    * the remaining input to try to produce a `B` value.
+    * This combinator returns a product of parsers. If this parser successfully produces an `A`
+    * value, the other parser is run on the remaining input to try to produce a `B` value.
     *
-    * If either parser produces an error the result is an error.
-    * Otherwise both extracted values are combined into a tuple.
+    * If either parser produces an error the result is an error. Otherwise both extracted values are
+    * combined into a tuple.
     */
   def ~[B](that: Parser0[B]): Parser0[(A, B)] =
     Parser.product0(this, that)
 
-  /** Compose two parsers, ignoring the values extracted by the
-    * left-hand parser.
+  /** Compose two parsers, ignoring the values extracted by the left-hand parser.
     *
     * `x *> y` is equivalent to `(x.void ~ y).map(_._2)`.
     */
   def *>[B](that: Parser0[B]): Parser0[B] =
     (void ~ that).map(_._2)
 
-  /** Compose two parsers, ignoring the values extracted by the
-    * right-hand parser.
+  /** Compose two parsers, ignoring the values extracted by the right-hand parser.
     *
     * `x <* y` is equivalent to `(x ~ y.void).map(_._1)`.
     */
   def <*[B](that: Parser0[B]): Parser0[A] =
     (this ~ that.void).map(_._1)
 
-  /** If this parser fails to parse its input with an epsilon error,
-    * try the given parser instead.
+  /** If this parser fails to parse its input with an epsilon error, try the given parser instead.
     *
-    * If this parser fails with an arresting error, the next parser
-    * won't be tried.
+    * If this parser fails with an arresting error, the next parser won't be tried.
     *
-    * Backtracking may be used on the left parser to allow the right
-    * one to pick up after any error, resetting any state that was
-    * modified by the left parser.
+    * Backtracking may be used on the left parser to allow the right one to pick up after any error,
+    * resetting any state that was modified by the left parser.
     */
   def orElse[A1 >: A](that: Parser0[A1]): Parser0[A1] =
     Parser.oneOf0(this :: that :: Nil)
 
-  /** Synonym for orElse
-    *  Note this is not commutative: if this has an arresting failure we
-    *  do not continue onto the next.
+  /** Synonym for orElse Note this is not commutative: if this has an arresting failure we do not
+    * continue onto the next.
     */
   def |[A1 >: A](that: Parser0[A1]): Parser0[A1] =
     orElse(that)
 
   /** Transform parsed values using the given function.
     *
-    * This parser will match the same inputs as the underlying parser,
-    * using the given function `f` to transform the values the
-    * underlying parser produces.
+    * This parser will match the same inputs as the underlying parser, using the given function `f`
+    * to transform the values the underlying parser produces.
     *
-    * If the underlying value is ignored (e.g. `map(_ => ...)`) calling
-    * `void` before `map` will improve the efficiency of the parser.
+    * If the underlying value is ignored (e.g. `map(_ => ...)`) calling `void` before `map` will
+    * improve the efficiency of the parser.
     */
   def map[B](fn: A => B): Parser0[B] =
     Parser.map0(this)(fn)
 
   /** Transform parsed values using the given function, or fail on None
     *
-    * When the function return None, this parser fails
-    * This is implemented with select, which makes it more efficient
-    * than using flatMap
+    * When the function return None, this parser fails This is implemented with select, which makes
+    * it more efficient than using flatMap
     */
   def mapFilter[B](fn: A => Option[B]): Parser0[B] = {
     val leftUnit = Left(())
@@ -249,19 +222,16 @@ sealed abstract class Parser0[+A] { self: Product =>
 
   /** Transform parsed values using the given function, or fail when not defined
     *
-    * When the function is not defined, this parser fails
-    * This is implemented with select, which makes it more efficient
-    * than using flatMap
+    * When the function is not defined, this parser fails This is implemented with select, which
+    * makes it more efficient than using flatMap
     */
   def collect[B](fn: PartialFunction[A, B]): Parser0[B] =
     mapFilter(fn.lift)
 
-  /** If the predicate is not true, fail
-    * you may want .filter(fn).backtrack so if the filter fn
+  /** If the predicate is not true, fail you may want .filter(fn).backtrack so if the filter fn
     * fails you can fall through in an oneOf0 or orElse
     *
-    * Without the backtrack, a failure of the function will
-    * be an arresting failure.
+    * Without the backtrack, a failure of the function will be an arresting failure.
     */
   def filter(fn: A => Boolean): Parser0[A] = {
     val leftUnit = Left(())
@@ -271,12 +241,10 @@ sealed abstract class Parser0[+A] { self: Product =>
     })(Parser.Fail)
   }
 
-  /** Dynamically construct the next parser based on the previously
-    * parsed value.
+  /** Dynamically construct the next parser based on the previously parsed value.
     *
-    * Using `flatMap` is very expensive. When possible, you should
-    * prefer to use methods such as `~`, `*>`, or `<*` when possible,
-    * since these are much more efficient.
+    * Using `flatMap` is very expensive. When possible, you should prefer to use methods such as
+    * `~`, `*>`, or `<*` when possible, since these are much more efficient.
     */
   def flatMap[B](fn: A => Parser0[B]): Parser0[B] =
     Parser.flatMap0(this)(fn)
@@ -286,63 +254,56 @@ sealed abstract class Parser0[+A] { self: Product =>
   def as[B](b: B): Parser0[B] =
     Parser.as0(this, b)
 
-  /** Wrap this parser in a helper class, enabling better composition
-    * with `Parser` values.
+  /** Wrap this parser in a helper class, enabling better composition with `Parser` values.
     *
     * For example, with `p: Parser0[Int]` and `p1: Parser0[Double]`:
     *
-    *     val a1: Parser0[(Int, Double)]  = p ~ p1
-    *     val a2: Parser[(Int, Double)] = p.with1 ~ p1
+    * val a1: Parser0[(Int, Double)] = p ~ p1 val a2: Parser[(Int, Double)] = p.with1 ~ p1
     *
-    *     val b1: Parser0[Double]  = p *> p1
-    *     val b2: Parser[Double] = p.with1 *> p1
+    * val b1: Parser0[Double] = p *> p1 val b2: Parser[Double] = p.with1 *> p1
     *
-    *     val c1: Parser0[Int]  = p <* p1
-    *     val c2: Parser[Int] = p.with1 <* p1
+    * val c1: Parser0[Int] = p <* p1 val c2: Parser[Int] = p.with1 <* p1
     *
-    * Without using `with1`, these methods will return `Parser0` values
-    * since they are not known to return `Parser` values instead.
+    * Without using `with1`, these methods will return `Parser0` values since they are not known to
+    * return `Parser` values instead.
     */
   def with1: Parser.With1[A] =
     new Parser.With1(this)
 
-  /** Wrap this parser in a helper class, to enable backtracking during
-    * composition.
+  /** Wrap this parser in a helper class, to enable backtracking during composition.
     *
-    * This wrapper changes the behavior of `~`, `<*` and `*>`. Normally
-    * no backtracking occurs. Using `soft` on the left-hand side will
-    * enable backtracking if the right-hand side returns an epsilon
-    * failure (but not in any other case).
+    * This wrapper changes the behavior of `~`, `<*` and `*>`. Normally no backtracking occurs.
+    * Using `soft` on the left-hand side will enable backtracking if the right-hand side returns an
+    * epsilon failure (but not in any other case).
     *
-    * For example, `(x ~ y)` will never backtrack. But with `(x.soft ~
-    * y)`, if `x` parses successfully, and `y` returns an epsilon
-    * failure, the parser will "rewind" to the point before `x` began.
+    * For example, `(x ~ y)` will never backtrack. But with `(x.soft ~ y)`, if `x` parses
+    * successfully, and `y` returns an epsilon failure, the parser will "rewind" to the point before
+    * `x` began.
     */
   def soft: Parser.Soft0[A] =
     new Parser.Soft0(this)
 
-  /** Return a parser that succeeds (consuming nothing, and extracting
-    * nothing) if the current parser would fail.
+  /** Return a parser that succeeds (consuming nothing, and extracting nothing) if the current
+    * parser would fail.
     *
-    * This parser expects the underlying parser to fail, and will
-    * unconditionally backtrack after running it.
+    * This parser expects the underlying parser to fail, and will unconditionally backtrack after
+    * running it.
     */
   def unary_! : Parser0[Unit] =
     Parser.not(this)
 
-  /** Return a parser that succeeds (consuming nothing and extracting
-    * nothing) if the current parser would also succeed.
+  /** Return a parser that succeeds (consuming nothing and extracting nothing) if the current parser
+    * would also succeed.
     *
-    * This parser expects the underlying parser to succeed, and will
-    * unconditionally backtrack after running it.
+    * This parser expects the underlying parser to succeed, and will unconditionally backtrack after
+    * running it.
     */
   def peek: Parser0[Unit] =
     Parser.peek(this)
 
   /** Use this parser to parse between values.
     *
-    * Parses `b` followed by `this` and `c`.
-    * Returns only the values extracted by `this` parser.
+    * Parses `b` followed by `this` and `c`. Returns only the values extracted by `this` parser.
     */
   def between(b: Parser0[Any], c: Parser0[Any]): Parser0[A] =
     (b.void ~ (this ~ c.void)).map { case (_, (a, _)) => a }
@@ -354,8 +315,7 @@ sealed abstract class Parser0[+A] { self: Product =>
   def surroundedBy(b: Parser0[Any]): Parser0[A] =
     between(b, b)
 
-  /** Add a string context to any Errors on parsing
-    *  this is useful for debugging failing parsers.
+  /** Add a string context to any Errors on parsing this is useful for debugging failing parsers.
     */
   def withContext(str: String): Parser0[A] =
     Parser.withContext0(this, str)
@@ -371,20 +331,17 @@ sealed abstract class Parser0[+A] { self: Product =>
   override lazy val hashCode: Int = scala.runtime.ScalaRunTime._hashCode(this)
 }
 
-/** Parser[A] is a Parser0[A] that will always consume one-or-more
-  * characters on a successful parse.
+/** Parser[A] is a Parser0[A] that will always consume one-or-more characters on a successful parse.
   *
-  * Since Parser is guaranteed to consume input it provides additional
-  * methods which would be unsafe when used on parsers that succeed
-  * without consuming input, such as `rep0`.
+  * Since Parser is guaranteed to consume input it provides additional methods which would be unsafe
+  * when used on parsers that succeed without consuming input, such as `rep0`.
   *
-  * When a Parser is composed with a Parser0 the result is usually a
-  * Parser. Parser overrides many of Parser0's methods to refine the
-  * return type. In other cases, callers may need to use the `with1`
-  * helper method to refine the type of their expressions.
+  * When a Parser is composed with a Parser0 the result is usually a Parser. Parser overrides many
+  * of Parser0's methods to refine the return type. In other cases, callers may need to use the
+  * `with1` helper method to refine the type of their expressions.
   *
-  * Parser doesn't provide any additional guarantees over Parser0 on
-  * what kind of parsing failures it can return.
+  * Parser doesn't provide any additional guarantees over Parser0 on what kind of parsing failures
+  * it can return.
   */
 sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
 
@@ -467,45 +424,38 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
   override def as[B](b: B): Parser[B] =
     Parser.as(this, b)
 
-  /** If this parser fails to parse its input with an epsilon error,
-    * try the given parser instead.
+  /** If this parser fails to parse its input with an epsilon error, try the given parser instead.
     *
-    * This method is similar to Parser0#orElse, but since both arguments
-    * are known to be Parser values, the result is known to be a
-    * Parser as well.
+    * This method is similar to Parser0#orElse, but since both arguments are known to be Parser
+    * values, the result is known to be a Parser as well.
     */
   def orElse[A1 >: A](that: Parser[A1]): Parser[A1] =
     Parser.oneOf(this :: that :: Nil)
 
-  /** Synonym for orElse
-    *  Note this is not commutative: if this has an arresting failure we
-    *  do not continue onto the next.
+  /** Synonym for orElse Note this is not commutative: if this has an arresting failure we do not
+    * continue onto the next.
     */
   def |[A1 >: A](that: Parser[A1]): Parser[A1] =
     orElse(that)
 
   /** Use this parser to parse zero-or-more values.
     *
-    * This parser may succeed without consuming input in the case where
-    * zero values are parsed.
+    * This parser may succeed without consuming input in the case where zero values are parsed.
     *
-    * If the underlying parser hits an arresting failure, the entire
-    * parse is also an arresting failure. If the underlying parser hits
-    * an epsilon failure, the parsed values (if any) are returned in a
-    * list as a successful parse.
+    * If the underlying parser hits an arresting failure, the entire parse is also an arresting
+    * failure. If the underlying parser hits an epsilon failure, the parsed values (if any) are
+    * returned in a list as a successful parse.
     */
   def rep0: Parser0[List[A]] = repAs0
 
   /** Use this parser to parse at least `min` values (where `min >= 0`).
     *
-    * If `min` is zero, this parser may succeed without consuming
-    * input in the case where zero values are parsed. If `min` is
-    * known to be greater than zero, consider using `rep(min)`
+    * If `min` is zero, this parser may succeed without consuming input in the case where zero
+    * values are parsed. If `min` is known to be greater than zero, consider using `rep(min)`
     * instead.
     *
-    * Like `rep0`, arresting failures in the underlying parser will
-    * result in an arresting failure. Unlike `rep0`, this method may
-    * also return an arresting failure if it has not parsed at least
+    * Like `rep0`, arresting failures in the underlying parser will result in an arresting failure.
+    * Unlike `rep0`, this method may also return an arresting failure if it has not parsed at least
     * `min` values (but has consumed input).
     */
   def rep0(min: Int): Parser0[List[A]] =
@@ -514,10 +464,11 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
 
   /** Repeat the parser `min` or more times, but no more than `max`
     *
-    * The parser fails if it can't match at least `min` times
-    * After repeating the parser `max` times, the parser completes successfully
+    * The parser fails if it can't match at least `min` times After repeating the parser `max`
+    * times, the parser completes successfully
     *
-    * @throws java.lang.IllegalArgumentException if min < 0 or max < min
+    * @throws java.lang.IllegalArgumentException
+    *   if min < 0 or max < min
     */
   def rep0(min: Int, max: Int): Parser0[List[A]] =
     if (min == 0) repAs0(max)
@@ -525,47 +476,48 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
 
   /** Use this parser to parse one-or-more values.
     *
-    * This parser behaves like `rep0`, except that it must produce at
-    * least one value, and is guaranteed to consume input on successful
-    * parses.
+    * This parser behaves like `rep0`, except that it must produce at least one value, and is
+    * guaranteed to consume input on successful parses.
     */
   def rep: Parser[NonEmptyList[A]] = repAs
 
   /** Use this parser to parse at least `min` values (where `min >= 1`).
     *
-    * This method behaves likes `rep`, except that if fewer than `min`
-    * values are produced an arresting failure will be returned.
+    * This method behaves likes `rep`, except that if fewer than `min` values are produced an
+    * arresting failure will be returned.
     */
   def rep(min: Int): Parser[NonEmptyList[A]] =
     repAs(min = min)
 
   /** Repeat the parser `min` or more times, but no more than `max`
     *
-    * The parser fails if it can't match at least `min` times
-    * After repeating the parser `max` times, the parser completes successfully
+    * The parser fails if it can't match at least `min` times After repeating the parser `max`
+    * times, the parser completes successfully
     *
-    * @throws java.lang.IllegalArgumentException if min < 1 or max < min
+    * @throws java.lang.IllegalArgumentException
+    *   if min < 1 or max < min
     */
   def rep(min: Int, max: Int): Parser[NonEmptyList[A]] =
     repAs(min = min, max = max)
 
   /** Repeat the parser 0 or more times
     *
-    * @note this can wind up parsing nothing
+    * @note
+    *   this can wind up parsing nothing
     */
   def repAs0[B](implicit acc: Accumulator0[A, B]): Parser0[B] =
     Parser.repAs0(this)(acc)
 
   /** Repeat the parser 0 or more times, but no more than `max`
     *
-    * It may seem weird to accept 0 here, but without, composing
-    * this method becomes more complex.
-    * Since and empty parse is possible for this method, we do
-    * allow max = 0
+    * It may seem weird to accept 0 here, but without, composing this method becomes more complex.
+    * Since and empty parse is possible for this method, we do allow max = 0
     *
-    * @throws java.lang.IllegalArgumentException if max < 0
+    * @throws java.lang.IllegalArgumentException
+    *   if max < 0
     *
-    * @note this can wind up parsing nothing
+    * @note
+    *   this can wind up parsing nothing
     */
   def repAs0[B](max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] =
     Parser.repAs0(this, max = max)(acc)
@@ -579,24 +531,27 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
     *
     * The parser fails if it can't match at least `min` times
     *
-    * @throws java.lang.IllegalArgumentException if min < 1
+    * @throws java.lang.IllegalArgumentException
+    *   if min < 1
     */
   def repAs[B](min: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
     Parser.repAs(this, min = min)(acc)
 
   /** Repeat the parser `min` or more times, but no more than `max`
     *
-    * The parser fails if it can't match at least `min` times
-    * After repeating the parser `max` times, the parser completes successfully
+    * The parser fails if it can't match at least `min` times After repeating the parser `max`
+    * times, the parser completes successfully
     *
-    * @throws java.lang.IllegalArgumentException if min < 1 or max < min
+    * @throws java.lang.IllegalArgumentException
+    *   if min < 1 or max < min
     */
   def repAs[B](min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
     Parser.repAs(this, min = min, max = max)(acc)
 
   /** Repeat the parser exactly `times` times
     *
-    * @throws java.lang.IllegalArgumentException if times < 1
+    * @throws java.lang.IllegalArgumentException
+    *   if times < 1
     */
   def repExactlyAs[B](times: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
     Parser.repExactlyAs(this, times = times)(acc)
@@ -608,14 +563,16 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
 
   /** Repeat `min` or more times with a separator.
     *
-    * @throws java.lang.IllegalArgumentException if `min < 0`
+    * @throws java.lang.IllegalArgumentException
+    *   if `min < 0`
     */
   def repSep0(min: Int, sep: Parser0[Any]): Parser0[List[A]] =
     Parser.repSep0(this, min = min, sep = sep)
 
   /** Repeat `min` or more, up to `max` times with a separator.
     *
-    * @throws java.lang.IllegalArgumentException if `min < 0` or `max < min`
+    * @throws java.lang.IllegalArgumentException
+    *   if `min < 0` or `max < min`
     */
   def repSep0(min: Int, max: Int, sep: Parser0[Any]): Parser0[List[A]] =
     Parser.repSep0(this, min = min, max = max, sep = sep)
@@ -627,14 +584,16 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
 
   /** Repeat `min` or more times with a separator, at least once.
     *
-    * @throws java.lang.IllegalArgumentException if `min <= 0`
+    * @throws java.lang.IllegalArgumentException
+    *   if `min <= 0`
     */
   def repSep(min: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] =
     Parser.repSep(this, min = min, sep = sep)
 
   /** Repeat `min` or more, up to `max` times with a separator, at least once.
     *
-    * @throws java.lang.IllegalArgumentException if `min <= 0` or `max < min`
+    * @throws java.lang.IllegalArgumentException
+    *   if `min <= 0` or `max < min`
     */
   def repSep(min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] =
     Parser.repSep(this, min = min, max = max, sep = sep)
@@ -674,9 +633,8 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
   override def soft: Parser.Soft[A] =
     new Parser.Soft(this)
 
-  /** This method overrides `Parser0#withContext` to refine the return type.
-    *  add a string context to any Errors on parsing
-    *  this is useful for debugging failing parsers.
+  /** This method overrides `Parser0#withContext` to refine the return type. add a string context to
+    * any Errors on parsing this is useful for debugging failing parsers.
     */
   override def withContext(str: String): Parser[A] =
     Parser.withContext(this, str)
@@ -684,14 +642,12 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
 
 object Parser {
 
-  /** An expectation reports the kind or parsing error
-    * and where it occured.
+  /** An expectation reports the kind or parsing error and where it occured.
     */
   sealed abstract class Expectation {
     def offset: Int
 
-    /** This is a reverse order stack (most recent context first)
-      * of this parsing error
+    /** This is a reverse order stack (most recent context first) of this parsing error
       */
     def context: List[String] =
       this match {
@@ -809,8 +765,8 @@ object Parser {
         case h :: tail => addContext(tail, WithContext(h, ex))
       }
 
-    /** Sort, dedup and unify ranges for the errors accumulated
-      * This is called just before finally returning an error in Parser.parse
+    /** Sort, dedup and unify ranges for the errors accumulated This is called just before finally
+      * returning an error in Parser.parse
       */
     def unify(errors: NonEmptyList[Expectation]): NonEmptyList[Expectation] = {
       val result = errors
@@ -858,65 +814,52 @@ object Parser {
       expected.map(_.offset).distinct
   }
 
-  /** Enables syntax to access product01, product and flatMap01
-    *  This helps us build Parser instances when starting from
-    *  a Parser0
+  /** Enables syntax to access product01, product and flatMap01 This helps us build Parser instances
+    * when starting from a Parser0
     */
   final class With1[+A](val parser: Parser0[A]) extends AnyVal {
 
-    /** parser then that.
-      *  Since that is a Parser the result is
+    /** parser then that. Since that is a Parser the result is
       */
     def ~[B](that: Parser[B]): Parser[(A, B)] =
       Parser.product01(parser, that)
 
-    /** This is the usual monadic composition, but you
-      * should much prefer to use ~ or Apply.product, *>, <*, etc
-      * if you can since it is much more efficient. This
-      * has to call fn on each parse, which could be a lot
-      * of extra work is you already know the result as is
-      * the case for ~
+    /** This is the usual monadic composition, but you should much prefer to use ~ or Apply.product,
+      * *>, <*, etc if you can since it is much more efficient. This has to call fn on each parse,
+      * which could be a lot of extra work is you already know the result as is the case for ~
       */
     def flatMap[B](fn: A => Parser[B]): Parser[B] =
       Parser.flatMap01(parser)(fn)
 
-    /** parser then that.
-      *  Since that is a Parser the result is
+    /** parser then that. Since that is a Parser the result is
       */
     def *>[B](that: Parser[B]): Parser[B] =
       product01(void0(parser), that).map(_._2)
 
-    /** parser then that.
-      *  Since that is a Parser the result is
+    /** parser then that. Since that is a Parser the result is
       */
     def <*[B](that: Parser[B]): Parser[A] =
       product01(parser, void(that)).map(_._1)
 
-    /** If we can parse this then that, do so,
-      * if we fail that without consuming, rewind
-      * before this without consuming.
-      * If either consume 1 or more, do not rewind
+    /** If we can parse this then that, do so, if we fail that without consuming, rewind before this
+      * without consuming. If either consume 1 or more, do not rewind
       */
     def soft: Soft01[A] =
       new Soft01(parser)
 
-    /** parse between values.
-      *  Since values are `Parser` the result is
+    /** parse between values. Since values are `Parser` the result is
       */
     def between(b: Parser[Any], c: Parser[Any]): Parser[A] =
       (b.void ~ (parser ~ c.void)).map { case (_, (a, _)) => a }
 
-    /** parse surrounded by that.
-      *  Since that is a Parser the result is
+    /** parse surrounded by that. Since that is a Parser the result is
       */
     def surroundedBy(that: Parser[Any]): Parser[A] =
       between(that, that)
   }
 
-  /** If we can parse this then that, do so,
-    * if we fail that without consuming, rewind
-    * before this without consuming.
-    * If either consume 1 or more, do not rewind
+  /** If we can parse this then that, do so, if we fail that without consuming, rewind before this
+    * without consuming. If either consume 1 or more, do not rewind
     */
   sealed class Soft0[+A](parser: Parser0[A]) {
     def ~[B](that: Parser0[B]): Parser0[(A, B)] =
@@ -928,19 +871,15 @@ object Parser {
     def <*[B](that: Parser0[B]): Parser0[A] =
       softProduct0(parser, void0(that)).map(_._1)
 
-    /** If we can parse this then that, do so,
-      * if we fail that without consuming, rewind
-      * before this without consuming.
-      * If either consume 1 or more, do not rewind
+    /** If we can parse this then that, do so, if we fail that without consuming, rewind before this
+      * without consuming. If either consume 1 or more, do not rewind
       */
     def with1: Soft01[A] =
       new Soft01(parser)
   }
 
-  /** If we can parse this then that, do so,
-    * if we fail that without consuming, rewind
-    * before this without consuming.
-    * If either consume 1 or more, do not rewind
+  /** If we can parse this then that, do so, if we fail that without consuming, rewind before this
+    * without consuming. If either consume 1 or more, do not rewind
     */
   final class Soft[+A](parser: Parser[A]) extends Soft0(parser) {
     override def ~[B](that: Parser0[B]): Parser[(A, B)] =
@@ -953,10 +892,8 @@ object Parser {
       softProduct10(parser, void0(that)).map(_._1)
   }
 
-  /** If we can parse this then that, do so,
-    * if we fail that without consuming, rewind
-    * before this without consuming.
-    * If either consume 1 or more, do not rewind
+  /** If we can parse this then that, do so, if we fail that without consuming, rewind before this
+    * without consuming. If either consume 1 or more, do not rewind
     */
   final class Soft01[+A](val parser: Parser0[A]) extends AnyVal {
     def ~[B](that: Parser[B]): Parser[(A, B)] =
@@ -969,61 +906,53 @@ object Parser {
       softProduct01(parser, void(that)).map(_._1)
   }
 
-  /** Don't advance in the parsed string, just return a
-    *  This is used by the Applicative typeclass.
+  /** Don't advance in the parsed string, just return a This is used by the Applicative typeclass.
     */
   def pure[A](a: A): Parser0[A] =
     Impl.Pure(a)
 
-  /** Parse a given string, in a case-insensitive manner,
-    * or fail. This backtracks on failure
-    * this is an error if the string is empty
+  /** Parse a given string, in a case-insensitive manner, or fail. This backtracks on failure this
+    * is an error if the string is empty
     */
   def ignoreCase(str: String): Parser[Unit] =
     if (str.length == 1) {
       ignoreCaseChar(str.charAt(0))
     } else Impl.IgnoreCase(str.toLowerCase)
 
-  /** Ignore the case of a single character
-    *  If you want to know if it is upper or
-    *  lower, use .string to capture the string
-    *  and then map to process the result.
+  /** Ignore the case of a single character If you want to know if it is upper or lower, use .string
+    * to capture the string and then map to process the result.
     */
   def ignoreCaseChar(c: Char): Parser[Unit] =
     charIn(c.toLower, c.toUpper).void
 
-  /** Parse a given string or
-    * fail. This backtracks on failure
-    * this is an error if the string is empty
+  /** Parse a given string or fail. This backtracks on failure this is an error if the string is
+    * empty
     */
   def string(str: String): Parser[Unit] =
     if (str.length == 1) char(str.charAt(0))
     else Impl.Str(str)
 
-  /** Parse a potentially empty string or
-    * fail. This backtracks on failure
+  /** Parse a potentially empty string or fail. This backtracks on failure
     */
   def string0(str: String): Parser0[Unit] =
     if (str.length == 0) unit
     else string(str)
 
-  /** Parse a potentially empty string, in a case-insensitive manner,
-    * or fail. This backtracks on failure
+  /** Parse a potentially empty string, in a case-insensitive manner, or fail. This backtracks on
+    * failure
     */
   def ignoreCase0(str: String): Parser0[Unit] =
     if (str.length == 0) unit
     else ignoreCase(str)
 
-  /** go through the list of parsers trying each
-    *  as long as they are epsilon failures (don't advance)
-    *  see @backtrack if you want to do backtracking.
+  /** go through the list of parsers trying each as long as they are epsilon failures (don't
+    * advance) see @backtrack if you want to do backtracking.
     *
-    *  This is the same as parsers.foldLeft(fail)(_.orElse(_))
+    * This is the same as parsers.foldLeft(fail)(_.orElse(_))
     *
-    *  recommended style: oneOf(p1 :: p2 :: p3 :: Nil) rather than
-    *  oneOf(List(p1, p2, p3))
+    * recommended style: oneOf(p1 :: p2 :: p3 :: Nil) rather than oneOf(List(p1, p2, p3))
     *
-    *  Note: order matters here, since we don't backtrack by default.
+    * Note: order matters here, since we don't backtrack by default.
     */
   def oneOf[A](parsers: List[Parser[A]]): Parser[A] = {
     @annotation.tailrec
@@ -1053,16 +982,14 @@ object Parser {
     (if (isStr) string(res) else res).asInstanceOf[Parser[A]]
   }
 
-  /** go through the list of parsers trying each
-    *  as long as they are epsilon failures (don't advance)
-    *  see @backtrack if you want to do backtracking.
+  /** go through the list of parsers trying each as long as they are epsilon failures (don't
+    * advance) see @backtrack if you want to do backtracking.
     *
-    *  This is the same as parsers.foldLeft(fail)(_.orElse(_))
+    * This is the same as parsers.foldLeft(fail)(_.orElse(_))
     *
-    *  recommended style: oneOf(p1 :: p2 :: p3 :: Nil) rather than
-    *  oneOf(List(p1, p2, p3))
+    * recommended style: oneOf(p1 :: p2 :: p3 :: Nil) rather than oneOf(List(p1, p2, p3))
     *
-    *  Note: order matters here, since we don't backtrack by default.
+    * Note: order matters here, since we don't backtrack by default.
     */
   def oneOf0[A](ps: List[Parser0[A]]): Parser0[A] = {
     @annotation.tailrec
@@ -1098,13 +1025,12 @@ object Parser {
     (if (isStr) string0(res) else res).asInstanceOf[Parser0[A]]
   }
 
-  /** Parse the longest matching string between alternatives.
-    * The order of the strings does not matter.
+  /** Parse the longest matching string between alternatives. The order of the strings does not
+    * matter.
     *
     * If no string matches, this parser results in an epsilon failure.
     *
-    * It is an error to pass the empty string here, if you
-    * need that see stringIn0
+    * It is an error to pass the empty string here, if you need that see stringIn0
     */
   def stringIn(strings: Iterable[String]): Parser[String] =
     strings.toList.distinct match {
@@ -1124,28 +1050,24 @@ object Parser {
     if (strings.exists(_.isEmpty)) stringIn(strings.filter(_.nonEmpty)).orElse(emptyStringParser0)
     else stringIn(strings)
 
-  /** If the first parser fails to parse its input with an epsilon error,
-    * try the second parser instead.
+  /** If the first parser fails to parse its input with an epsilon error, try the second parser
+    * instead.
     *
-    * If the first parser fails with an arresting error, the second parser
-    * won't be tried.
+    * If the first parser fails with an arresting error, the second parser won't be tried.
     *
-    * Backtracking may be used on the first parser to allow the second
-    * one to pick up after any error, resetting any state that was
-    * modified by the first parser.
+    * Backtracking may be used on the first parser to allow the second one to pick up after any
+    * error, resetting any state that was modified by the first parser.
     */
   def eitherOr0[A, B](first: Parser0[B], second: Parser0[A]): Parser0[Either[A, B]] =
     oneOf0(first.map(Right(_)) :: second.map(Left(_)) :: Nil)
 
-  /** If the first parser fails to parse its input with an epsilon error,
-    * try the second parser instead.
+  /** If the first parser fails to parse its input with an epsilon error, try the second parser
+    * instead.
     *
-    * If the first parser fails with an arresting error, the second parser
-    * won't be tried.
+    * If the first parser fails with an arresting error, the second parser won't be tried.
     *
-    * Backtracking may be used on the first parser to allow the second
-    * one to pick up after any error, resetting any state that was
-    * modified by the first parser.
+    * Backtracking may be used on the first parser to allow the second one to pick up after any
+    * error, resetting any state that was modified by the first parser.
     */
   def eitherOr[A, B](first: Parser[B], second: Parser[A]): Parser[Either[A, B]] =
     oneOf(first.map(Right(_)) :: second.map(Left(_)) :: Nil)
@@ -1155,35 +1077,34 @@ object Parser {
 
   private[parse] val optTail: List[Parser0[Option[Nothing]]] = Parser.pure(None) :: Nil
 
-  /** if len < 1, the same as pure("")
-    * else length(len)
+  /** if len < 1, the same as pure("") else length(len)
     */
   def length0(len: Int): Parser0[String] =
     if (len > 0) length(len) else emptyStringParser0
 
-  /** Parse the next len characters where len > 0
-    * if (len < 1) throw IllegalArgumentException
+  /** Parse the next len characters where len > 0 if (len < 1) throw IllegalArgumentException
     */
   def length(len: Int): Parser[String] =
     Impl.Length(len)
 
   /** Repeat the parser 0 or more times
     *
-    * @note this can wind up parsing nothing
+    * @note
+    *   this can wind up parsing nothing
     */
   def repAs0[A, B](p1: Parser[A])(implicit acc: Accumulator0[A, B]): Parser0[B] =
     Impl.Rep0(p1, Int.MaxValue, acc)
 
   /** Repeat the parser 0 or more times, but no more than `max`
     *
-    * It may seem weird to accept 0 here, but without, composing
-    * this method becomes more complex.
-    * Since and empty parse is possible for this method, we do
-    * allow max = 0
+    * It may seem weird to accept 0 here, but without, composing this method becomes more complex.
+    * Since and empty parse is possible for this method, we do allow max = 0
     *
-    * @throws java.lang.IllegalArgumentException if max < 0
+    * @throws java.lang.IllegalArgumentException
+    *   if max < 0
     *
-    * @note this can wind up parsing nothing
+    * @note
+    *   this can wind up parsing nothing
     */
   def repAs0[A, B](p1: Parser[A], max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] = {
     require(max >= 0, s"max should be >= 0, was $max")
@@ -1200,7 +1121,8 @@ object Parser {
     *
     * The parser fails if it can't match at least `min` times
     *
-    * @throws java.lang.IllegalArgumentException if min < 1
+    * @throws java.lang.IllegalArgumentException
+    *   if min < 1
     */
   def repAs[A, B](p1: Parser[A], min: Int)(implicit acc: Accumulator[A, B]): Parser[B] = {
     require(min >= 1, s"min should be >= 1, was $min")
@@ -1209,10 +1131,11 @@ object Parser {
 
   /** Repeat the parser `min` or more times, but no more than `max`
     *
-    * The parser fails if it can't match at least `min` times
-    * After repeating the parser `max` times, the parser completes succesfully
+    * The parser fails if it can't match at least `min` times After repeating the parser `max`
+    * times, the parser completes succesfully
     *
-    * @throws java.lang.IllegalArgumentException if min < 1 or max < min
+    * @throws java.lang.IllegalArgumentException
+    *   if min < 1 or max < min
     */
   def repAs[A, B](p1: Parser[A], min: Int, max: Int)(implicit acc: Accumulator[A, B]): Parser[B] = {
     require(min >= 1, s"min should be >= 1, was $min")
@@ -1226,7 +1149,8 @@ object Parser {
 
   /** Repeat the parser exactly `times` times
     *
-    * @throws java.lang.IllegalArgumentException if times < 1
+    * @throws java.lang.IllegalArgumentException
+    *   if times < 1
     */
   def repExactlyAs[A, B](p: Parser[A], times: Int)(implicit acc: Accumulator[A, B]): Parser[B] =
     if (times == 1) {
@@ -1244,7 +1168,8 @@ object Parser {
 
   /** Repeat `min` or more times with a separator, at least once.
     *
-    * @throws java.lang.IllegalArgumentException if `min <= 0`
+    * @throws java.lang.IllegalArgumentException
+    *   if `min <= 0`
     */
   def repSep[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
     // we validate here so the message matches what the user passes
@@ -1257,7 +1182,8 @@ object Parser {
 
   /** Repeat `min` or more, up to `max` times with a separator, at least once.
     *
-    * @throws java.lang.IllegalArgumentException if `min <= 0` or `max < min`
+    * @throws java.lang.IllegalArgumentException
+    *   if `min <= 0` or `max < min`
     */
   def repSep[A](p1: Parser[A], min: Int, max: Int, sep: Parser0[Any]): Parser[NonEmptyList[A]] = {
     // we validate here so the message matches what the user passes
@@ -1280,7 +1206,8 @@ object Parser {
 
   /** Repeat `min` or more times with a separator.
     *
-    * @throws java.lang.IllegalArgumentException if `min < 0`
+    * @throws java.lang.IllegalArgumentException
+    *   if `min < 0`
     */
   def repSep0[A](p1: Parser[A], min: Int, sep: Parser0[Any]): Parser0[List[A]] =
     if (min == 0) repSep(p1, sep).?.map {
@@ -1291,7 +1218,8 @@ object Parser {
 
   /** Repeat `min` or more, up to `max` times with a separator.
     *
-    * @throws java.lang.IllegalArgumentException if `min < 0` or `max < min`
+    * @throws java.lang.IllegalArgumentException
+    *   if `min < 0` or `max < min`
     */
   def repSep0[A](p1: Parser[A], min: Int, max: Int, sep: Parser0[Any]): Parser0[List[A]] =
     if (min == 0) {
@@ -1326,12 +1254,10 @@ object Parser {
   def product01[A, B](first: Parser0[A], second: Parser[B]): Parser[(A, B)] =
     Impl.Prod(first, second)
 
-  /** softProduct, a variant of product
-    *  A soft product backtracks if the first succeeds and the second
-    *  is an epsilon-failure. By contrast product will be a failure in
-    *  that case
+  /** softProduct, a variant of product A soft product backtracks if the first succeeds and the
+    * second is an epsilon-failure. By contrast product will be a failure in that case
     *
-    *  see @Parser.soft
+    * see @Parser.soft
     */
   def softProduct0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
@@ -1344,22 +1270,20 @@ object Parser {
         }
     }
 
-  /** softProduct with the first argument being a Parser
-    *  A soft product backtracks if the first succeeds and the second
-    *  is an epsilon-failure. By contrast product will be a failure in
-    *  that case
+  /** softProduct with the first argument being a Parser A soft product backtracks if the first
+    * succeeds and the second is an epsilon-failure. By contrast product will be a failure in that
+    * case
     *
-    *  see @Parser.soft
+    * see @Parser.soft
     */
   def softProduct10[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
     Impl.SoftProd(first, second)
 
-  /** softProduct with the second argument being a Parser
-    *  A soft product backtracks if the first succeeds and the second
-    *  is an epsilon-failure. By contrast product will be a failure in
-    *  that case
+  /** softProduct with the second argument being a Parser A soft product backtracks if the first
+    * succeeds and the second is an epsilon-failure. By contrast product will be a failure in that
+    * case
     *
-    *  see @Parser.soft
+    * see @Parser.soft
     */
   def softProduct01[A, B](first: Parser0[A], second: Parser[B]): Parser[(A, B)] =
     Impl.SoftProd(first, second)
@@ -1396,11 +1320,9 @@ object Parser {
       case _ => Impl.Map(p, fn)
     }
 
-  /** Parse p and if we get the Left side, parse fn
-    *  This function name comes from seletive functors.
-    *  This should be more efficient than flatMap since
-    *  the fn Parser0 is evaluated once, not on every item
-    *  parsed
+  /** Parse p and if we get the Left side, parse fn This function name comes from seletive functors.
+    * This should be more efficient than flatMap since the fn Parser0 is evaluated once, not on
+    * every item parsed
     */
   def select0[A, B](p: Parser0[Either[A, B]])(fn: Parser0[A => B]): Parser0[B] =
     Impl
@@ -1420,69 +1342,54 @@ object Parser {
         case Right(b) => b
       }
 
-  /** Standard monadic flatMap
-    *  Avoid this function if possible. If you can
-    *  instead use product, ~, *>, or <* use that.
-    *  flatMap always has to allocate a parser, and the
-    *  parser is less amenable to optimization
+  /** Standard monadic flatMap Avoid this function if possible. If you can instead use product, ~,
+    * *>, or <* use that. flatMap always has to allocate a parser, and the parser is less amenable
+    * to optimization
     */
   def flatMap0[A, B](pa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
     Impl.FlatMap0(pa, fn)
 
-  /** Standard monadic flatMap where you start with a Parser
-    *  Avoid this function if possible. If you can
-    *  instead use product, ~, *>, or <* use that.
-    *  flatMap always has to allocate a parser, and the
-    *  parser is less amenable to optimization
+  /** Standard monadic flatMap where you start with a Parser Avoid this function if possible. If you
+    * can instead use product, ~, *>, or <* use that. flatMap always has to allocate a parser, and
+    * the parser is less amenable to optimization
     */
   def flatMap10[A, B](pa: Parser[A])(fn: A => Parser0[B]): Parser[B] =
     Impl.FlatMap(pa, fn)
 
-  /** Standard monadic flatMap where you end with a Parser
-    *  Avoid this function if possible. If you can
-    *  instead use product, ~, *>, or <* use that.
-    *  flatMap always has to allocate a parser, and the
-    *  parser is less amenable to optimization
+  /** Standard monadic flatMap where you end with a Parser Avoid this function if possible. If you
+    * can instead use product, ~, *>, or <* use that. flatMap always has to allocate a parser, and
+    * the parser is less amenable to optimization
     */
   def flatMap01[A, B](pa: Parser0[A])(fn: A => Parser[B]): Parser[B] =
     Impl.FlatMap(pa, fn)
 
-  /** tail recursive monadic flatMaps
-    * This is a rarely used function, but needed to implement cats.FlatMap
-    *  Avoid this function if possible. If you can
-    *  instead use product, ~, *>, or <* use that.
-    *  flatMap always has to allocate a parser, and the
-    *  parser is less amenable to optimization
+  /** tail recursive monadic flatMaps This is a rarely used function, but needed to implement
+    * cats.FlatMap Avoid this function if possible. If you can instead use product, ~, *>, or <* use
+    * that. flatMap always has to allocate a parser, and the parser is less amenable to optimization
     */
   def tailRecM0[A, B](init: A)(fn: A => Parser0[Either[A, B]]): Parser0[B] =
     Impl.TailRecM0(init, fn)
 
-  /** tail recursive monadic flatMaps on Parser
-    * This is a rarely used function, but needed to implement cats.FlatMap
-    *  Avoid this function if possible. If you can
-    *  instead use product, ~, *>, or <* use that.
-    *  flatMap always has to allocate a parser, and the
-    *  parser is less amenable to optimization
+  /** tail recursive monadic flatMaps on Parser This is a rarely used function, but needed to
+    * implement cats.FlatMap Avoid this function if possible. If you can instead use product, ~, *>,
+    * or <* use that. flatMap always has to allocate a parser, and the parser is less amenable to
+    * optimization
     */
   def tailRecM[A, B](init: A)(fn: A => Parser[Either[A, B]]): Parser[B] =
     Impl.TailRecM(init, fn)
 
-  /** Lazily create a Parser
-    *  This is useful to create some recursive parsers
-    *  see Defer0[Parser].fix
+  /** Lazily create a Parser This is useful to create some recursive parsers see Defer0[Parser].fix
     */
   def defer[A](pa: => Parser[A]): Parser[A] =
     Impl.Defer(() => pa)
 
-  /** Lazily create a Parser0
-    *  This is useful to create some recursive parsers
-    *  see Defer0[Parser].fix
+  /** Lazily create a Parser0 This is useful to create some recursive parsers see Defer0[Parser].fix
     */
   def defer0[A](pa: => Parser0[A]): Parser0[A] =
     Impl.Defer0(() => pa)
 
-  /** Build a recursive parser by assuming you have it
-    * Useful for parsing recurive structures, like for instance JSON.
+  /** Build a recursive parser by assuming you have it Useful for parsing recurive structures, like
+    * for instance JSON.
     */
   def recursive[A](fn: Parser[A] => Parser[A]): Parser[A] = {
     lazy val result: Parser[A] = fn(defer(result))
@@ -1497,9 +1404,8 @@ object Parser {
     */
   def fail[A]: Parser[A] = Fail
 
-  /** A parser that always fails with an epsilon failure and a given message
-    * this is generally used with flatMap to validate a result beyond
-    * the literal parsing.
+  /** A parser that always fails with an epsilon failure and a given message this is generally used
+    * with flatMap to validate a result beyond the literal parsing.
     *
     * e.g. parsing a number then validate that it is bounded.
     */
@@ -1573,14 +1479,13 @@ object Parser {
   def charsWhile0(fn: Char => Boolean): Parser0[String] =
     charWhere(fn).rep0.string
 
-  /** Parse a string while the given function is true
-    * parses at least one character
+  /** Parse a string while the given function is true parses at least one character
     */
   def charsWhile(fn: Char => Boolean): Parser[String] =
     charWhere(fn).rep.string
 
-  /** parse zero or more characters as long as they don't match p
-    *  this is useful for parsing comment strings, for instance.
+  /** parse zero or more characters as long as they don't match p this is useful for parsing comment
+    * strings, for instance.
     */
   def until0(p: Parser0[Any]): Parser0[String] =
     (not(p).with1 ~ anyChar).rep0.string
@@ -1614,11 +1519,9 @@ object Parser {
   ): Parser[B] =
     (not(end).with1 *> p).repAs
 
-  /** discard the value in a Parser.
-    *  This is an optimization because we remove trailing
-    *  map operations and don't allocate internal data structures
-    *  This function is called internal to Functor.as and Apply.*>
-    *  and Apply.<* so those are good uses.
+  /** discard the value in a Parser. This is an optimization because we remove trailing map
+    * operations and don't allocate internal data structures This function is called internal to
+    * Functor.as and Apply.*> and Apply.<* so those are good uses.
     */
   def void0(pa: Parser0[Any]): Parser0[Unit] =
     pa match {
@@ -1635,11 +1538,9 @@ object Parser {
         }
     }
 
-  /** discard the value in a Parser.
-    *  This is an optimization because we remove trailing
-    *  map operations and don't allocate internal data structures
-    *  This function is called internal to Functor.as and Apply.*>
-    *  and Apply.<* so those are good uses.
+  /** discard the value in a Parser. This is an optimization because we remove trailing map
+    * operations and don't allocate internal data structures This function is called internal to
+    * Functor.as and Apply.*> and Apply.<* so those are good uses.
     */
   def void(pa: Parser[Any]): Parser[Unit] =
     pa match {
@@ -1657,8 +1558,8 @@ object Parser {
         }
     }
 
-  /** Discard the result A and instead capture the matching string
-    *  this is optimized to avoid internal allocations
+  /** Discard the result A and instead capture the matching string this is optimized to avoid
+    * internal allocations
     */
   def string0(pa: Parser0[Any]): Parser0[String] =
     pa match {
@@ -1671,8 +1572,8 @@ object Parser {
         }
     }
 
-  /** Discard the result A and instead capture the matching string
-    *  this is optimized to avoid internal allocations
+  /** Discard the result A and instead capture the matching string this is optimized to avoid
+    * internal allocations
     */
   def string(pa: Parser[Any]): Parser[String] =
     pa match {
@@ -1693,9 +1594,8 @@ object Parser {
         }
     }
 
-  /** returns a parser that succeeds if the
-    * current parser fails.
-    * Note, this parser backtracks (never returns an arresting failure)
+  /** returns a parser that succeeds if the current parser fails. Note, this parser backtracks
+    * (never returns an arresting failure)
     */
   def not(pa: Parser0[Any]): Parser0[Unit] =
     void0(pa) match {
@@ -1703,8 +1603,7 @@ object Parser {
       case notFail => Impl.Not(notFail)
     }
 
-  /** a parser that consumes nothing when
-    * it succeeds, basically rewind on success
+  /** a parser that consumes nothing when it succeeds, basically rewind on success
     */
   def peek(pa: Parser0[Any]): Parser0[Unit] =
     pa match {
@@ -1717,9 +1616,8 @@ object Parser {
         Impl.Peek(void0(notPeek))
     }
 
-  /** return the current position in the string
-    * we are parsing. This lets you record position information
-    * in your ASTs you are parsing
+  /** return the current position in the string we are parsing. This lets you record position
+    * information in your ASTs you are parsing
     */
   def index: Parser0[Int] = Impl.Index
 
@@ -1731,10 +1629,8 @@ object Parser {
     */
   def end: Parser0[Unit] = Impl.EndParser
 
-  /** If we fail, rewind the offset back so that
-    * we can try other branches. This tends
-    * to harm debuggability and ideally should be
-    * minimized
+  /** If we fail, rewind the offset back so that we can try other branches. This tends to harm
+    * debuggability and ideally should be minimized
     */
   def backtrack0[A](pa: Parser0[A]): Parser0[A] =
     pa match {
@@ -1743,10 +1639,8 @@ object Parser {
       case nbt => Impl.Backtrack0(nbt)
     }
 
-  /** If we fail, rewind the offset back so that
-    * we can try other branches. This tends
-    * to harm debuggability and ideally should be
-    * minimized
+  /** If we fail, rewind the offset back so that we can try other branches. This tends to harm
+    * debuggability and ideally should be minimized
     */
   def backtrack[A](pa: Parser[A]): Parser[A] =
     pa match {
@@ -1969,11 +1863,9 @@ object Parser {
         case _ => false
       }
 
-    /** This removes any trailing map functions which
-      * can cause wasted allocations if we are later going
-      * to void or return strings. This stops
-      * at StringP or VoidP since those are markers
-      * that anything below has already been transformed
+    /** This removes any trailing map functions which can cause wasted allocations if we are later
+      * going to void or return strings. This stops at StringP or VoidP since those are markers that
+      * anything below has already been transformed
       */
     def unmap0(pa: Parser0[Any]): Parser0[Any] =
       pa match {
@@ -2050,11 +1942,9 @@ object Parser {
         // $COVERAGE-ON$
       }
 
-    /** This removes any trailing map functions which
-      * can cause wasted allocations if we are later going
-      * to void or return strings. This stops
-      * at StringP or VoidP since those are markers
-      * that anything below has already been transformed
+    /** This removes any trailing map functions which can cause wasted allocations if we are later
+      * going to void or return strings. This stops at StringP or VoidP since those are markers that
+      * anything below has already been transformed
       */
     def unmap(pa: Parser[Any]): Parser[Any] =
       pa match {
