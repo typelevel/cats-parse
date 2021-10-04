@@ -42,7 +42,7 @@ import org.typelevel.jawn.ast._
 
 object Json {
   private[this] val whitespace: P[Unit] = P.charIn(" \t\r\n").void
-  private[this] val whitespaces0: P[Unit] = whitespace.rep.void
+  private[this] val whitespaces0: Parser0[Unit] = whitespace.rep0.void
 
   val parser: P[JValue] = P.recursive[JValue] { recurse =>
     val pnull = P.string("null").as(JNull)
@@ -52,7 +52,7 @@ object Json {
     val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: P[Unit] =
-      P.char(',').surroundedBy(whitespaces0).void
+      (whitespaces0.with1.soft ~ P.char(',') ~ whitespaces0).void
 
     def rep[A](pa: P[A]): Parser0[List[A]] =
       pa.repSep0(listSep).surroundedBy(whitespaces0)
