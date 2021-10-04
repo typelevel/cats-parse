@@ -152,7 +152,7 @@ typelevel/cats-parse
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.3-38-6fad586
+<i class="md-icon" title="Version">label_outline</i> 0.3-39-c1f7ffc
 </label>
 </li>
 </ul>
@@ -208,7 +208,7 @@ import org.typelevel.jawn.ast._
 
 object Json {
   private[this] val whitespace: P[Unit] = P.charIn(&quot; \t\r\n&quot;).void
-  private[this] val whitespaces0: P[Unit] = whitespace.rep.void
+  private[this] val whitespaces0: Parser0[Unit] = whitespace.rep0.void
 
   val parser: P[JValue] = P.recursive[JValue] { recurse =&gt;
     val pnull = P.string(&quot;null&quot;).as(JNull)
@@ -218,7 +218,7 @@ object Json {
     val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: P[Unit] =
-      P.char(&#39;,&#39;).surroundedBy(whitespaces0).void
+      (whitespaces0.with1.soft ~ P.char(&#39;,&#39;) ~ whitespaces0).void
 
     def rep[A](pa: P[A]): Parser0[List[A]] =
       pa.repSep0(listSep).surroundedBy(whitespaces0)
@@ -283,13 +283,13 @@ object Json {
 <p>We welcome new contributors and new maintainers. Please feel free to open issues and PRs. If you have any problem using the library, an issue is the best way to ask a question until we flush out more documentation.</p>
 </div>
 <div>
-<a href="https://github.com/typelevel/cats-parse/tree/v0.3-38-6fad586/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/typelevel/cats-parse/tree/v0.3-39-c1f7ffc/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.3-38-6fad586
+0.3-39-c1f7ffc
 </span>
 </div>
 </article>
