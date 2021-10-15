@@ -68,7 +68,12 @@ sealed abstract class Parser0[+A] { self: Product =>
     val offset = state.offset
     if (err eq null) Right((str.substring(offset), result))
     else
-      Left(Parser.Error(offset, Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))))
+      Left(
+        Parser.Error(
+          offset,
+          Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
+        )
+      )
   }
 
   /** Attempt to parse all of the input `str` into an `A` value.
@@ -92,7 +97,12 @@ sealed abstract class Parser0[+A] { self: Product =>
           )
         )
     } else
-      Left(Parser.Error(offset, Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))))
+      Left(
+        Parser.Error(
+          offset,
+          Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
+        )
+      )
   }
 
   /** Convert epsilon failures into None values.
@@ -2033,7 +2043,8 @@ object Parser {
           state.offset = end
           res
         } else {
-          state.error = Eval.later(Chain.one(Expectation.Length(offset, len, state.str.length - offset)))
+          state.error =
+            Eval.later(Chain.one(Expectation.Length(offset, len, state.str.length - offset)))
           null
         }
       }
@@ -2649,7 +2660,8 @@ object Parser {
           state.offset += 1
           char
         } else {
-          state.error = Eval.later(Chain.one(Expectation.InRange(offset, Char.MinValue, Char.MaxValue)))
+          state.error =
+            Eval.later(Chain.one(Expectation.InRange(offset, Char.MinValue, Char.MaxValue)))
           '\u0000'
         }
       }
@@ -2661,11 +2673,13 @@ object Parser {
       override def toString = s"CharIn($min, bitSet = ..., $ranges)"
 
       def makeError(offset: Int): Eval[Chain[Expectation]] = {
-        Eval.later(Chain.fromSeq(
-          ranges.toList.map { case (s, e) =>
-            Expectation.InRange(offset, s, e)
-          }
-        ))
+        Eval.later(
+          Chain.fromSeq(
+            ranges.toList.map { case (s, e) =>
+              Expectation.InRange(offset, s, e)
+            }
+          )
+        )
       }
 
       override def parseMut(state: State): Char = {
