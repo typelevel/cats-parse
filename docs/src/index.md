@@ -52,7 +52,7 @@ object Json {
     val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: P[Unit] =
-      (whitespaces0.with1.soft ~ P.char(',') ~ whitespaces0).void
+      P.char(',').soft.surroundedBy(whitespaces0).void
 
     def rep[A](pa: P[A]): Parser0[List[A]] =
       pa.repSep0(listSep).surroundedBy(whitespaces0)
