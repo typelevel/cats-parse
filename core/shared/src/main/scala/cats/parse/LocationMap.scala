@@ -29,8 +29,12 @@ import java.util.Arrays
   * numbers
   */
 class LocationMap(val input: String) {
+
   private[this] val lines: Array[String] =
     input.split("\n", -1)
+
+  private[this] val endsWithNewLine: Boolean =
+    (input.length > 0) && (input.last == '\n')
 
   // The position of the first element of the ith line
   private[this] val firstPos: Array[Int] = {
@@ -52,11 +56,27 @@ class LocationMap(val input: String) {
       .scanLeft(0)(_ + _)
   }
 
-  /** Given a string offset return the line and column
+  /** How many lines are there
+    */
+  def lineCount: Int = lines.length
+
+  /** Given a string offset return the line and column If input.length is given (EOF) we return the
+    * same value as if the string were one character longer (i.e. if we have appended a non-newline
+    * character at the EOF)
     */
   def toLineCol(offset: Int): Option[(Int, Int)] =
-    if (offset < 0 || offset >= input.length) None
-    else {
+    if (offset < 0 || offset > input.length) None
+    else if (offset == input.length) {
+      // this is end of line
+      if (offset == 0) Some((0, 0))
+      else {
+        toLineCol(offset - 1)
+          .map { case (line, col) =>
+            if (endsWithNewLine) (line + 1, 0)
+            else (line, col + 1)
+          }
+      }
+    } else {
       val idx = Arrays.binarySearch(firstPos, offset)
       if (idx == firstPos.length) {
         // greater than all elements
@@ -85,6 +105,13 @@ class LocationMap(val input: String) {
     if (i >= 0 && i < lines.length) Some(lines(i))
     else None
 
+  /** Return the offset for a given row/col. if we return Some(input.length) this means EOF if we
+    * return Some(i) for 0 <= i < input.length it is a valid item else offset < 0 or offset >
+    * input.length we return None
+    */
+  def toOffset(line: Int, col: Int): Option[Int] =
+    if ((line < 0) || (line > lines.length)) None
+    else Some(firstPos(line) + col)
 }
 
 object LocationMap {
