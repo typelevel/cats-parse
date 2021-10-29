@@ -2383,4 +2383,10 @@ class ParserTest extends munit.ScalaCheckSuite {
         }
     }
   }
+
+  property("a parser from a set of chars is the same with charWhere/charIn") {
+    forAll { (input: String, chars: Set[Char]) =>
+      assertEquals(Parser.charWhere(chars).parse(input), Parser.charIn(chars).parse(input))
+    }
+  }
 }
