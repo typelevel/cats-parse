@@ -68,7 +68,12 @@ sealed abstract class Parser0[+A] { self: Product =>
     val offset = state.offset
     if (err eq null) Right((str.substring(offset), result))
     else
-      Left(Parser.Error(offset, Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.toList))))
+      Left(
+        Parser.Error(
+          offset,
+          Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
+        )
+      )
   }
 
   /** Attempt to parse all of the input `str` into an `A` value.
@@ -92,7 +97,12 @@ sealed abstract class Parser0[+A] { self: Product =>
           )
         )
     } else
-      Left(Parser.Error(offset, Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.toList))))
+      Left(
+        Parser.Error(
+          offset,
+          Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
+        )
+      )
   }
 
   /** Convert epsilon failures into None values.
@@ -1773,7 +1783,7 @@ object Parser {
    */
   protected[parse] final class State(val str: String) {
     var offset: Int = 0
-    var error: Chain[Expectation] = null
+    var error: Eval[Chain[Expectation]] = null
     var capture: Boolean = true
   }
 
@@ -2033,7 +2043,8 @@ object Parser {
           state.offset = end
           res
         } else {
-          state.error = Chain.one(Expectation.Length(offset, len, state.str.length - offset))
+          state.error =
+            Eval.later(Chain.one(Expectation.Length(offset, len, state.str.length - offset)))
           null
         }
       }
@@ -2079,8 +2090,9 @@ object Parser {
 
     case object StartParser extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
-        if (state.offset != 0) {
-          state.error = Chain.one(Expectation.StartOfString(state.offset))
+        val offset = state.offset
+        if (offset != 0) {
+          state.error = Eval.later(Chain.one(Expectation.StartOfString(offset)))
         }
         ()
       }
@@ -2088,8 +2100,9 @@ object Parser {
 
     case object EndParser extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
-        if (state.offset != state.str.length) {
-          state.error = Chain.one(Expectation.EndOfString(state.offset, state.str.length))
+        val offset = state.offset
+        if (offset != state.str.length) {
+          state.error = Eval.later(Chain.one(Expectation.EndOfString(offset, state.str.length)))
         }
         ()
       }
@@ -2128,7 +2141,7 @@ object Parser {
           state.offset += message.length
           ()
         } else {
-          state.error = Chain.one(Expectation.OneOfStr(offset, message :: Nil))
+          state.error = Eval.later(Chain.one(Expectation.OneOfStr(offset, message :: Nil)))
           ()
         }
       }
@@ -2144,7 +2157,7 @@ object Parser {
           state.offset += message.length
           ()
         } else {
-          state.error = Chain.one(Expectation.OneOfStr(offset, message :: Nil))
+          state.error = Eval.later(Chain.one(Expectation.OneOfStr(offset, message :: Nil)))
           ()
         }
       }
@@ -2152,21 +2165,23 @@ object Parser {
 
     case class Fail[A]() extends Parser[A] {
       override def parseMut(state: State): A = {
-        state.error = Chain.one(Expectation.Fail(state.offset));
+        val offset = state.offset
+        state.error = Eval.later(Chain.one(Expectation.Fail(offset)))
         null.asInstanceOf[A]
       }
     }
 
     case class FailWith[A](message: String) extends Parser[A] {
       override def parseMut(state: State): A = {
-        state.error = Chain.one(Expectation.FailWith(state.offset, message));
+        val offset = state.offset
+        state.error = Eval.later(Chain.one(Expectation.FailWith(offset, message)))
         null.asInstanceOf[A]
       }
     }
 
     final def oneOf[A](all: Array[Parser0[A]], state: State): A = {
       val offset = state.offset
-      var errs: Chain[Expectation] = Chain.nil
+      var errs: Eval[Chain[Expectation]] = Eval.later(Chain.nil)
       var idx = 0
       while (idx < all.length) {
         val thisParser = all(idx)
@@ -2180,7 +2195,7 @@ object Parser {
           // we failed to parse, but didn't consume input
           // is unchanged we continue
           // else we stop
-          errs = errs ++ err
+          errs = errs.map(_ ++ err.value)
           state.error = null
           idx = idx + 1
         }
@@ -2221,7 +2236,7 @@ object Parser {
         }
       }
       if (lastMatch < 0) {
-        state.error = Chain.one(Expectation.OneOfStr(startOffset, all.toList))
+        state.error = Eval.later(Chain.one(Expectation.OneOfStr(startOffset, all.toList)))
         state.offset = startOffset
       } else {
         state.offset = lastMatch
@@ -2645,7 +2660,8 @@ object Parser {
           state.offset += 1
           char
         } else {
-          state.error = Chain.one(Expectation.InRange(offset, Char.MinValue, Char.MaxValue))
+          state.error =
+            Eval.later(Chain.one(Expectation.InRange(offset, Char.MinValue, Char.MaxValue)))
           '\u0000'
         }
       }
@@ -2656,15 +2672,17 @@ object Parser {
 
       override def toString = s"CharIn($min, bitSet = ..., $ranges)"
 
-      def makeError(offset: Int): Chain[Expectation] = {
-        var result = Chain.empty[Expectation]
-        var aux = ranges.toList
-        while (aux.nonEmpty) {
-          val (s, e) = aux.head
-          result = result :+ Expectation.InRange(offset, s, e)
-          aux = aux.tail
+      def makeError(offset: Int): Eval[Chain[Expectation]] = {
+        Eval.later {
+          var result = Chain.empty[Expectation]
+          var aux = ranges.toList
+          while (aux.nonEmpty) {
+            val (s, e) = aux.head
+            result = result :+ Expectation.InRange(offset, s, e)
+            aux = aux.tail
+          }
+          result
         }
-        result
       }
 
       override def parseMut(state: State): Char = {
@@ -2703,7 +2721,7 @@ object Parser {
           val matchedStr = state.str.substring(offset, state.offset)
           // we don't reset the offset, so if the underlying parser
           // advanced it will fail in a OneOf
-          state.error = Chain.one(Expectation.ExpectedFailureAt(offset, matchedStr))
+          state.error = Eval.later(Chain.one(Expectation.ExpectedFailureAt(offset, matchedStr)))
         }
 
         state.offset = offset
@@ -2732,7 +2750,7 @@ object Parser {
       override def parseMut(state: State): A = {
         val a = under.parseMut(state)
         if (state.error ne null) {
-          state.error = state.error.map(Expectation.WithContext(context, _))
+          state.error = state.error.map(_.map(Expectation.WithContext(context, _)))
         }
         a
       }
@@ -2742,7 +2760,7 @@ object Parser {
       override def parseMut(state: State): A = {
         val a = under.parseMut(state)
         if (state.error ne null) {
-          state.error = state.error.map(Expectation.WithContext(context, _))
+          state.error = state.error.map(_.map(Expectation.WithContext(context, _)))
         }
         a
       }
