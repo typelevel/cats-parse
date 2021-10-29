@@ -1805,6 +1805,8 @@ object Parser {
 
   private object Impl {
 
+    val nilError: Eval[Chain[Expectation]] = Eval.now(Chain.nil)
+
     val allChars = Char.MinValue to Char.MaxValue
 
     case class ConstFn[A](result: A) extends Function[Any, A] {
@@ -2181,7 +2183,7 @@ object Parser {
 
     final def oneOf[A](all: Array[Parser0[A]], state: State): A = {
       val offset = state.offset
-      var errs: Eval[Chain[Expectation]] = Eval.later(Chain.nil)
+      var errs: Eval[Chain[Expectation]] = nilError
       var idx = 0
       while (idx < all.length) {
         val thisParser = all(idx)
@@ -2195,7 +2197,7 @@ object Parser {
           // we failed to parse, but didn't consume input
           // is unchanged we continue
           // else we stop
-          errs = errs.map(_ ++ err.value)
+          errs = for { e1 <- errs; e2 <- err } yield e1 ++ e2
           state.error = null
           idx = idx + 1
         }
