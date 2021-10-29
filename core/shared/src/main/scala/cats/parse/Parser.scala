@@ -1482,7 +1482,13 @@ object Parser {
   /** parse one character that matches a given function
     */
   def charWhere(fn: Char => Boolean): Parser[Char] =
-    charIn(Impl.allChars.filter(fn))
+    fn match {
+      case s: Set[Char] =>
+        // Set extends function, but it is also iterable
+        charIn(s)
+      case _ =>
+        charIn(Impl.allChars.filter(fn))
+    }
 
   /** Parse a string while the given function is true
     */
