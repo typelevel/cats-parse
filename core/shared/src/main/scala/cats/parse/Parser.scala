@@ -886,6 +886,19 @@ object Parser {
       */
     def with1: Soft01[A] =
       new Soft01(parser)
+
+    /** Like regular between, but uses soft products This is particularly useful with whitespace and
+      * separators, e.g. a separator might be `char(',').soft.surroundedBy(whitespace0)`
+      */
+    def between(b: Parser0[Any], c: Parser0[Any]): Parser0[A] =
+      (b.void.soft ~ (parser.soft ~ c.void)).map { case (_, (a, _)) => a }
+
+    /** Use this parser to parse surrounded by values using soft products
+      *
+      * This is the same as `between(b, b)`
+      */
+    def surroundedBy(b: Parser0[Any]): Parser0[A] =
+      between(b, b)
   }
 
   /** If we can parse this then that, do so, if we fail that without consuming, rewind before this
@@ -900,6 +913,12 @@ object Parser {
 
     override def <*[B](that: Parser0[B]): Parser[A] =
       softProduct10(parser, void0(that)).map(_._1)
+
+    override def between(b: Parser0[Any], c: Parser0[Any]): Parser[A] =
+      (b.void.with1.soft ~ (parser.soft ~ c.void)).map { case (_, (a, _)) => a }
+
+    override def surroundedBy(b: Parser0[Any]): Parser[A] =
+      between(b, b)
   }
 
   /** If we can parse this then that, do so, if we fail that without consuming, rewind before this

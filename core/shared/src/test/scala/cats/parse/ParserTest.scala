@@ -1489,6 +1489,44 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("parse soft.between open and close") {
+    forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) {
+      (genP1, genP, genQ, str) =>
+        val pa = genP1.fa.soft.between(genP.fa, genQ.fa)
+        val pb = genP.fa.soft *> (genP1.fa.soft <* genQ.fa)
+
+        assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
+  property("soft.surroundedBy consistent with soft.between") {
+    forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+      val pa = genP1.fa.soft.between(genP.fa, genP.fa)
+      val pb = genP1.fa.soft.surroundedBy(genP.fa)
+
+      assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
+  property("parse soft.between open and close with Parser this") {
+    forAll(ParserGen.gen, ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) {
+      (genP1, genP, genQ, str) =>
+        val pa = genP1.fa.soft.between(genP.fa, genQ.fa)
+        val pb = genP.fa.soft *> (genP1.fa.soft <* genQ.fa)
+
+        assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
+  property("soft.surroundedBy consistent with between with Parser this") {
+    forAll(ParserGen.gen, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP, str) =>
+      val pa = genP1.fa.soft.between(genP.fa, genP.fa)
+      val pb = genP1.fa.soft.surroundedBy(genP.fa)
+
+      assertEquals(pa.parse(str), pb.parse(str))
+    }
+  }
+
   property("parse between open and close with Parser args") {
     forAll(ParserGen.gen0, ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) {
       (genP1, genP, genQ, str) =>
