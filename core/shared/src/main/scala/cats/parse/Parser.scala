@@ -933,6 +933,12 @@ object Parser {
 
     def <*[B](that: Parser[B]): Parser[A] =
       softProduct01(parser, void(that)).map(_._1)
+
+    def between(b: Parser[Any], c: Parser[Any]): Parser[A] =
+      (b.void.soft ~ (parser.soft ~ c.void)).map { case (_, (a, _)) => a }
+
+    def surroundedBy(b: Parser[Any]): Parser[A] =
+      between(b, b)
   }
 
   /** Don't advance in the parsed string, just return a This is used by the Applicative typeclass.
