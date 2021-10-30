@@ -1896,7 +1896,7 @@ object Parser {
         case WithContextP0(_, p) => alwaysSucceeds(p)
         // by construction we never build a Not(Fail()) since
         // it would just be the same as unit
-        //case Not(Fail() | FailWith(_)) => true
+        // case Not(Fail() | FailWith(_)) => true
         case _ => false
       }
 
@@ -2507,7 +2507,7 @@ object Parser {
     ): Boolean = {
       var offset = state.offset
       var cnt = 0
-      //maxMinusOne == Int.MaxValue is a sentinel value meaning "forever"
+      // maxMinusOne == Int.MaxValue is a sentinel value meaning "forever"
       while (cnt <= maxMinusOne) {
         val a = p.parseMut(state)
         if (state.error eq null) {
@@ -2535,7 +2535,7 @@ object Parser {
     final def repNoCapture[A](p: Parser[A], min: Int, maxMinusOne: Int, state: State): Unit = {
       var offset = state.offset
       var cnt = 0
-      //maxMinusOne == Int.MaxValue is a sentinel value meaning "forever"
+      // maxMinusOne == Int.MaxValue is a sentinel value meaning "forever"
       while (cnt <= maxMinusOne) {
         p.parseMut(state)
         if (state.error eq null) {
