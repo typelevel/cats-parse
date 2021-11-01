@@ -2622,7 +2622,7 @@ object Parser {
             // and any direct prefix CharIns
             val tail1 = tail.filterNot(_.isInstanceOf[CharIn])
             (result :+ AnyChar.asInstanceOf[P0]) ++ Chain.fromSeq(tail1)
-          case (ci @ CharIn(_, _, _)) :: tail =>
+          case (ci: CharIn) :: tail =>
             loop(tail, ci :: front, result)
           case h :: tail =>
             // h is not an AnyChar or CharIn
