@@ -56,6 +56,6 @@ object BitSetUtil {
         .takeWhile(_ >= 0)
         .map { i => (m + i).toChar }
 
-    bs.flatMap { case (m, bs) => toIter(m, bs) }
+    bs.iterator.flatMap { case (m, bs) => toIter(m, bs) }.toSet
   }
 }
