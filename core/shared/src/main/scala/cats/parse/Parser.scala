@@ -1282,12 +1282,19 @@ object Parser {
   /** product with the first argument being a Parser
     */
   def product10[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
-    Impl.Prod(first, second)
+    first match {
+      case f @ Impl.Fail() => f.widen
+      case f @ Impl.FailWith(_) => f.widen
+      case _ => Impl.Prod(first, second)
+    }
 
   /** product with the second argument being a Parser
     */
   def product01[A, B](first: Parser0[A], second: Parser[B]): Parser[(A, B)] =
-    Impl.Prod(first, second)
+    first match {
+      case p1: Parser[A] => product10(p1, second)
+      case _ => Impl.Prod(first, second)
+    }
 
   /** softProduct, a variant of product A soft product backtracks if the first succeeds and the
     * second is an epsilon-failure. By contrast product will be a failure in that case
@@ -1312,7 +1319,11 @@ object Parser {
     * see @Parser.soft
     */
   def softProduct10[A, B](first: Parser[A], second: Parser0[B]): Parser[(A, B)] =
-    Impl.SoftProd(first, second)
+    first match {
+      case f @ Impl.Fail() => f.widen
+      case f @ Impl.FailWith(_) => f.widen
+      case _ => Impl.SoftProd(first, second)
+    }
 
   /** softProduct with the second argument being a Parser A soft product backtracks if the first
     * succeeds and the second is an epsilon-failure. By contrast product will be a failure in that
@@ -1321,7 +1332,11 @@ object Parser {
     * see @Parser.soft
     */
   def softProduct01[A, B](first: Parser0[A], second: Parser[B]): Parser[(A, B)] =
-    Impl.SoftProd(first, second)
+    first match {
+      case f @ Impl.Fail() => f.widen
+      case f @ Impl.FailWith(_) => f.widen
+      case _ => Impl.SoftProd(first, second)
+    }
 
   /** transform a Parser0 result
     */
@@ -1348,10 +1363,8 @@ object Parser {
           case _ => AndThen(f0).andThen(fn)
         }
         Impl.Map(p0, f1)
-      case Impl.Fail() | Impl.FailWith(_) =>
-        // these are really Parser[Nothing{
-        // but scala can't see that, so we cast
-        p.asInstanceOf[Parser[B]]
+      case f @ Impl.Fail() => f.widen
+      case f @ Impl.FailWith(_) => f.widen
       case _ => Impl.Map(p, fn)
     }
 
@@ -1382,21 +1395,31 @@ object Parser {
     * to optimization
     */
   def flatMap0[A, B](pa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
-    Impl.FlatMap0(pa, fn)
+    pa match {
+      case p: Parser[A] => flatMap10(p)(fn)
+      case _ => Impl.FlatMap0(pa, fn)
+    }
 
   /** Standard monadic flatMap where you start with a Parser Avoid this function if possible. If you
     * can instead use product, ~, *>, or <* use that. flatMap always has to allocate a parser, and
     * the parser is less amenable to optimization
     */
   def flatMap10[A, B](pa: Parser[A])(fn: A => Parser0[B]): Parser[B] =
-    Impl.FlatMap(pa, fn)
+    pa match {
+      case f @ Impl.Fail() => f.widen
+      case f @ Impl.FailWith(_) => f.widen
+      case _ => Impl.FlatMap(pa, fn)
+    }
 
   /** Standard monadic flatMap where you end with a Parser Avoid this function if possible. If you
     * can instead use product, ~, *>, or <* use that. flatMap always has to allocate a parser, and
     * the parser is less amenable to optimization
     */
   def flatMap01[A, B](pa: Parser0[A])(fn: A => Parser[B]): Parser[B] =
-    Impl.FlatMap(pa, fn)
+    pa match {
+      case p1: Parser[A] => flatMap10(p1)(fn)
+      case _ => Impl.FlatMap(pa, fn)
+    }
 
   /** tail recursive monadic flatMaps This is a rarely used function, but needed to implement
     * cats.FlatMap Avoid this function if possible. If you can instead use product, ~, *>, or <* use
@@ -1588,10 +1611,8 @@ object Parser {
       case v @ Impl.Void(_) => v
       case _ =>
         Impl.unmap(pa) match {
-          case f @ (Impl.Fail() | Impl.FailWith(_)) =>
-            // these are really Parser[Nothing]
-            // but scala can't see that, so we cast
-            f.asInstanceOf[Parser[Unit]]
+          case f @ Impl.Fail() => f.widen
+          case f @ Impl.FailWith(_) => f.widen
           case p: Impl.Str => p
           case p: Impl.StringIn => p
           case p: Impl.IgnoreCase => p
@@ -2202,6 +2223,8 @@ object Parser {
         state.error = Eval.later(Chain.one(Expectation.Fail(offset)))
         null.asInstanceOf[A]
       }
+
+      def widen[B]: Parser[B] = this.asInstanceOf[Parser[B]]
     }
 
     case class FailWith[A](message: String) extends Parser[A] {
@@ -2210,6 +2233,21 @@ object Parser {
         state.error = Eval.later(Chain.one(Expectation.FailWith(offset, message)))
         null.asInstanceOf[A]
       }
+
+      def widen[B]: Parser[B] = this.asInstanceOf[Parser[B]]
+    }
+
+    /*
+     * We don't want to include empty Fail messages inside of a oneOf
+     * since they are the zeros of the orElse operation
+     */
+    final def filterFails(offset: Int, fs: Chain[Expectation]): Chain[Expectation] = {
+      val fs1 = fs.filter {
+        case Expectation.Fail(_) => false
+        case _ => true
+      }
+      if (fs1.isEmpty) Chain.one(Expectation.Fail(offset))
+      else fs1
     }
 
     final def oneOf[A](all: Array[Parser0[A]], state: State): A = {
@@ -2228,7 +2266,7 @@ object Parser {
           // we failed to parse, but didn't consume input
           // is unchanged we continue
           // else we stop
-          errs = for { e1 <- errs; e2 <- err } yield e1 ++ e2
+          errs = for { e1 <- errs; e2 <- err } yield filterFails(offset, e1 ++ e2)
           state.error = null
           idx = idx + 1
         }
