@@ -602,11 +602,11 @@ class ParserTest extends munit.ScalaCheckSuite {
       .withMinSuccessfulTests(tests)
       .withMaxDiscardRatio(10)
 
-  //override val scalaCheckInitialSeed =
-    // past regressions that we can check periodically
-    //"bUQvEfxFZ73bxtVjauK8tJDrEKOFbxUfk6WrGiy3bkH="
-    //"PPsKExr4HRlyCXkMrC6Rki5u59V88vwSeVTiGWJFS3G="
-    //"Ova1uT18mkE4uTX4RdgQza6z70fxyv6micl4hIZvywP="
+  // override val scalaCheckInitialSeed =
+  // past regressions that we can check periodically
+  // "bUQvEfxFZ73bxtVjauK8tJDrEKOFbxUfk6WrGiy3bkH="
+  // "PPsKExr4HRlyCXkMrC6Rki5u59V88vwSeVTiGWJFS3G="
+  // "Ova1uT18mkE4uTX4RdgQza6z70fxyv6micl4hIZvywP="
 
   def parseTest[A: Eq](p: Parser0[A], str: String, a: A) =
     p.parse(str) match {
@@ -829,11 +829,11 @@ class ParserTest extends munit.ScalaCheckSuite {
                   case Parser.Expectation.Fail(0) => false
                   case _ => true
                 }) match {
-                    case None =>
-                      Parser.Error(0, NonEmptyList(Parser.Expectation.Fail(0), Nil))
-                    case Some(nel) =>
-                      Parser.Error(err1.failedAtOffset, Parser.Expectation.unify(nel))
-                  }
+                  case None =>
+                    Parser.Error(0, NonEmptyList(Parser.Expectation.Fail(0), Nil))
+                  case Some(nel) =>
+                    Parser.Error(err1.failedAtOffset, Parser.Expectation.unify(nel))
+                }
               } else err1
             }
         } else left
