@@ -79,35 +79,37 @@ object Json {
 # Performance
 
 We have a benchmark suite that compares JSON parsing across several commonly used libraries. A
-recent (2020/11/02) result is below:
+recent (2021/11/05) result is below:
 
 ```
-[info] Benchmark                        Mode  Cnt    Score    Error  Units
-[info] BarBench.catsParseParse          avgt   10   ≈ 10⁻³           ms/op
-[info] BarBench.fastparseParse          avgt   10   ≈ 10⁻⁴           ms/op
-[info] BarBench.jawnParse               avgt   10   ≈ 10⁻⁴           ms/op
-[info] BarBench.parboiled2Parse         avgt   10   ≈ 10⁻⁴           ms/op
-[info] BarBench.parsleyParseCold        avgt   10    0.083 ±  0.001  ms/op
-[info] Bla25Bench.catsParseParse        avgt   10   34.558 ±  0.192  ms/op
-[info] Bla25Bench.fastparseParse        avgt   10   21.651 ±  0.050  ms/op
-[info] Bla25Bench.jawnParse             avgt   10    9.758 ±  0.059  ms/op
-[info] Bla25Bench.parboiled2Parse       avgt   10   29.403 ±  0.082  ms/op
-[info] Bla25Bench.parsleyParseCold      avgt   10   38.594 ±  0.220  ms/op
-[info] CountriesBench.catsParseParse    avgt   10   12.656 ±  0.031  ms/op
-[info] CountriesBench.fastparseParse    avgt   10    6.722 ±  0.040  ms/op
-[info] CountriesBench.jawnParse         avgt   10    1.720 ±  0.004  ms/op
-[info] CountriesBench.parboiled2Parse   avgt   10    5.674 ±  0.018  ms/op
-[info] CountriesBench.parsleyParseCold  avgt   10   16.040 ±  0.070  ms/op
-[info] Qux2Bench.catsParseParse         avgt   10   10.692 ±  0.040  ms/op
-[info] Qux2Bench.fastparseParse         avgt   10    9.195 ±  0.074  ms/op
-[info] Qux2Bench.jawnParse              avgt   10    2.792 ±  0.014  ms/op
-[info] Qux2Bench.parboiled2Parse        avgt   10    8.641 ±  0.034  ms/op
-[info] Qux2Bench.parsleyParseCold       avgt   10   14.539 ±  0.222  ms/op
-[info] Ugh10kBench.catsParseParse       avgt   10   87.602 ±  0.554  ms/op
-[info] Ugh10kBench.fastparseParse       avgt   10   63.500 ±  0.144  ms/op
-[info] Ugh10kBench.jawnParse            avgt   10   16.802 ±  0.082  ms/op
-[info] Ugh10kBench.parboiled2Parse      avgt   10   49.871 ±  0.161  ms/op
-[info] Ugh10kBench.parsleyParseCold     avgt   10  104.814 ±  0.460  ms/op
+[info] Benchmark                         Mode  Cnt    Score    Error  Units
+[info] BarBench.catsParseParse           avgt    4   ≈ 10⁻⁴           ms/op
+[info] BarBench.fastparseParse           avgt    4   ≈ 10⁻⁴           ms/op
+[info] BarBench.jawnParse                avgt    4   ≈ 10⁻⁴           ms/op
+[info] BarBench.parboiled2Parse          avgt    4   ≈ 10⁻⁴           ms/op
+[info] BarBench.parsleyParseCold         avgt    4    0.064 ±  0.001  ms/op
+[info] Bla25Bench.catsParseParse         avgt    4   23.095 ±  0.174  ms/op
+[info] Bla25Bench.fastparseParse         avgt    4   15.622 ±  0.414  ms/op
+[info] Bla25Bench.jawnParse              avgt    4    7.501 ±  0.143  ms/op
+[info] Bla25Bench.parboiled2Parse        avgt    4   18.423 ±  6.094  ms/op
+[info] Bla25Bench.parsleyParseCold       avgt    4   30.752 ±  0.279  ms/op
+[info] CountriesBench.catsParseParse     avgt    4    7.169 ±  0.041  ms/op
+[info] CountriesBench.fastparseParse     avgt    4    5.023 ±  0.023  ms/op
+[info] CountriesBench.jawnParse          avgt    4    1.235 ±  0.011  ms/op
+[info] CountriesBench.parboiled2Parse    avgt    4    2.936 ±  0.008  ms/op
+[info] CountriesBench.parsleyParseCold   avgt    4   11.800 ±  0.162  ms/op
+[info] Qux2Bench.catsParseParse          avgt    4    7.031 ±  0.599  ms/op
+[info] Qux2Bench.fastparseParse          avgt    4    6.597 ±  0.031  ms/op
+[info] Qux2Bench.jawnParse               avgt    4    2.227 ±  0.014  ms/op
+[info] Qux2Bench.parboiled2Parse         avgt    4    5.514 ±  0.472  ms/op
+[info] Qux2Bench.parsleyParseCold        avgt    4   10.327 ±  0.293  ms/op
+[info] StringInBenchmarks.oneOfParse     avgt    4   88.105 ±  2.658  ns/op
+[info] StringInBenchmarks.stringInParse  avgt    4  129.246 ±  1.820  ns/op
+[info] Ugh10kBench.catsParseParse        avgt    4   53.679 ±  1.385  ms/op
+[info] Ugh10kBench.fastparseParse        avgt    4   45.165 ±  0.356  ms/op
+[info] Ugh10kBench.jawnParse             avgt    4   11.404 ±  0.068  ms/op
+[info] Ugh10kBench.parboiled2Parse       avgt    4   31.984 ±  0.748  ms/op
+[info] Ugh10kBench.parsleyParseCold      avgt    4   77.150 ±  1.093  ms/op
 ```
 
 Note that parboiled and fastparse both use macros that make them very difficult to port to Dotty.
