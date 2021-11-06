@@ -2266,14 +2266,14 @@ object Parser {
           // we failed to parse, but didn't consume input
           // is unchanged we continue
           // else we stop
-          errs = for { e1 <- errs; e2 <- err } yield filterFails(offset, e1 ++ e2)
+          errs = for { e1 <- errs; e2 <- err } yield e1 ++ e2
           state.error = null
           idx = idx + 1
         }
       }
       // if we got here, all of them failed, but we
       // never advanced the offset
-      state.error = errs
+      state.error = errs.map(filterFails(offset, _))
       null.asInstanceOf[A]
     }
 

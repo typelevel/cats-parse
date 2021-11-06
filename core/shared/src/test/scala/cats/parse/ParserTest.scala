@@ -2112,6 +2112,15 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("a Parser never succeeds and does not advance") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+      genP.fa.parse(str) match {
+        case Right((rest, _)) => assertNotEquals(rest, str)
+        case Left(_) => ()
+      }
+    }
+  }
+
   property("select on pure values works as expected") {
     forAll { (left: Option[Either[Int, String]], right: Option[Int => String], str: String) =>
       val pleft = left match {
