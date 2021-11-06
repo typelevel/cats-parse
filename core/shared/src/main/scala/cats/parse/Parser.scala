@@ -2243,7 +2243,7 @@ object Parser {
      */
     final def filterFails(offset: Int, fs: Chain[Expectation]): Chain[Expectation] = {
       val fs1 = fs.filter {
-        case Expectation.Fail(_) => false
+        case Expectation.Fail(o) if o == offset => false
         case _ => true
       }
       if (fs1.isEmpty) Chain.one(Expectation.Fail(offset))

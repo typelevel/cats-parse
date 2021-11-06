@@ -826,7 +826,7 @@ class ParserTest extends munit.ScalaCheckSuite {
               if (err1.failedAtOffset == 0) {
                 val errs = err.expected ::: err1.expected
                 NonEmptyList.fromList(errs.filter {
-                  case Parser.Expectation.Fail(_) => false
+                  case Parser.Expectation.Fail(0) => false
                   case _ => true
                 }) match {
                     case None =>
