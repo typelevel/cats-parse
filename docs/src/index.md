@@ -27,7 +27,271 @@ this library has a few goals:
 5. Safety: by separating Parser0, a parser that may consume no input, from Parser, a parser must consume at least one character on success. Most combinators and methods can be made safer to use and less prone to runtime errors.
 6. Stability: we are very reluctant to break compatibility between versions. We want to put a minimal tax on users to stay on the latest versions.
 
-# An Example
+# Tutorial
+
+## Simple parser
+
+The library provides a set of simple parsers which might be combined to create any parsing logic. The simplest parser is `Parser.anyChar` which is successful where there is one char at the input. It has type `Parser[Char]` which means it returns one parsed char.
+
+To provide any input to parser one need to use `parse` method.
+
+```scala
+import cats.parse.Parser
+
+val p: Parser[Char] = Parser.anyChar
+
+p.parse("t")
+// res0: Either[Error, Tuple2[String, Char]] = Right((,t))
+p.parse("")
+// res1: Either[Error, Tuple2[String, Char]] = Left(Error(0,NonEmptyList(InRange(0,,))))
+p.parse("two")
+// res2: Either[Error, Tuple2[String, Char]] = Right((wo,t))
+```
+
+Notice the return type. `Tuple2[String, Char]` contains the rest of the input string and one parsed char if parsing was successful. It returns `Left` with error message if there was some parsing error.
+
+## Mapping output
+
+The output of the parser might be processed with `map` method:
+
+```scala
+import cats.parse.Parser
+
+case class CharWrapper(value: Char) 
+
+val p: Parser[CharWrapper] = Parser.anyChar.map(char => CharWrapper(char))
+
+p.parse("t")
+// res0 = Right((,CharWrapper(t)))
+```
+
+## Combining parsers
+
+The parsers might be combined through operators:
+
+- `~` - product. Allows continuing parsing if the left side was successful;
+- `<*`, `*>` - productL and productR. Works just like product but drop part of result;
+- `|`, `orElse`. Parser will be successful if any of sides is successful.
+
+For this example we'll be using `cats.parse.Rfc5234` package which contains such parsers as `alpha` (Latin alphabet) and `sp` (whitespace). 
+
+```scala
+import cats.parse.Rfc5234.{sp, alpha}
+import cats.parse.Parser
+
+/* Product */
+
+// the sp parser won't return the whitespace, it just returns Unit if it successful
+val p1: Parser[(Char, Unit)] = alpha ~ sp
+
+p1.parse("t")
+// res0: Either[Error, Tuple2[String, Tuple2[Char, Unit]]] = Left(Error(1,NonEmptyList(InRange(1, , ))))
+p1.parse("t ")
+// res1: Either[Error, Tuple2[String, Tuple2[Char, Unit]]] = Right((,(t,())))
+
+/* productL, productR */
+
+// The type is just Char because we dropping the space
+// to drop the alphabet change the arrow side: alpha *> sp
+val p2: Parser[Char] = alpha <* sp
+
+// still error since we need the space even if we drop it
+p2.parse("t")
+// res2: Either[Error, Tuple2[String, Char]] = Left(Error(1,NonEmptyList(InRange(1, , ))))
+p2.parse("t ")
+// res3: Either[Error, Tuple2[String, Char]] = Right((,t))
+
+/* OrElse */
+
+val p3: Parser[AnyVal] = alpha | sp
+
+p3.parse("t")
+// res4: Either[Error, Tuple2[String, AnyVal]] = Right((,t))
+p3.parse(" ")
+// res5: Either[Error, Tuple2[String, AnyVal]] = Right((,()))
+```
+
+## Repeating parsers
+
+Sometimes we need something to repeat zero or more types. The cats-parse have `rep` and `rep0` methods for repeating values. `rep` means that the parser must be successful *at least one time*. `rep0` means that the parser output might be empty.
+
+```scala
+import cats.data.NonEmptyList
+import cats.parse.Rfc5234.alpha
+import cats.parse.Parser
+
+val p1: Parser[NonEmptyList[Char]]  = alpha.rep
+val p2: Parser0[List[Char]] = alpha.rep0
+
+p1.parse("")
+// Left(Error(0,NonEmptyList(InRange(0,A,Z), InRange(0,a,z))))
+p2.parse("")
+// Right((,List()))
+p2.parse("something")
+// Right((,List(s, o, m, e, t, h, i, n, g)))
+```
+
+Notice the types of parsers. `Parser` type always means some non-empty output and the output of `Parser0` might be empty.
+
+## Parsers with empty output
+
+Some parsers never return a value. They have a type `Parser0`. One might get this type of parser when using `rep0` or `.?` methods.
+
+```scala
+import cats.parse.Rfc5234.{alpha, sp}
+import cats.parse.Parser
+
+val p: Parser[String] = (alpha.rep <* sp.?).rep.map { words => 
+  words.map(charsList => charsList.toList.mkString("")).toList.mkString(" ")
+}
+
+p.parse("hello world")
+// res0 = Right((,hello world))
+```
+
+Notice the type we got - `Parser[String]`. That is because we have `rep` outside and our `alpha.rep` parser with `Parser` type is on the left side of the clause. But what if we want to parse strings with spaces at the beginning?
+
+```scala
+val p = (sp.? *> alpha.rep <* sp.?).rep.map { words => 
+  words.map(charsList => charsList.toList.mkString("")).toList.mkString(" ")
+}
+```
+
+We will get an error `value rep is not a member of cats.parse.Parser0`. This happens since we have the left-side parser as optional in `sp.? *> alpha.rep <* sp.?` clause. This clause has a type `Parser0` which can't be repeated.
+
+But this parser can't be empty because of `alpha.rep` parser, and we know it. For these types of parsers we need to use `with1` wrapper method on the *left side* of the clause.
+
+```scala
+import cats.parse.Rfc5234.{alpha, sp}
+import cats.parse.Parser
+
+
+val p: Parser[String] = (sp.?.with1 *> alpha.rep <* sp.?).rep.map { words => 
+  words.map(charsList => charsList.toList.mkString("")).toList.mkString(" ")
+}
+
+p.parse("hello world")
+// res0: Either[Error, Tuple2[String, String]] = Right((,hello world))
+p.parse(" hello world")
+// res1: Either[Error, Tuple2[String, String]] = Right((,hello world))
+```
+
+If we have multiple `Parser0` parsers before the `Parser` - we'd need to use parenthesis like this:
+`(sp.? ~ sp.?).with1 *> alpha.rep`.
+
+## Error handling
+
+### Backtrack
+
+Parser job might be interrupted by parsing error. This happens when input can't be parsed with this parser:
+
+```scala
+import cats.parse.Rfc5234.{digit, sp}
+
+val p = sp *> digit <* sp
+
+p.parse(" 1")
+// res1 = Left(Error(2,NonEmptyList(InRange(2, , ))))
+```
+
+`Parser.Error` contains two parameters:
+
+```scala
+final case class Error(failedAtOffset: Int, expected: NonEmptyList[Expectation])
+
+case class InRange(offset: Int, lower: Char, upper: Char) extends Expectation
+```
+
+In the error message we see the failed offset and the expected value. There is a lot of expected error types which can be found in source code.
+
+One thing we can do in this situation is providing a fallback parser which can be used in case of error. We can do this with `backtrack` operator which changes the behavior of `orElse` operator on the right side of the clause. It rewinds the input to the point where it started the parsing with backtracking and tries to parse the input with different parser:
+
+```scala
+import cats.parse.Rfc5234.{digit, sp}
+
+val p1 = sp *> digit <* sp
+val p2 = sp *> digit
+
+p1.backtrack.orElse(p2).parse(" 1")
+// res0: Either[Error, Tuple2[String, Char]] = Right((,1))
+(p1.backtrack | p2 ).parse(" 1")
+// res1: Either[Error, Tuple2[String, Char]] = Right((,1))
+```
+
+Notice that `(p1.backtrack | p2)` clause is another parser by itself since we're still combining parsers by using `orElse`. But we've already used `orElse` in example before without any `backtrack` operator, and it worked just fine. Why do we need `backtrack` now? Let's look at this example to understand where we need to use `backtrack` and where we don't:
+
+```scala
+import cats.parse.Rfc5234.{digit, sp}
+
+val p1 = sp *> digit <* sp
+val p2 = sp *> digit
+val p3 = digit
+
+(p1 | p2).parse(" 1")
+// res1 = Left(Error(2,NonEmptyList(InRange(2, , ))))
+
+(p1 | p2 | p3).parse("1")
+// res2 = Right((,1))
+```
+
+The first parsing is interrupted by error since it *started* the parsing (one first space was correct on parser `p1`) so it won't work without `backtrack`. The second parsing works fine with `orElse` alone since it does not start in `p1` or `p2`.
+
+So the `backtrack` helps us where the *left side* throws an error.
+
+### Soft
+
+This method might look similar to `backtrack`, but it allows us to *proceed* the parsing when the *right side* is failed. It is really useful for ambiguous parsers when we can't really tell what exactly we are parsing before the end. Let's say we want to parse some input to the search engine which contains fields. This might look like "field:search_query". Let's try to write a parser for this:
+
+```scala
+import cats.parse.Rfc5234.{alpha, sp}
+import cats.parse.Parser
+import cats.parse.Parser.{char => pchar}
+
+val searchWord = alpha.rep.string
+
+val fieldValue = alpha.rep.string ~ pchar(':')
+
+val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
+
+
+p1.parse("title:The Wind Has Risen")
+// res0 = Right((,(Some((title,())),The Wind Has Risen)))
+p1.parse("The Wind Has Risen")
+// res1 = Left(Error(3,NonEmptyList(InRange(3,:,:))))
+```
+
+This error happens because we can't really tell if we are parsing the `fieldValue` before we met a `:` char. We might do this with `backtrack` only by writing two parsers:
+
+```scala
+val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
+
+val p3 = (searchWord ~ sp.?).rep.string
+
+(p1.backtrack | p3).parse("title:The Wind Has Risen")
+// res0 = Right((,(Some((title,())),The Wind Has Risen)))
+(p1.backtrack | p3).parse("The Wind Has Risen")
+// res1 = Right((,The Wind Has Risen))
+```
+
+But this problem might be resolved with `soft` method:
+
+```scala
+val searchWord = alpha.rep.string
+
+val fieldValueSoft = alpha.rep.string.soft ~ pchar(':')
+
+val p2 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
+
+p2.parse("title:The Wind Has Risen")
+// res2 = Right((,(Some((title,())),The Wind Has Risen)))
+p2.parse("The Wind Has Risen")
+// res3 = Right((,(None,The Wind Has Risen)))
+```
+
+So when the *right side* throws an error the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
+
+
+# JSON parser example
 
 Below is most of a json parser (the string unescaping is elided). This example can give you a feel
 for what it is like to use this library.
