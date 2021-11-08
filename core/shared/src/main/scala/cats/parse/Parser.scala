@@ -2609,11 +2609,17 @@ object Parser {
      */
     def mergeCharIn[A, P0 <: Parser0[A]](ps: List[P0]): List[P0] = {
       @annotation.tailrec
-      def loop(ps: List[P0], front: List[(Int, BitSetUtil.Tpe)], result: Chain[P0]): Chain[P0] = {
+      def loop(ps: List[P0], front: List[CharIn], result: Chain[P0]): Chain[P0] = {
         @inline
         def frontRes: Chain[P0] =
-          if (front.isEmpty) Chain.nil
-          else Chain.one(Parser.charIn(BitSetUtil.union(front)).asInstanceOf[P0])
+          front match {
+            case Nil => Chain.nil
+            case one :: Nil => Chain.one(one.asInstanceOf[P0])
+            case many =>
+              // we need to union
+              val minBs: List[(Int, BitSetUtil.Tpe)] = many.map { case CharIn(m, bs, _) => (m, bs) }
+              Chain.one(Parser.charIn(BitSetUtil.union(minBs)).asInstanceOf[P0])
+          }
 
         ps match {
           case Nil => result ++ frontRes
@@ -2622,8 +2628,8 @@ object Parser {
             // and any direct prefix CharIns
             val tail1 = tail.filterNot(_.isInstanceOf[CharIn])
             (result :+ AnyChar.asInstanceOf[P0]) ++ Chain.fromSeq(tail1)
-          case CharIn(m, bs, _) :: tail =>
-            loop(tail, (m, bs) :: front, result)
+          case (ci: CharIn) :: tail =>
+            loop(tail, ci :: front, result)
           case h :: tail =>
             // h is not an AnyChar or CharIn
             // we make our prefix frontRes

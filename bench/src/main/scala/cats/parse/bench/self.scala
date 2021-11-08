@@ -40,7 +40,7 @@ object Json {
     val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: P[Unit] =
-      P.char(',').surroundedBy(whitespaces0).void
+      P.char(',').soft.surroundedBy(whitespaces0).void
 
     def rep0[A](pa: P[A]): P0[List[A]] =
       pa.repSep0(listSep).surroundedBy(whitespaces0)
