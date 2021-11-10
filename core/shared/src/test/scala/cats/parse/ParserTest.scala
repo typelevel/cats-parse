@@ -2446,4 +2446,18 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(Parser.charWhere(chars).parse(input), Parser.charIn(chars).parse(input))
     }
   }
+
+  property("P0.void is idempotent") {
+    forAll(ParserGen.gen0) { p =>
+      val v1 = p.fa.void
+      assertEquals(v1.void, v1)
+    }
+  }
+
+  property("P.void is idempotent") {
+    forAll(ParserGen.gen) { p =>
+      val v1 = p.fa.void
+      assertEquals(v1.void, v1)
+    }
+  }
 }
