@@ -65,18 +65,46 @@ p.parse("t")
 // res0 = Right((,CharWrapper(t)))
 ```
 
+There are built-in methods for mapping the output to types `String` or `Unit`:
+
+```scala
+import cats.parse.Rfc5234.digit
+import cats.parse.Parser
+
+/* String */
+
+val p2: Parser[String] = digit.map((c: Char) => c.toString)
+// is analog to
+val p3: Parser[String] = digit.string
+
+p3.parse("1")
+// res0: Either[Error, Tuple2[String, String]] = Right((,1))
+
+/* Unit */
+
+val p4: Parser[Unit] = digit.map((c: Char) => ())
+// is analog to
+val p5: Parser[Unit] = digit.void
+
+p5.parse("1")
+// res1: Either[Error, Tuple2[String, Unit]] = Right((,()))
+```
+
+
 ## Combining parsers
 
 The parsers might be combined through operators:
 
 - `~` - product. Allows continuing parsing if the left side was successful;
 - `<*`, `*>` - productL and productR. Works just like product but drop part of result;
+- `surroundedBy` - identical to `border *> parsingResult <* border`;
+- `between` - identical to `border1 *> parsingResult <* border2`;
 - `|`, `orElse`. Parser will be successful if any of sides is successful.
 
 For this example we'll be using `cats.parse.Rfc5234` package which contains such parsers as `alpha` (Latin alphabet) and `sp` (whitespace). 
 
 ```scala
-import cats.parse.Rfc5234.{sp, alpha}
+import cats.parse.Rfc5234.{sp, alpha, digit}
 import cats.parse.Parser
 
 /* Product */
@@ -100,6 +128,26 @@ p2.parse("t")
 // res2: Either[Error, Tuple2[String, Char]] = Left(Error(1,NonEmptyList(InRange(1, , ))))
 p2.parse("t ")
 // res3: Either[Error, Tuple2[String, Char]] = Right((,t))
+
+/* surroundedBy */
+
+val p4: Parser[Char] = sp *> alpha <* sp
+val p5: Parser[Char] = alpha.surroundedBy(sp)
+
+p4.parse(" a ")
+// res0: Either[Error, Tuple2[String, Char]] = Right((,a))
+p5.parse(" a ")
+// res1: Either[Error, Tuple2[String, Char]] = Right((,a))
+
+/* between */
+
+val p6: Parser[Char] = sp *> alpha <* digit
+val p7: Parser[Char] = alpha.between(sp, digit)
+
+p6.parse(" a1")
+// res2: Either[Error, Tuple2[String, Char]] = Right((,a))
+p7.parse(" a1")
+// res3: Either[Error, Tuple2[String, Char]] = Right((,a))
 
 /* OrElse */
 
@@ -133,6 +181,22 @@ p2.parse("something")
 
 Notice the types of parsers. `Parser` type always means some non-empty output and the output of `Parser0` might be empty.
 
+One common task in this example is to parse a full line (or words) of text. In the example it is done by `rep`, and then it could be mapped to `String` in different ways:
+
+```scala
+import cats.data.NonEmptyList
+import cats.parse.Rfc5234.alpha
+import cats.parse.Parser
+
+val p: Parser[String]  = alpha.rep.map((l: NonEmptyList[Char]) => l.toList.mkString)
+
+val p2: Parser[String] = alpha.rep.string
+val p3: Parser[String] = alpha.repAs[String]
+```
+
+All three parsers will be identical in parsing results, but `p2` and `p3` are using built-in methods which will not create intermediate list. `rep` + `map` creates intermediate list which is mapped to string in this example.
+
+
 ## Parsers with empty output
 
 Some parsers never return a value. They have a type `Parser0`. One might get this type of parser when using `rep0` or `.?` methods.
@@ -141,9 +205,7 @@ Some parsers never return a value. They have a type `Parser0`. One might get thi
 import cats.parse.Rfc5234.{alpha, sp}
 import cats.parse.Parser
 
-val p: Parser[String] = (alpha.rep <* sp.?).rep.map { words => 
-  words.map(charsList => charsList.toList.mkString("")).toList.mkString(" ")
-}
+val p: Parser[String] = (alpha.rep <* sp.?).rep.string
 
 p.parse("hello world")
 // res0 = Right((,hello world))
@@ -152,23 +214,19 @@ p.parse("hello world")
 Notice the type we got - `Parser[String]`. That is because we have `rep` outside and our `alpha.rep` parser with `Parser` type is on the left side of the clause. But what if we want to parse strings with spaces at the beginning?
 
 ```scala
-val p = (sp.? *> alpha.rep <* sp.?).rep.map { words => 
-  words.map(charsList => charsList.toList.mkString("")).toList.mkString(" ")
-}
+val p = (sp.? *> alpha.rep <* sp.?).rep.string
 ```
 
 We will get an error `value rep is not a member of cats.parse.Parser0`. This happens since we have the left-side parser as optional in `sp.? *> alpha.rep <* sp.?` clause. This clause has a type `Parser0` which can't be repeated.
 
-But this parser can't be empty because of `alpha.rep` parser, and we know it. For these types of parsers we need to use `with1` wrapper method on the *left side* of the clause.
+But this parser can't be empty because of `alpha.rep` parser, and we know it. For these types of parsers we need to use `with1` wrapper method on the *left side* of the clause:
 
 ```scala
 import cats.parse.Rfc5234.{alpha, sp}
 import cats.parse.Parser
 
 
-val p: Parser[String] = (sp.?.with1 *> alpha.rep <* sp.?).rep.map { words => 
-  words.map(charsList => charsList.toList.mkString("")).toList.mkString(" ")
-}
+val p: Parser[String] = (sp.?.with1 *> alpha.rep <* sp.?).rep.string
 
 p.parse("hello world")
 // res0: Either[Error, Tuple2[String, String]] = Right((,hello world))
@@ -181,9 +239,31 @@ If we have multiple `Parser0` parsers before the `Parser` - we'd need to use par
 
 ## Error handling
 
+Parser might be interrupted by parsing error. There are two kinds of errors:
+ - an error that has consumed 0 characters (**epsilon failure**);
+ - an error that has consumer 1 or more characters (**halting failure**).
+
+```scala
+import cats.parse.Rfc5234.{alpha, sp}
+import cats.parse.Parser
+
+val p1: Parser[Char] = alpha
+val p2: Parser[Char] = sp *> alpha
+
+// epsilon failure
+p1.parse("123")
+// res0: Either[Error, Tuple2[String, Char]] = Left(Error(0,NonEmptyList(InRange(0,A,Z), InRange(0,a,z))))
+
+// halting failure
+p2.parse(" 1")
+// res1: Either[Error, Tuple2[String, Char]] = Left(Error(1,NonEmptyList(InRange(1,A,Z), InRange(1,a,z))))
+```
+
+We need to make this difference because the first type of error allows us to say that parser is not matching the input before we started to process it and the second error happens while parser processing the input.
+
 ### Backtrack
 
-Parser job might be interrupted by parsing error. This happens when input can't be parsed with this parser:
+Backtrack allows us to convert a *halting failure* to *epsilon failure*. It also rewinds the input to the offset to that used before parsing began. The resulting parser might still be combined with others. Let's look at the example:
 
 ```scala
 import cats.parse.Rfc5234.{digit, sp}
@@ -204,7 +284,7 @@ case class InRange(offset: Int, lower: Char, upper: Char) extends Expectation
 
 In the error message we see the failed offset and the expected value. There is a lot of expected error types which can be found in source code.
 
-One thing we can do in this situation is providing a fallback parser which can be used in case of error. We can do this with `backtrack` operator which changes the behavior of `orElse` operator on the right side of the clause. It rewinds the input to the point where it started the parsing with backtracking and tries to parse the input with different parser:
+One thing we can do in this situation is providing a fallback parser which can be used in case of error. We can do this by using `backtrack` (which rewinds the input, so it will be passed to fallback parser as it was before the error) and combining it with `orElse` operator:
 
 ```scala
 import cats.parse.Rfc5234.{digit, sp}
@@ -218,7 +298,9 @@ p1.backtrack.orElse(p2).parse(" 1")
 // res1: Either[Error, Tuple2[String, Char]] = Right((,1))
 ```
 
-Notice that `(p1.backtrack | p2)` clause is another parser by itself since we're still combining parsers by using `orElse`. But we've already used `orElse` in example before without any `backtrack` operator, and it worked just fine. Why do we need `backtrack` now? Let's look at this example to understand where we need to use `backtrack` and where we don't:
+Notice that `(p1.backtrack | p2)` clause is another parser by itself since we're still combining parsers by using `orElse`. 
+
+But we've already used `orElse` in example before without any `backtrack` operator, and it worked just fine. Why do we need `backtrack` now? Let's look at this example:
 
 ```scala
 import cats.parse.Rfc5234.{digit, sp}
@@ -234,13 +316,13 @@ val p3 = digit
 // res2 = Right((,1))
 ```
 
-The first parsing is interrupted by error since it *started* the parsing (one first space was correct on parser `p1`) so it won't work without `backtrack`. The second parsing works fine with `orElse` alone since it does not start in `p1` or `p2`.
+The first parser combination is interrupted by *halting error* and the second parsing combination will only suffer from *epsilon errors*. The second parser works because `orElse` and `|` operators actually allows recovering from epsilon errors, but not from halting errors.
 
-So the `backtrack` helps us where the *left side* throws an error.
+So the `backtrack` helps us where the *left side* throws halting error.
 
 ### Soft
 
-This method might look similar to `backtrack`, but it allows us to *proceed* the parsing when the *right side* is failed. It is really useful for ambiguous parsers when we can't really tell what exactly we are parsing before the end. Let's say we want to parse some input to the search engine which contains fields. This might look like "field:search_query". Let's try to write a parser for this:
+This method might look similar to `backtrack`, but it allows us to *proceed* the parsing when the *right side* is throwing an epsilon error. It is really useful for ambiguous parsers when we can't really tell what exactly we are parsing before the end. Let's say we want to parse some input to the search engine which contains fields. This might look like "field:search_query". Let's try to write a parser for this:
 
 ```scala
 import cats.parse.Rfc5234.{alpha, sp}
@@ -260,7 +342,7 @@ p1.parse("The Wind Has Risen")
 // res1 = Left(Error(3,NonEmptyList(InRange(3,:,:))))
 ```
 
-This error happens because we can't really tell if we are parsing the `fieldValue` before we met a `:` char. We might do this with `backtrack` only by writing two parsers:
+This error happens because we can't really tell if we are parsing the `fieldValue` before we met a `:` char. We might do this with by writing two parsers, converting the first one's failure to epsilon failure by `backtrack` and then providing fallback parser by `|` operator (which allows the epsilon failures):
 
 ```scala
 val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
@@ -273,7 +355,7 @@ val p3 = (searchWord ~ sp.?).rep.string
 // res1 = Right((,The Wind Has Risen))
 ```
 
-But this problem might be resolved with `soft` method:
+But this problem might be resolved with `soft` method inside the first parser since the right side of it actually throws an epsilon failure itself:
 
 ```scala
 val searchWord = alpha.rep.string
@@ -288,7 +370,7 @@ p2.parse("The Wind Has Risen")
 // res3 = Right((,(None,The Wind Has Risen)))
 ```
 
-So when the *right side* throws an error the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
+So when the *right side* throws an epsilon failure the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
 
 
 # JSON parser example
