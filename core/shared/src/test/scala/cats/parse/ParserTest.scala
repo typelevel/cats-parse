@@ -602,6 +602,12 @@ class ParserTest extends munit.ScalaCheckSuite {
       .withMinSuccessfulTests(tests)
       .withMaxDiscardRatio(10)
 
+  // override val scalaCheckInitialSeed =
+  // past regressions that we can check periodically
+  // "bUQvEfxFZ73bxtVjauK8tJDrEKOFbxUfk6WrGiy3bkH="
+  // "PPsKExr4HRlyCXkMrC6Rki5u59V88vwSeVTiGWJFS3G="
+  // "Ova1uT18mkE4uTX4RdgQza6z70fxyv6micl4hIZvywP="
+
   def parseTest[A: Eq](p: Parser0[A], str: String, a: A) =
     p.parse(str) match {
       case Right((_, res)) =>
@@ -811,24 +817,28 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  def orElse[A](p1: Parser0[A], p2: Parser0[A], str: String): Either[Parser.Error, (String, A)] = {
-    if (p1 == Parser.Fail) p2.parse(str)
-    else if (p2 == Parser.Fail) p1.parse(str)
-    else
-      p1.parse(str) match {
-        case left @ Left(err) =>
-          if (err.failedAtOffset == 0) {
-            p2.parse(str)
-              .leftMap { err1 =>
-                if (err1.failedAtOffset == 0) {
-                  val errs = err.expected ::: err1.expected
-                  Parser.Error(err1.failedAtOffset, Parser.Expectation.unify(errs))
-                } else err1
-              }
-          } else left
-        case right => right
-      }
-  }
+  def orElse[A](p1: Parser0[A], p2: Parser0[A], str: String): Either[Parser.Error, (String, A)] =
+    p1.parse(str) match {
+      case left @ Left(err) =>
+        if (err.failedAtOffset == 0) {
+          p2.parse(str)
+            .leftMap { err1 =>
+              if (err1.failedAtOffset == 0) {
+                val errs = err.expected ::: err1.expected
+                NonEmptyList.fromList(errs.filter {
+                  case Parser.Expectation.Fail(0) => false
+                  case _ => true
+                }) match {
+                  case None =>
+                    Parser.Error(0, NonEmptyList(Parser.Expectation.Fail(0), Nil))
+                  case Some(nel) =>
+                    Parser.Error(err1.failedAtOffset, Parser.Expectation.unify(nel))
+                }
+              } else err1
+            }
+        } else left
+      case right => right
+    }
 
   property("oneOf0 composes as expected") {
     forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
@@ -1429,11 +1439,11 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("with1 *> and with1 <* work as expected") {
     forAll(ParserGen.gen0, ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, p2, str) =>
       val rp1 = p1.fa.with1 *> p2.fa
-      val rp2 = (p1.fa.with1 ~ p2.fa).map(_._2)
+      val rp2 = (p1.fa.void.with1 ~ p2.fa).map(_._2)
       assertEquals(rp1.parse(str), rp2.parse(str))
 
       val rp3 = p1.fa.with1 <* p2.fa
-      val rp4 = (p1.fa.with1 ~ p2.fa).map(_._1)
+      val rp4 = (p1.fa.with1 ~ p2.fa.void).map(_._1)
       assertEquals(rp3.parse(str), rp4.parse(str))
     }
   }
@@ -2099,6 +2109,15 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res = genP.fa.filter(_ => false).parse(str)
       assert(res.isLeft)
+    }
+  }
+
+  property("a Parser never succeeds and does not advance") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+      genP.fa.parse(str) match {
+        case Right((rest, _)) => assertNotEquals(rest, str)
+        case Left(_) => ()
+      }
     }
   }
 
