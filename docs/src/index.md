@@ -35,7 +35,7 @@ The library provides a set of simple parsers which might be combined to create a
 
 To provide any input to parser one need to use `parse` method.
 
-```scala
+```scala mdoc:reset
 import cats.parse.Parser
 
 val p: Parser[Char] = Parser.anyChar
@@ -54,7 +54,7 @@ Notice the return type. `Tuple2[String, Char]` contains the rest of the input st
 
 The output of the parser might be processed with `map` method:
 
-```scala
+```scala mdoc:reset
 import cats.parse.Parser
 
 case class CharWrapper(value: Char) 
@@ -67,7 +67,7 @@ p.parse("t")
 
 There are built-in methods for mapping the output to types `String` or `Unit`:
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.digit
 import cats.parse.Parser
 
@@ -103,7 +103,7 @@ The parsers might be combined through operators:
 
 For this example we'll be using `cats.parse.Rfc5234` package which contains such parsers as `alpha` (Latin alphabet) and `sp` (whitespace). 
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.{sp, alpha, digit}
 import cats.parse.Parser
 
@@ -163,10 +163,10 @@ p3.parse(" ")
 
 Sometimes we need something to repeat zero or more types. The cats-parse have `rep` and `rep0` methods for repeating values. `rep` means that the parser must be successful *at least one time*. `rep0` means that the parser output might be empty.
 
-```scala
+```scala mdoc:reset
 import cats.data.NonEmptyList
 import cats.parse.Rfc5234.alpha
-import cats.parse.Parser
+import cats.parse.{Parser, Parser0}
 
 val p1: Parser[NonEmptyList[Char]]  = alpha.rep
 val p2: Parser0[List[Char]] = alpha.rep0
@@ -183,7 +183,7 @@ Notice the types of parsers. `Parser` type always means some non-empty output an
 
 One common task in this example is to parse a full line (or words) of text. In the example it is done by `rep`, and then it could be mapped to `String` in different ways:
 
-```scala
+```scala mdoc:reset
 import cats.data.NonEmptyList
 import cats.parse.Rfc5234.alpha
 import cats.parse.Parser
@@ -201,7 +201,7 @@ All three parsers will be identical in parsing results, but `p2` and `p3` are us
 
 Some parsers never return a value. They have a type `Parser0`. One might get this type of parser when using `rep0` or `.?` methods.
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.{alpha, sp}
 import cats.parse.Parser
 
@@ -213,7 +213,7 @@ p.parse("hello world")
 
 Notice the type we got - `Parser[String]`. That is because we have `rep` outside and our `alpha.rep` parser with `Parser` type is on the left side of the clause. But what if we want to parse strings with spaces at the beginning?
 
-```scala
+```scala:fail
 val p = (sp.? *> alpha.rep <* sp.?).rep.string
 ```
 
@@ -221,7 +221,7 @@ We will get an error `value rep is not a member of cats.parse.Parser0`. This hap
 
 But this parser can't be empty because of `alpha.rep` parser, and we know it. For these types of parsers we need to use `with1` wrapper method on the *left side* of the clause:
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.{alpha, sp}
 import cats.parse.Parser
 
@@ -243,7 +243,7 @@ Parser might be interrupted by parsing error. There are two kinds of errors:
  - an error that has consumed 0 characters (**epsilon failure**);
  - an error that has consumed 1 or more characters (**arresting failure**) (sometimes called halting failure).
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.{alpha, sp}
 import cats.parse.Parser
 
@@ -265,7 +265,7 @@ We need to make this difference because the first type of error allows us to say
 
 Backtrack allows us to convert an *arresting failure* to *epsilon failure*. It also rewinds the input to the offset to that used before parsing began. The resulting parser might still be combined with others. Let's look at the example:
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.{digit, sp}
 
 val p = sp *> digit <* sp
@@ -286,7 +286,7 @@ In the error message we see the failed offset and the expected value. There is a
 
 One thing we can do in this situation is providing a fallback parser which can be used in case of error. We can do this by using `backtrack` (which rewinds the input, so it will be passed to fallback parser as it was before the error) and combining it with `orElse` operator:
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.{digit, sp}
 
 val p1 = sp *> digit <* sp
@@ -302,7 +302,7 @@ Notice that `(p1.backtrack | p2)` clause is another parser by itself since we're
 
 But we've already used `orElse` in example before without any `backtrack` operator, and it worked just fine. Why do we need `backtrack` now? Let's look at this example:
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.{digit, sp}
 
 val p1 = sp *> digit <* sp
@@ -324,7 +324,7 @@ So the `backtrack` helps us where the *left side* returns arresting failure.
 
 This method might look similar to `backtrack`, but it allows us to *proceed* the parsing when the *right side* is returning an epsilon failure. It is really useful for ambiguous parsers when we can't really tell what exactly we are parsing before the end. Let's say we want to parse some input to the search engine which contains fields. This might look like "field:search_query". Let's try to write a parser for this:
 
-```scala
+```scala mdoc:reset
 import cats.parse.Rfc5234.{alpha, sp}
 import cats.parse.Parser
 import cats.parse.Parser.{char => pchar}
@@ -344,29 +344,27 @@ p1.parse("The Wind Has Risen")
 
 This error happens because we can't really tell if we are parsing the `fieldValue` before we met a `:` char. We might do this with by writing two parsers, converting the first one's failure to epsilon failure by `backtrack` and then providing fallback parser by `|` operator (which allows the epsilon failures):
 
-```scala
-val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
+```scala mdoc
+val p2 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
 
 val p3 = (searchWord ~ sp.?).rep.string
 
-(p1.backtrack | p3).parse("title:The Wind Has Risen")
+(p2.backtrack | p3).parse("title:The Wind Has Risen")
 // res0 = Right((,(Some((title,())),The Wind Has Risen)))
-(p1.backtrack | p3).parse("The Wind Has Risen")
+(p2.backtrack | p3).parse("The Wind Has Risen")
 // res1 = Right((,The Wind Has Risen))
 ```
 
 But this problem might be resolved with `soft` method inside the first parser since the right side of it actually returns an epsilon failure itself:
 
-```scala
-val searchWord = alpha.rep.string
-
+```scala mdoc
 val fieldValueSoft = alpha.rep.string.soft ~ pchar(':')
 
-val p2 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
+val p4 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
 
-p2.parse("title:The Wind Has Risen")
+p4.parse("title:The Wind Has Risen")
 // res2 = Right((,(Some((title,())),The Wind Has Risen)))
-p2.parse("The Wind Has Risen")
+p4.parse("The Wind Has Risen")
 // res3 = Right((,(None,The Wind Has Risen)))
 ```
 
