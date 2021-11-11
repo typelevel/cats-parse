@@ -70,6 +70,9 @@ object ParserGen {
       def map[A, B](ga: Gen[A])(fn: A => B) = ga.map(fn)
     }
 
+  implicit val cogenCaret: Cogen[Caret] =
+    Cogen { case Caret(o, row, col) => (o.toLong << 32) | (col.toLong << 16) | (row.toLong) }
+
   def arbGen[A: Arbitrary: Cogen]: GenT[Gen] =
     GenT(Arbitrary.arbitrary[A])
 
@@ -516,7 +519,7 @@ object ParserGen {
       (5, expect0),
       (1, ignoreCase0),
       (5, charIn0),
-      (1, Gen.oneOf(GenT(Parser.start), GenT(Parser.end), GenT(Parser.index))),
+      (1, Gen.oneOf(GenT(Parser.start), GenT(Parser.end), GenT(Parser.index), GenT(Parser.caret))),
       (1, fail),
       (1, failWith),
       (1, rec.map(void0(_))),
@@ -2458,6 +2461,16 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen) { p =>
       val v1 = p.fa.void
       assertEquals(v1.void, v1)
+    }
+  }
+
+  property("P.caret is the same as index + toCaretUnsafe") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (p, input) =>
+      val v1 = p.fa.void
+      val lm = LocationMap(input)
+      val left = (v1 *> Parser.index).map(lm.toCaretUnsafe(_)).parse(input)
+      val right = (v1 *> Parser.caret).parse(input)
+      assertEquals(left, right)
     }
   }
 }

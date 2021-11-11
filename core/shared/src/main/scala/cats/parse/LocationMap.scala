@@ -66,22 +66,29 @@ class LocationMap(val input: String) {
     */
   def toLineCol(offset: Int): Option[(Int, Int)] =
     if (offset < 0 || offset > input.length) None
+    else {
+      val Caret(_, row, col) = toCaretUnsafe(offset)
+      Some((row, col))
+    }
+
+  /** Convert an offset to a Caret.
+    * @throws IllegalArgumentException
+    *   if offset is longer than input
+    */
+  def toCaretUnsafe(offset: Int): Caret =
+    if (offset < 0 || offset > input.length)
+      throw new IllegalArgumentException(s"offset = $offset exceeds ${input.length}")
     else if (offset == input.length) {
       // this is end of line
-      if (offset == 0) Some((0, 0))
+      if (offset == 0) Caret.Start
       else {
-        toLineCol(offset - 1)
-          .map { case (line, col) =>
-            if (endsWithNewLine) (line + 1, 0)
-            else (line, col + 1)
-          }
+        val Caret(_, line, col) = toCaretUnsafe(offset - 1)
+        if (endsWithNewLine) Caret(offset, line + 1, 0)
+        else Caret(offset, line, col + 1)
       }
     } else {
       val idx = Arrays.binarySearch(firstPos, offset)
-      if (idx == firstPos.length) {
-        // greater than all elements
-        None
-      } else if (idx < 0) {
+      if (idx < 0) {
         // idx = (~(insertion pos) - 1)
         // The insertion point is defined as the point at which the key would be
         // inserted into the array: the index of the first element greater than
@@ -92,12 +99,16 @@ class LocationMap(val input: String) {
         // so we are pointing into a row
         val rowStart = firstPos(row)
         val col = offset - rowStart
-        Some((row, col))
+        Caret(offset, row, col)
       } else {
         // idx is exactly the right value because offset is beginning of a line
-        Some((idx, 0))
+        Caret(offset, idx, 0)
       }
     }
+
+  def toCaret(offset: Int): Option[Caret] =
+    if (offset < 0 || offset > input.length) None
+    else Some(toCaretUnsafe(offset))
 
   /** return the line without a newline
     */
