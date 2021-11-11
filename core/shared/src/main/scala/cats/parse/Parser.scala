@@ -1968,7 +1968,10 @@ object Parser {
               else SoftProd0(u1, u2)
           }
         case Defer0(fn) =>
-          Defer0(UnmapDefer0(fn))
+          fn match {
+            case UnmapDefer0(_) => pa // already unmapped
+            case _ => Defer0(UnmapDefer0(fn))
+          }
         case Rep0(p, max, _) => Rep0(unmap(p), max, Accumulator0.unitAccumulator0)
         case WithContextP0(ctx, p0) => WithContextP0(ctx, unmap0(p0))
         case StartParser | EndParser | TailRecM0(_, _) | FlatMap0(_, _) =>
@@ -2049,7 +2052,10 @@ object Parser {
               else SoftProd(u1, u2)
           }
         case Defer(fn) =>
-          Defer(UnmapDefer(fn))
+          fn match {
+            case UnmapDefer(_) => pa // already unmapped
+            case _ => Defer(UnmapDefer(fn))
+          }
         case Rep(p, min, max, _) => Rep(unmap(p), min, max, Accumulator0.unitAccumulator0)
         case WithContextP(ctx, p) =>
           WithContextP(ctx, unmap(p))
