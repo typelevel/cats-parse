@@ -71,7 +71,9 @@ object ParserGen {
     }
 
   implicit val cogenCaret: Cogen[Caret] =
-    Cogen { case Caret(o, row, col) => (o.toLong << 32) | (col.toLong << 16) | (row.toLong) }
+    Cogen { caret: Caret =>
+      (caret.offset.toLong << 32) | (caret.col.toLong << 16) | (caret.row.toLong)
+    }
 
   def arbGen[A: Arbitrary: Cogen]: GenT[Gen] =
     GenT(Arbitrary.arbitrary[A])
