@@ -82,7 +82,7 @@ p3.parse("1")
 
 /* Unit */
 
-val p4: Parser[Unit] = digit.map((c: Char) => ())
+val p4: Parser[Unit] = digit.map(_ => ())
 // is analog to
 val p5: Parser[Unit] = digit.void
 
