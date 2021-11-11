@@ -241,7 +241,7 @@ If we have multiple `Parser0` parsers before the `Parser` - we'd need to use par
 
 Parser might be interrupted by parsing error. There are two kinds of errors:
  - an error that has consumed 0 characters (**epsilon failure**);
- - an error that has consumer 1 or more characters (**halting failure**).
+ - an error that has consumed 1 or more characters (**arresting failure**) (sometimes called halting failure).
 
 ```scala
 import cats.parse.Rfc5234.{alpha, sp}
@@ -254,7 +254,7 @@ val p2: Parser[Char] = sp *> alpha
 p1.parse("123")
 // res0: Either[Error, Tuple2[String, Char]] = Left(Error(0,NonEmptyList(InRange(0,A,Z), InRange(0,a,z))))
 
-// halting failure
+// arresting failure
 p2.parse(" 1")
 // res1: Either[Error, Tuple2[String, Char]] = Left(Error(1,NonEmptyList(InRange(1,A,Z), InRange(1,a,z))))
 ```
@@ -263,7 +263,7 @@ We need to make this difference because the first type of error allows us to say
 
 ### Backtrack
 
-Backtrack allows us to convert a *halting failure* to *epsilon failure*. It also rewinds the input to the offset to that used before parsing began. The resulting parser might still be combined with others. Let's look at the example:
+Backtrack allows us to convert an *arresting failure* to *epsilon failure*. It also rewinds the input to the offset to that used before parsing began. The resulting parser might still be combined with others. Let's look at the example:
 
 ```scala
 import cats.parse.Rfc5234.{digit, sp}
@@ -316,13 +316,13 @@ val p3 = digit
 // res2 = Right((,1))
 ```
 
-The first parser combination is interrupted by *halting error* and the second parsing combination will only suffer from *epsilon errors*. The second parser works because `orElse` and `|` operators actually allows recovering from epsilon errors, but not from halting errors.
+The first parser combination is interrupted by *arresting failures* and the second parsing combination will only suffer from *epsilon failures*. The second parser works because `orElse` and `|` operators actually allows recovering from epsilon failures, but not from arresting failures.
 
-So the `backtrack` helps us where the *left side* throws halting error.
+So the `backtrack` helps us where the *left side* returns arresting failure.
 
 ### Soft
 
-This method might look similar to `backtrack`, but it allows us to *proceed* the parsing when the *right side* is throwing an epsilon error. It is really useful for ambiguous parsers when we can't really tell what exactly we are parsing before the end. Let's say we want to parse some input to the search engine which contains fields. This might look like "field:search_query". Let's try to write a parser for this:
+This method might look similar to `backtrack`, but it allows us to *proceed* the parsing when the *right side* is returning an epsilon failure. It is really useful for ambiguous parsers when we can't really tell what exactly we are parsing before the end. Let's say we want to parse some input to the search engine which contains fields. This might look like "field:search_query". Let's try to write a parser for this:
 
 ```scala
 import cats.parse.Rfc5234.{alpha, sp}
@@ -355,7 +355,7 @@ val p3 = (searchWord ~ sp.?).rep.string
 // res1 = Right((,The Wind Has Risen))
 ```
 
-But this problem might be resolved with `soft` method inside the first parser since the right side of it actually throws an epsilon failure itself:
+But this problem might be resolved with `soft` method inside the first parser since the right side of it actually returns an epsilon failure itself:
 
 ```scala
 val searchWord = alpha.rep.string
@@ -370,7 +370,7 @@ p2.parse("The Wind Has Risen")
 // res3 = Right((,(None,The Wind Has Risen)))
 ```
 
-So when the *right side* throws an epsilon failure the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
+So when the *right side* returns an epsilon failure the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
 
 
 # JSON parser example
