@@ -2717,17 +2717,15 @@ object Parser {
 
       override def toString = s"CharIn($min, bitSet = ..., $ranges)"
 
-      def makeError(offset: Int): Eval[Chain[Expectation]] = {
-        Eval.later {
-          var result = Chain.empty[Expectation]
-          var aux = ranges.toList
-          while (aux.nonEmpty) {
-            val (s, e) = aux.head
-            result = result :+ Expectation.InRange(offset, s, e)
-            aux = aux.tail
-          }
-          result
+      def makeError(offset: Int): Chain[Expectation] = {
+        var result = Chain.empty[Expectation]
+        var aux = ranges.toList
+        while (aux.nonEmpty) {
+          val (s, e) = aux.head
+          result = result :+ Expectation.InRange(offset, s, e)
+          aux = aux.tail
         }
+        result
       }
 
       override def parseMut(state: State): Char = {
@@ -2740,11 +2738,11 @@ object Parser {
             state.offset = offset + 1
             char
           } else {
-            state.error = makeError(offset)
+            state.error = Eval.later(makeError(offset))
             '\u0000'
           }
         } else {
-          state.error = makeError(offset)
+          state.error = Eval.later(makeError(offset))
           '\u0000'
         }
       }
