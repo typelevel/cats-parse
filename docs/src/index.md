@@ -8,19 +8,19 @@ To use in sbt add, the following to your `libraryDependencies`:
 
 ```scala
 // use this snippet for the JVM
-libraryDependencies += "org.typelevel" %% "cats-parse" % "0.3.4"
+libraryDependencies += "org.typelevel" %% "cats-parse" % "0.3.5"
 
 // use this snippet for JS, or cross-building
-libraryDependencies += "org.typelevel" %%% "cats-parse" % "0.3.4"
+libraryDependencies += "org.typelevel" %%% "cats-parse" % "0.3.5"
 ```
 
-The [API docs](https://oss.sonatype.org/service/local/repositories/releases/archive/org/typelevel/cats-parse_2.13/0.3.4/cats-parse_2.13-0.3.4-javadoc.jar/!/cats/parse/index.html) are published.
+The [API docs](https://oss.sonatype.org/service/local/repositories/releases/archive/org/typelevel/cats-parse_2.13/0.3.5/cats-parse_2.13-0.3.5-javadoc.jar/!/cats/parse/index.html) are published.
 
 Why another parsing library? See this [blog post detailing the
 design](https://posco.medium.com/designing-a-parsing-library-in-scala-d5076de52536). To reiterate,
 this library has a few goals:
 
-1. Compatability: should work on all scala platforms and recent versions. Currently it supports JVM, JS on versions 2.12, 2.13, and Dotty. The core library should have minimal dependencies. Currently this library only depends on cats.
+1. Compatability: should work on all scala platforms and recent versions. Currently it supports JVM, JS on versions 2.11, 2.12, 2.13, and 3. The core library should have minimal dependencies. Currently this library only depends on cats.
 2. Excellent performance: should be as fast or faster than any parser combinator that has comparable scala version support.
 3. Cats friendliness: method names match cats style, and out of the box support for cats typeclasses.
 4. Precise errors: following the [Haskell Trifecta parsing library](https://hackage.haskell.org/package/trifecta), backtracking is opt-in vs opt-out. This design tends to make it easier to write parsers that point correctly to failure points.
