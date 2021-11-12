@@ -60,29 +60,28 @@ class LocationMap(val input: String) {
     */
   def lineCount: Int = lines.length
 
+  def isValidOffset(offset: Int): Boolean =
+    (0 <= offset && offset <= input.length)
+
   /** Given a string offset return the line and column If input.length is given (EOF) we return the
     * same value as if the string were one character longer (i.e. if we have appended a non-newline
     * character at the EOF)
     */
   def toLineCol(offset: Int): Option[(Int, Int)] =
-    if (offset < 0 || offset > input.length) None
-    else {
-      val Caret(_, row, col) = toCaretUnsafe(offset)
+    if (isValidOffset(offset)) {
+      val Caret(_, row, col) = toCaretUnsafeImpl(offset)
       Some((row, col))
-    }
+    } else None
 
-  /** Convert an offset to a Caret.
-    * @throws IllegalArgumentException
-    *   if offset is longer than input
-    */
-  def toCaretUnsafe(offset: Int): Caret =
-    if (offset < 0 || offset > input.length)
-      throw new IllegalArgumentException(s"offset = $offset exceeds ${input.length}")
-    else if (offset == input.length) {
+  // This does not do bounds checking because we
+  // don't want to check twice. Callers to this need to
+  // do bounds check
+  private def toCaretUnsafeImpl(offset: Int): Caret =
+    if (offset == input.length) {
       // this is end of line
       if (offset == 0) Caret.Start
       else {
-        val Caret(_, line, col) = toCaretUnsafe(offset - 1)
+        val Caret(_, line, col) = toCaretUnsafeImpl(offset - 1)
         if (endsWithNewLine) Caret(offset, line + 1, 0)
         else Caret(offset, line, col + 1)
       }
@@ -106,9 +105,17 @@ class LocationMap(val input: String) {
       }
     }
 
+  /** Convert an offset to a Caret.
+    * @throws IllegalArgumentException
+    *   if offset is longer than input
+    */
+  def toCaretUnsafe(offset: Int): Caret =
+    if (isValidOffset(offset)) toCaretUnsafeImpl(offset)
+    else throw new IllegalArgumentException(s"offset = $offset exceeds ${input.length}")
+
   def toCaret(offset: Int): Option[Caret] =
-    if (offset < 0 || offset > input.length) None
-    else Some(toCaretUnsafe(offset))
+    if (isValidOffset(offset)) Some(toCaretUnsafeImpl(offset))
+    else None
 
   /** return the line without a newline
     */
