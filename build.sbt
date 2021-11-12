@@ -134,12 +134,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     mimaPreviousArtifacts := {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       if (isScala211) Set.empty else mimaPreviousArtifacts.value
-    },
-    mimaBinaryIssueFilters := Seq(
-      ProblemFilters.exclude[IncompatibleResultTypeProblem](
-        "cats.parse.Parser#Impl#CharIn.makeError"
-      ) // Impl is private to cats.parse.Parser
-    )
+    }
   )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
