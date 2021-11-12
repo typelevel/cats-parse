@@ -1648,10 +1648,8 @@ object Parser {
             // we can allocate the returned string once here
             val minStr = min.toChar.toString
             Impl.Map(ci, Impl.ConstFn(minStr))
-          case f @ (Impl.Fail() | Impl.FailWith(_)) =>
-            // these are really Parser[Nothing]
-            // but scala can't see that, so we cast
-            f.asInstanceOf[Parser[String]]
+          case f @ Impl.Fail() => f.widen
+          case f @ Impl.FailWith(_) => f.widen
           case notStr => Impl.StringP(notStr)
         }
     }
