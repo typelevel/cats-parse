@@ -2675,7 +2675,7 @@ object Parser {
             case one :: Nil => Chain.one(one.asInstanceOf[P0])
             case many =>
               // we need to union
-              val minBs: List[(Int, BitSetUtil.Tpe)] = many.map { case CharIn(m, bs, _) => (m, bs) }
+              val minBs = many.iterator.map { case CharIn(m, bs, _) => (m, bs) }
               Chain.one(Parser.charIn(BitSetUtil.union(minBs)).asInstanceOf[P0])
           }
 
