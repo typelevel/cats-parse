@@ -58,6 +58,7 @@ jobs:
       - run: |
           sbt ++${{ matrix.scala }} fmtCheck \
               "++${{ matrix.scala }} test" \
+              "++${{ matrix.scala }} doc" \
               "++${{ matrix.scala }} mimaReportBinaryIssues"
 
       - name: Compress target directories

@@ -26,6 +26,7 @@ ThisBuild / githubWorkflowBuild := Seq(
     List(
       """sbt ++${{ matrix.scala }} fmtCheck \
         |    "++${{ matrix.scala }} test" \
+        |    "++${{ matrix.scala }} doc" \
         |    "++${{ matrix.scala }} mimaReportBinaryIssues"""".stripMargin
     )
   )
