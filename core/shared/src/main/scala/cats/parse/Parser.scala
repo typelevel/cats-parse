@@ -1629,7 +1629,7 @@ object Parser {
       case str if Impl.matchesString(str) => str.asInstanceOf[Parser0[String]]
       case _ =>
         Impl.unmap0(pa) match {
-          case Impl.Pure(_) | Impl.Index => emptyStringParser0
+          case Impl.Pure(_) | Impl.Index | Impl.GetCaret => emptyStringParser0
           case notEmpty => Impl.StringP0(notEmpty)
         }
     }
@@ -1683,6 +1683,11 @@ object Parser {
     */
   def index: Parser0[Int] = Impl.Index
 
+  /** return the current Caret (offset, line, column) this is a bit more expensive that just the
+    * index
+    */
+  def caret: Parser0[Caret] = Impl.GetCaret
+
   /** succeeds when we are at the start
     */
   def start: Parser0[Unit] = Impl.StartParser
@@ -1717,7 +1722,7 @@ object Parser {
       case p1: Parser[_] => as(p1, b)
       case _ =>
         Impl.unmap0(pa) match {
-          case Impl.Pure(_) | Impl.Index => pure(b)
+          case Impl.Pure(_) | Impl.Index | Impl.GetCaret => pure(b)
           case notPure =>
             Impl.Void0(notPure).map(Impl.ConstFn(b))
         }
@@ -1837,6 +1842,10 @@ object Parser {
     var offset: Int = 0
     var error: Eval[Chain[Expectation]] = null
     var capture: Boolean = true
+
+    // This is lazy because we don't want to trigger it
+    // unless someone uses GetCaret
+    lazy val locationMap: LocationMap = LocationMap(str)
   }
 
   // invariant: input must be sorted
@@ -1885,8 +1894,9 @@ object Parser {
     final def doesBacktrack(p: Parser0[Any]): Boolean =
       p match {
         case Backtrack0(_) | Backtrack(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
-            Length(_) | StartParser | EndParser | Index | Pure(_) | Fail() | FailWith(_) | Not(_) |
-            StringIn(_) =>
+            Length(_) | StartParser | EndParser | Index | GetCaret | Pure(_) | Fail() | FailWith(
+              _
+            ) | Not(_) | StringIn(_) =>
           true
         case Map0(p, _) => doesBacktrack(p)
         case Map(p, _) => doesBacktrack(p)
@@ -1916,7 +1926,7 @@ object Parser {
     // and by construction, a oneOf0 never always succeeds
     final def alwaysSucceeds(p: Parser0[Any]): Boolean =
       p match {
-        case Index | Pure(_) => true
+        case Index | GetCaret | Pure(_) => true
         case Map0(p, _) => alwaysSucceeds(p)
         case SoftProd0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
@@ -1934,7 +1944,7 @@ object Parser {
     def unmap0(pa: Parser0[Any]): Parser0[Any] =
       pa match {
         case p1: Parser[Any] => unmap(p1)
-        case Pure(_) | Index => Parser.unit
+        case GetCaret | Index | Pure(_) => Parser.unit
         case s if alwaysSucceeds(s) => Parser.unit
         case Map0(p, _) =>
           // we discard any allocations done by fn
@@ -2170,6 +2180,12 @@ object Parser {
 
     case object Index extends Parser0[Int] {
       override def parseMut(state: State): Int = state.offset
+    }
+
+    case object GetCaret extends Parser0[Caret] {
+      override def parseMut(state: State): Caret =
+        // This unsafe call is safe because the offset can never go too far
+        state.locationMap.toCaretUnsafe(state.offset)
     }
 
     final def backtrack[A](pa: Parser0[A], state: State): A = {

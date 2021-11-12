@@ -60,28 +60,34 @@ class LocationMap(val input: String) {
     */
   def lineCount: Int = lines.length
 
+  def isValidOffset(offset: Int): Boolean =
+    (0 <= offset && offset <= input.length)
+
   /** Given a string offset return the line and column If input.length is given (EOF) we return the
     * same value as if the string were one character longer (i.e. if we have appended a non-newline
     * character at the EOF)
     */
   def toLineCol(offset: Int): Option[(Int, Int)] =
-    if (offset < 0 || offset > input.length) None
-    else if (offset == input.length) {
+    if (isValidOffset(offset)) {
+      val Caret(_, row, col) = toCaretUnsafeImpl(offset)
+      Some((row, col))
+    } else None
+
+  // This does not do bounds checking because we
+  // don't want to check twice. Callers to this need to
+  // do bounds check
+  private def toCaretUnsafeImpl(offset: Int): Caret =
+    if (offset == input.length) {
       // this is end of line
-      if (offset == 0) Some((0, 0))
+      if (offset == 0) Caret.Start
       else {
-        toLineCol(offset - 1)
-          .map { case (line, col) =>
-            if (endsWithNewLine) (line + 1, 0)
-            else (line, col + 1)
-          }
+        val Caret(_, line, col) = toCaretUnsafeImpl(offset - 1)
+        if (endsWithNewLine) Caret(offset, line + 1, 0)
+        else Caret(offset, line, col + 1)
       }
     } else {
       val idx = Arrays.binarySearch(firstPos, offset)
-      if (idx == firstPos.length) {
-        // greater than all elements
-        None
-      } else if (idx < 0) {
+      if (idx < 0) {
         // idx = (~(insertion pos) - 1)
         // The insertion point is defined as the point at which the key would be
         // inserted into the array: the index of the first element greater than
@@ -92,12 +98,24 @@ class LocationMap(val input: String) {
         // so we are pointing into a row
         val rowStart = firstPos(row)
         val col = offset - rowStart
-        Some((row, col))
+        Caret(offset, row, col)
       } else {
         // idx is exactly the right value because offset is beginning of a line
-        Some((idx, 0))
+        Caret(offset, idx, 0)
       }
     }
+
+  /** Convert an offset to a Caret.
+    * @throws IllegalArgumentException
+    *   if offset is longer than input
+    */
+  def toCaretUnsafe(offset: Int): Caret =
+    if (isValidOffset(offset)) toCaretUnsafeImpl(offset)
+    else throw new IllegalArgumentException(s"offset = $offset exceeds ${input.length}")
+
+  def toCaret(offset: Int): Option[Caret] =
+    if (isValidOffset(offset)) Some(toCaretUnsafeImpl(offset))
+    else None
 
   /** return the line without a newline
     */

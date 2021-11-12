@@ -216,4 +216,36 @@ class LocationMapTest extends munit.ScalaCheckSuite {
       assert(s.endsWith(lm.getLine(lm.lineCount - 1).get))
     }
   }
+
+  property("toLineCol and toCaret are consistent") {
+    forAll { (s: String, other: Int) =>
+      val lm = LocationMap(s)
+      (0 to s.length).foreach { offset =>
+        val c = lm.toCaretUnsafe(offset)
+        val oc = lm.toCaret(offset)
+        val lc = lm.toLineCol(offset)
+
+        assertEquals(oc, Some(c))
+        assertEquals(lc, oc.map { case Caret(_, r, c) => (r, c) })
+      }
+
+      if (other < 0 || s.length < other) {
+        assert(scala.util.Try(lm.toCaretUnsafe(other)).isFailure)
+        assertEquals(lm.toCaret(other), None)
+        assertEquals(lm.toLineCol(other), None)
+      }
+    }
+  }
+
+  property("Caret ordering matches offset ordering") {
+    forAll { (s: String, o1: Int, o2: Int) =>
+      val lm = LocationMap(s)
+      val c1 = lm.toCaret(o1)
+      val c2 = lm.toCaret(o2)
+
+      if (c1.isDefined && c2.isDefined) {
+        assertEquals(Ordering[Option[Caret]].compare(c1, c2), Integer.compare(o1, o2))
+      }
+    }
+  }
 }
