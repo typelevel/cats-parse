@@ -72,7 +72,7 @@ object ParserGen {
 
   implicit val cogenCaret: Cogen[Caret] =
     Cogen { caret: Caret =>
-      (caret.offset.toLong << 32) | (caret.col.toLong << 16) | (caret.row.toLong)
+      (caret.offset.toLong << 32) | (caret.col.toLong << 16) | (caret.line.toLong)
     }
 
   def arbGen[A: Arbitrary: Cogen]: GenT[Gen] =

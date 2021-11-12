@@ -23,9 +23,9 @@ package cats.parse
 
 import cats.Order
 
-/** This is a pointer to a zero based row, column, and total offset.
+/** This is a pointer to a zero based line, column, and total offset.
   */
-case class Caret(row: Int, col: Int, offset: Int)
+case class Caret(line: Int, col: Int, offset: Int)
 
 object Caret {
   val Start: Caret = Caret(0, 0, 0)
@@ -33,7 +33,7 @@ object Caret {
   implicit val caretOrder: Order[Caret] =
     new Order[Caret] {
       def compare(left: Caret, right: Caret): Int = {
-        val c0 = Integer.compare(left.row, right.row)
+        val c0 = Integer.compare(left.line, right.line)
         if (c0 != 0) c0
         else {
           val c1 = Integer.compare(left.col, right.col)
