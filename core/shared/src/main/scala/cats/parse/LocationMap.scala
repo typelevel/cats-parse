@@ -69,8 +69,8 @@ class LocationMap(val input: String) {
     */
   def toLineCol(offset: Int): Option[(Int, Int)] =
     if (isValidOffset(offset)) {
-      val Caret(_, row, col) = toCaretUnsafeImpl(offset)
-      Some((row, col))
+      val Caret(_, line, col) = toCaretUnsafeImpl(offset)
+      Some((line, col))
     } else None
 
   // This does not do bounds checking because we
@@ -94,20 +94,18 @@ class LocationMap(val input: String) {
         // the key, or a.length if all elements in the array are less than the specified key.
         //
         // so insertion pos = ~(idx + 1)
-        val row = ~(idx + 1)
-        // so we are pointing into a row
-        val rowStart = firstPos(row)
-        val col = offset - rowStart
-        Caret(offset, row, col)
+        val line = ~(idx + 1)
+        // so we are pointing into a line
+        val lineStart = firstPos(line)
+        val col = offset - lineStart
+        Caret(offset, line, col)
       } else {
         // idx is exactly the right value because offset is beginning of a line
         Caret(offset, idx, 0)
       }
     }
 
-  /** Convert an offset to a Caret.
-    * @throws IllegalArgumentException
-    *   if offset is longer than input
+  /** Convert an offset to a Caret. throws IllegalArgumentException if offset is longer than input
     */
   def toCaretUnsafe(offset: Int): Caret =
     if (isValidOffset(offset)) toCaretUnsafeImpl(offset)
@@ -123,7 +121,7 @@ class LocationMap(val input: String) {
     if (i >= 0 && i < lines.length) Some(lines(i))
     else None
 
-  /** Return the offset for a given row/col. if we return Some(input.length) this means EOF if we
+  /** Return the offset for a given line/col. if we return Some(input.length) this means EOF if we
     * return Some(i) for 0 <= i < input.length it is a valid item else offset < 0 or offset >
     * input.length we return None
     */
