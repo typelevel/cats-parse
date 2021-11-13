@@ -54,6 +54,6 @@ object BitSetUtil {
     def toIter(m: Int, bs: BitSet): Iterator[Char] =
       bs.iterator.map { i => (i + m).toChar } ++ Iterator.single(m.toChar)
 
-    bs.iterator.flatMap { case (m, bs) => toIter(m, bs) }.toSet
+    bs.flatMap { case (m, bs) => toIter(m, bs) }.toSet
   }
 }
