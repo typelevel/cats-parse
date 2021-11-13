@@ -26,7 +26,7 @@ import org.scalacheck.Prop.forAll
 class BitSetTest extends munit.ScalaCheckSuite {
   property("BitSetUtil union works") {
     forAll { (cs: List[List[Char]]) =>
-      val arys = cs.filter(_.nonEmpty).map(_.toArray.sorted)
+      val arys = cs.iterator.filter(_.nonEmpty).map(_.toArray.sorted)
       val bs = arys.map { ary => (ary(0).toInt, BitSetUtil.bitSetFor(ary)) }
       val sortedFlat = BitSetUtil.union(bs)
       assertEquals(sortedFlat.toSet, cs.flatten.toSet)
