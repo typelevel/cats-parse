@@ -69,7 +69,7 @@ class LocationMap(val input: String) {
     */
   def toLineCol(offset: Int): Option[(Int, Int)] =
     if (isValidOffset(offset)) {
-      val Caret(_, line, col) = toCaretUnsafeImpl(offset)
+      val Caret(line, col, _) = toCaretUnsafeImpl(offset)
       Some((line, col))
     } else None
 
@@ -81,9 +81,9 @@ class LocationMap(val input: String) {
       // this is end of line
       if (offset == 0) Caret.Start
       else {
-        val Caret(_, line, col) = toCaretUnsafeImpl(offset - 1)
-        if (endsWithNewLine) Caret(offset, line + 1, 0)
-        else Caret(offset, line, col + 1)
+        val Caret(line, col, _) = toCaretUnsafeImpl(offset - 1)
+        if (endsWithNewLine) Caret(line = line + 1, col = 0, offset = offset)
+        else Caret(line = line, col = col + 1, offset = offset)
       }
     } else {
       val idx = Arrays.binarySearch(firstPos, offset)
@@ -98,10 +98,10 @@ class LocationMap(val input: String) {
         // so we are pointing into a line
         val lineStart = firstPos(line)
         val col = offset - lineStart
-        Caret(offset, line, col)
+        Caret(line = line, col = col, offset = offset)
       } else {
         // idx is exactly the right value because offset is beginning of a line
-        Caret(offset, idx, 0)
+        Caret(line = idx, col = 0, offset = offset)
       }
     }
 

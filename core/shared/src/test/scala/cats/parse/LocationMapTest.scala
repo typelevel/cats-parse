@@ -226,7 +226,8 @@ class LocationMapTest extends munit.ScalaCheckSuite {
         val lc = lm.toLineCol(offset)
 
         assertEquals(oc, Some(c))
-        assertEquals(lc, oc.map { case Caret(_, r, c) => (r, c) })
+        assertEquals(lc, oc.map { c => (c.line, c.col) })
+        assertEquals(c.offset, offset)
       }
 
       if (other < 0 || s.length < other) {
