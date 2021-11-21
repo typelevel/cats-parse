@@ -8,13 +8,13 @@ To use in sbt add, the following to your `libraryDependencies`:
 
 ```scala
 // use this snippet for the JVM
-libraryDependencies += "org.typelevel" %% "cats-parse" % "0.3.5"
+libraryDependencies += "org.typelevel" %% "cats-parse" % "0.3.6"
 
 // use this snippet for JS, or cross-building
-libraryDependencies += "org.typelevel" %%% "cats-parse" % "0.3.5"
+libraryDependencies += "org.typelevel" %%% "cats-parse" % "0.3.6"
 ```
 
-The [API docs](https://oss.sonatype.org/service/local/repositories/releases/archive/org/typelevel/cats-parse_2.13/0.3.5/cats-parse_2.13-0.3.5-javadoc.jar/!/cats/parse/index.html) are published.
+The [API docs](https://oss.sonatype.org/service/local/repositories/releases/archive/org/typelevel/cats-parse_2.13/0.3.6/cats-parse_2.13-0.3.6-javadoc.jar/!/cats/parse/index.html) are published.
 
 Why another parsing library? See this [blog post detailing the
 design](https://posco.medium.com/designing-a-parsing-library-in-scala-d5076de52536). To reiterate,
