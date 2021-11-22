@@ -26,6 +26,13 @@ import Prop.forAll
 
 class LocationMapTest extends munit.ScalaCheckSuite {
 
+  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 20000
+
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters
+      .withMinSuccessfulTests(tests)
+      .withMaxDiscardRatio(10)
+
   property("single line locations") {
     val singleLine: Gen[String] =
       Arbitrary.arbitrary[String].map(_.filterNot(_ == '\n'))
@@ -50,6 +57,17 @@ class LocationMapTest extends munit.ScalaCheckSuite {
       val lm1 = LocationMap(str + "a")
 
       assert(lm0.toLineCol(str.length) == lm1.toLineCol(str.length))
+    }
+  }
+
+  property("adding more content never changes the Caret of an offset") {
+    forAll { (s0: String, s1: String) =>
+      val lm0 = LocationMap(s0)
+      val lm1 = LocationMap(s0 + s1)
+
+      (0 to s0.length).foreach { idx =>
+        assertEquals(lm0.toCaretUnsafe(idx), lm1.toCaretUnsafe(idx))
+      }
     }
   }
 
@@ -228,6 +246,10 @@ class LocationMapTest extends munit.ScalaCheckSuite {
         assertEquals(oc, Some(c))
         assertEquals(lc, oc.map { c => (c.line, c.col) })
         assertEquals(c.offset, offset)
+        val Caret(line, col, off1) = c
+        assertEquals(line, c.line)
+        assertEquals(col, c.col)
+        assertEquals(off1, offset)
       }
 
       if (other < 0 || s.length < other) {

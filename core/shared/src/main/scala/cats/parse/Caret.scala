@@ -30,6 +30,9 @@ case class Caret(line: Int, col: Int, offset: Int)
 object Caret {
   val Start: Caret = Caret(0, 0, 0)
 
+  /** This order is the same as offset order if the Carets are both from the same input string, but
+    * if from different ones will compare by line then by column and finally by offset.
+    */
   implicit val caretOrder: Order[Caret] =
     new Order[Caret] {
       def compare(left: Caret, right: Caret): Int = {

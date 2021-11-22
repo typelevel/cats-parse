@@ -24,6 +24,13 @@ package cats.parse
 import org.scalacheck.Prop.forAll
 
 class BitSetTest extends munit.ScalaCheckSuite {
+  test("isScalaJs/isScalaJvm is consistent") {
+    // This will need to be updated if we ever add scala-native
+    assert(!(BitSetUtil.isScalaJs && BitSetUtil.isScalaJvm))
+    assert(BitSetUtil.isScalaJs || BitSetUtil.isScalaJvm)
+    assert(BitSetUtil.isScalaJs ^ BitSetUtil.isScalaJvm)
+  }
+
   property("BitSetUtil union works") {
     forAll { (cs: List[List[Char]]) =>
       val arys = cs.iterator.filter(_.nonEmpty).map(_.toArray.sorted)
