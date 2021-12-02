@@ -37,18 +37,16 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     id = "build-docs",
     name = "Build docs",
     scalas = List("2.13.6"),
-    steps = List(
-      WorkflowStep.Checkout,
-      WorkflowStep.SetupScala
+    steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
+      githubWorkflowJavaVersions.value.toList
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(WorkflowStep.Sbt(List("docs/mdoc")))
   ),
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
     scalas = List("2.13.6"),
-    steps = List(
-      WorkflowStep.Checkout,
-      WorkflowStep.SetupScala
+    steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
+      githubWorkflowJavaVersions.value.toList
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
       WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate")),
       WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
@@ -81,6 +79,18 @@ ThisBuild / licenses := List(("MIT", url("http://opensource.org/licenses/MIT")))
 
 ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 
+lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
+  case v if v.matchesSemVer(SemanticSelector(">1.8")) =>
+    Def.settings(
+      scalacOptions ++= {
+        val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
+        if (isScala211) List("-target:jvm-1.8") else List("-release", "8")
+      },
+      javacOptions ++= Seq("--release", "8", "-Xlint:unchecked")
+    )
+  case _ => Def.settings()
+}
+
 lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, bench)
@@ -95,6 +105,7 @@ lazy val docs = project
     NoPublishPlugin,
     GhpagesPlugin
   )
+  .settings(jvmVersionSettings)
   .settings(
     name := "paradox-docs",
     libraryDependencies += jawnAst,
@@ -150,7 +161,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     scalaJSUseMainModuleInitializer := false
   )
 
-lazy val coreJVM = core.jvm
+lazy val coreJVM = core.jvm.settings(jvmVersionSettings)
 lazy val coreJS = core.js
 
 lazy val bench = project
