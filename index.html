@@ -153,7 +153,7 @@ typelevel/cats-parse
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.3-6-6f7e1de
+<i class="md-icon" title="Version">label_outline</i> 0.3-7-6cc27d8
 </label>
 </li>
 </ul>
@@ -366,7 +366,7 @@ val p2: Parser[Char] = alpha &lt;* sp
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7434/1388993576@e0a436c
+//   fn = cats.parse.Parser$$Lambda$7433/428778247@28b7ddb
 // )
 
 // still error since we need the space even if we drop it
@@ -405,7 +405,7 @@ val p4: Parser[Char] = sp *&gt; alpha &lt;* sp
 //           ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$7432/1182472109@220cc9a1
+//       fn = cats.parse.Parser$$Lambda$7431/14164327@45991d15
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -415,7 +415,7 @@ val p4: Parser[Char] = sp *&gt; alpha &lt;* sp
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7434/1388993576@e0a436c
+//   fn = cats.parse.Parser$$Lambda$7433/428778247@28b7ddb
 // )
 val p5: Parser[Char] = alpha.surroundedBy(sp)
 // p5: Parser[Char] = Map(
@@ -442,7 +442,7 @@ val p5: Parser[Char] = alpha.surroundedBy(sp)
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7435/1284702115@37c36e99
+//   fn = cats.parse.Parser$$Lambda$7434/1486649928@22090e1a
 // )
 
 p4.parse(&quot; a &quot;)
@@ -472,7 +472,7 @@ val p6: Parser[Char] = sp *&gt; alpha &lt;* digit
 //           ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$7432/1182472109@220cc9a1
+//       fn = cats.parse.Parser$$Lambda$7431/14164327@45991d15
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -482,7 +482,7 @@ val p6: Parser[Char] = sp *&gt; alpha &lt;* digit
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7434/1388993576@e0a436c
+//   fn = cats.parse.Parser$$Lambda$7433/428778247@28b7ddb
 // )
 val p7: Parser[Char] = alpha.between(sp, digit)
 // p7: Parser[Char] = Map(
@@ -509,7 +509,7 @@ val p7: Parser[Char] = alpha.between(sp, digit)
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7435/1284702115@37c36e99
+//   fn = cats.parse.Parser$$Lambda$7434/1486649928@22090e1a
 // )
 
 p6.parse(&quot; a1&quot;)
@@ -560,7 +560,7 @@ val p1: Parser[NonEmptyList[Char]]  = alpha.rep
 //   ),
 //   min = 1,
 //   maxMinusOne = 2147483647,
-//   acc1 = cats.parse.Accumulator$$anon$12@50143e87
+//   acc1 = cats.parse.Accumulator$$anon$12@5929c3e6
 // )
 val p2: Parser0[List[Char]] = alpha.rep0
 // p2: Parser0[List[Char]] = Rep0(
@@ -570,7 +570,7 @@ val p2: Parser0[List[Char]] = alpha.rep0
 //     ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //   ),
 //   maxMinusOne = 2147483647,
-//   acc = cats.parse.Accumulator0$$anon$9@5e47371b
+//   acc = cats.parse.Accumulator0$$anon$9@2d519a97
 // )
 
 p1.parse(&quot;&quot;)
@@ -610,7 +610,7 @@ val p: Parser[String]  = alpha.rep.map((l: NonEmptyList[Char]) =&gt; l.toList.mk
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator$$anon$12@253a4a6c
+//     acc1 = cats.parse.Accumulator$$anon$12@68afa89f
 //   ),
 //   fn = &lt;function1&gt;
 // )
@@ -625,7 +625,7 @@ val p2: Parser[String] = alpha.rep.string
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//     acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //   )
 // )
 val p3: Parser[String] = alpha.repAs[String]
@@ -637,7 +637,7 @@ val p3: Parser[String] = alpha.repAs[String]
 //   ),
 //   min = 1,
 //   maxMinusOne = 2147483647,
-//   acc1 = cats.parse.Accumulator0$$anon$7@9215ff4
+//   acc1 = cats.parse.Accumulator0$$anon$7@23c124e
 // )
 </code></pre>
 <p>All three parsers will be identical in parsing results, but <code>p2</code> and <code>p3</code> are using built-in methods which will not create intermediate list. <code>rep</code> + <code>map</code> creates intermediate list which is mapped to string in this example.</p>
@@ -658,7 +658,7 @@ val p: Parser[String] = (alpha.rep &lt;* sp.?).rep.string
 //         ),
 //         min = 1,
 //         maxMinusOne = 2147483647,
-//         acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//         acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //       ),
 //       second = OneOf0(
 //         all = List(
@@ -673,7 +673,7 @@ val p: Parser[String] = (alpha.rep &lt;* sp.?).rep.string
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//     acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //   )
 // )
 
@@ -714,7 +714,7 @@ val p: Parser[String] = (sp.?.with1 *&gt; alpha.rep &lt;* sp.?).rep.string
 //           ),
 //           min = 1,
 //           maxMinusOne = 2147483647,
-//           acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//           acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //         ),
 //         second = OneOf0(
 //           all = List(
@@ -730,7 +730,7 @@ val p: Parser[String] = (sp.?.with1 *&gt; alpha.rep &lt;* sp.?).rep.string
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//     acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //   )
 // )
 
@@ -772,7 +772,7 @@ val p2: Parser[Char] = sp *&gt; alpha
 //       ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7432/1182472109@220cc9a1
+//   fn = cats.parse.Parser$$Lambda$7431/14164327@45991d15
 // )
 
 // epsilon failure
@@ -823,7 +823,7 @@ val p = sp *&gt; digit &lt;* sp
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$7432/1182472109@220cc9a1
+//       fn = cats.parse.Parser$$Lambda$7431/14164327@45991d15
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -833,7 +833,7 @@ val p = sp *&gt; digit &lt;* sp
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7434/1388993576@e0a436c
+//   fn = cats.parse.Parser$$Lambda$7433/428778247@28b7ddb
 // )
 
 p.parse(&quot; 1&quot;)
@@ -874,7 +874,7 @@ val p1 = sp *&gt; digit &lt;* sp
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$7432/1182472109@220cc9a1
+//       fn = cats.parse.Parser$$Lambda$7431/14164327@45991d15
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -884,7 +884,7 @@ val p1 = sp *&gt; digit &lt;* sp
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7434/1388993576@e0a436c
+//   fn = cats.parse.Parser$$Lambda$7433/428778247@28b7ddb
 // )
 val p2 = sp *&gt; digit
 // p2: cats.parse.Parser[Char] = Map(
@@ -902,7 +902,7 @@ val p2 = sp *&gt; digit
 //       ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7432/1182472109@220cc9a1
+//   fn = cats.parse.Parser$$Lambda$7431/14164327@45991d15
 // )
 
 p1.backtrack.orElse(p2).parse(&quot; 1&quot;)
@@ -937,7 +937,7 @@ val p1 = sp *&gt; digit &lt;* sp
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$7432/1182472109@220cc9a1
+//       fn = cats.parse.Parser$$Lambda$7431/14164327@45991d15
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -947,7 +947,7 @@ val p1 = sp *&gt; digit &lt;* sp
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7434/1388993576@e0a436c
+//   fn = cats.parse.Parser$$Lambda$7433/428778247@28b7ddb
 // )
 val p2 = sp *&gt; digit
 // p2: cats.parse.Parser[Char] = Map(
@@ -965,7 +965,7 @@ val p2 = sp *&gt; digit
 //       ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$7432/1182472109@220cc9a1
+//   fn = cats.parse.Parser$$Lambda$7431/14164327@45991d15
 // )
 val p3 = digit
 // p3: cats.parse.Parser[Char] = CharIn(
@@ -1009,7 +1009,7 @@ val searchWord = alpha.rep.string
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//     acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //   )
 // )
 
@@ -1024,7 +1024,7 @@ val fieldValue = alpha.rep.string ~ pchar(&#39;:&#39;)
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//       acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //     )
 //   ),
 //   second = Void(
@@ -1054,7 +1054,7 @@ val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//               acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //             )
 //           ),
 //           second = Void(
@@ -1065,7 +1065,7 @@ val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$7426/242893025@7c00246c
+//         fn = cats.parse.Parser0$$Lambda$7425/815915449@378b174d
 //       ),
 //       Pure(result = None)
 //     )
@@ -1081,7 +1081,7 @@ val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
 //           ),
 //           min = 1,
 //           maxMinusOne = 2147483647,
-//           acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//           acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 // ...
 
 
@@ -1120,7 +1120,7 @@ p1.parse(&quot;The Wind Has Risen&quot;)
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//               acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //             )
 //           ),
 //           second = Void(
@@ -1131,7 +1131,7 @@ p1.parse(&quot;The Wind Has Risen&quot;)
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$7426/242893025@7c00246c
+//         fn = cats.parse.Parser0$$Lambda$7425/815915449@378b174d
 //       ),
 //       Pure(result = None)
 //     )
@@ -1147,7 +1147,7 @@ p1.parse(&quot;The Wind Has Risen&quot;)
 //           ),
 //           min = 1,
 //           maxMinusOne = 2147483647,
-//           acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//           acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 // ...
 
 val p3 = (searchWord ~ sp.?).rep.string
@@ -1162,7 +1162,7 @@ val p3 = (searchWord ~ sp.?).rep.string
 //         ),
 //         min = 1,
 //         maxMinusOne = 2147483647,
-//         acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//         acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //       ),
 //       second = OneOf0(
 //         all = List(
@@ -1177,7 +1177,7 @@ val p3 = (searchWord ~ sp.?).rep.string
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//     acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //   )
 // )
 
@@ -1203,7 +1203,7 @@ val p3 = (searchWord ~ sp.?).rep.string
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//       acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //     )
 //   ),
 //   second = Void(
@@ -1233,7 +1233,7 @@ val p4 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//               acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 //             )
 //           ),
 //           second = Void(
@@ -1244,7 +1244,7 @@ val p4 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$7426/242893025@7c00246c
+//         fn = cats.parse.Parser0$$Lambda$7425/815915449@378b174d
 //       ),
 //       Pure(result = None)
 //     )
@@ -1260,7 +1260,7 @@ val p4 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
 //           ),
 //           min = 1,
 //           maxMinusOne = 2147483647,
-//           acc1 = cats.parse.Accumulator0$$anon$11@5875565a
+//           acc1 = cats.parse.Accumulator0$$anon$11@1f782b65
 // ...
 
 p4.parse(&quot;title:The Wind Has Risen&quot;)
@@ -1358,13 +1358,13 @@ object Json {
 <p>We welcome new contributors and new maintainers. Please feel free to open issues and PRs. If you have any problem using the library, an issue is the best way to ask a question until we flush out more documentation.</p>
 </div>
 <div>
-<a href="https://github.com/typelevel/cats-parse/tree/v0.3-6-6f7e1de/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/typelevel/cats-parse/tree/v0.3-7-6cc27d8/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.3-6-6f7e1de
+0.3-7-6cc27d8
 </span>
 </div>
 </article>
