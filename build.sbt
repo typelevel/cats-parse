@@ -86,7 +86,7 @@ lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
         val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
         if (isScala211) List("-target:jvm-1.8") else List("-release", "8")
       },
-      javacOptions ++= Seq("--release", "8", "-Xlint:unchecked")
+      javacOptions ++= Seq("--release", "8")
     )
   case _ => Def.settings()
 }
