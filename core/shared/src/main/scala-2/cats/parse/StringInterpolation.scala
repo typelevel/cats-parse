@@ -43,6 +43,8 @@ private class StringInterpolationMacros(val c: whitebox.Context) {
         val stringParts = parts.collect { case Literal(Constant(s: String)) => s }
         val stringHead = stringParts.head
 
+        // If there is at least one Parser, we can return a Parser, else Parser0
+        val returnParser = stringParts.exists(_.nonEmpty)
         val unitParser = q"_root_.cats.parse.Parser.unit"
         def all(xs: List[Tree]): Tree =
           xs match {
@@ -87,8 +89,9 @@ private class StringInterpolationMacros(val c: whitebox.Context) {
             stringAfter(suffix, last)
           } else {
             // both the head and tail are empty strings
-            // TODO: if there are any internal strings we could also return a Parser
-            suffix
+            // this is uglier, but should still be valid
+            if (returnParser) q"$suffix.unsafeCastToParser"
+            else suffix
           }
         }
       case _ => c.abort(c.enclosingPosition, "Must be called as string interpolator")

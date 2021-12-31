@@ -102,6 +102,10 @@ object StringInterpolation {
           "Unexpected: this method may have been called outside the context of a string interpolator"
         )
     }
+
+    // If there is at least one Parser, we can return a Parser, else Parser0
+    val returnParser = argTerms.exists(!_._3) || stringParts.exists(_.nonEmpty)
+
     val tupleType = argTerms.map(_._2)
 
     val unitParser = '{ cats.parse.Parser.unit }.asTerm
@@ -176,8 +180,9 @@ object StringInterpolation {
           stringAfter(suffix, last)
         } else {
           // both the head and tail are empty strings
-          // TODO: if there are any internal strings we could also return a Parser
-          suffix
+          // this is uglier, but should still be valid
+          if (returnParser) Select.unique(suffix, "unsafeCastToParser")
+          else suffix
         }
       }
     term.asExpr

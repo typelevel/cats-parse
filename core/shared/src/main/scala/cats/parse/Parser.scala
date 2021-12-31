@@ -339,6 +339,16 @@ sealed abstract class Parser0[+A] { self: Product =>
   /** This method overrides `Object#hashCode` to cache its result for performance reasons.
     */
   override lazy val hashCode: Int = scala.runtime.ScalaRunTime._hashCode(this)
+
+  /** This throws if the current Parser0 is not a Parser.
+    *
+    * This library dynamically tries to retain the correct type where possible, but very rarely
+    * statically you may lose this information.
+    *
+    * Be very hesitiant to use this method.
+    */
+  final def unsafeCastToParser: Parser[A] =
+    this.asInstanceOf[Parser[A]]
 }
 
 /** Parser[A] is a Parser0[A] that will always consume one-or-more characters on a successful parse.

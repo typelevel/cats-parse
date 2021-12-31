@@ -121,5 +121,7 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
     assert(leading2.parseAll("foo12").isRight)
     val trailing2: Parser[(Option[Unit], Option[Unit])] = parser"${n(1)}${n(2)}foo"
     assert(trailing2.parseAll("12foo").isRight)
+    val middle2: Parser[(Option[Unit], Option[Unit])] = parser"${n(1)}foo${n(2)}"
+    assert(middle2.parseAll("1foo2").isRight)
   }
 }
