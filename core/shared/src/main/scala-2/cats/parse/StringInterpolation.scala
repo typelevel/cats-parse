@@ -26,7 +26,7 @@ import scala.reflect.macros.whitebox
 object StringInterpolation {
 
   implicit class Helper(val sc: StringContext) extends AnyVal {
-    def parser(args: Any*): Parser[Any] = macro StringInterpolationMacros.parser
+    def parser(args: Any*): Parser0[Any] = macro StringInterpolationMacros.parser
   }
 
 }
@@ -50,8 +50,7 @@ class StringInterpolationMacros(val c: whitebox.Context) {
         val trailing = last.filter(_.nonEmpty).headOption.map(lit)
 
         (parsers, trailing) match {
-          case (Nil, None) =>
-            throw new IllegalArgumentException("a non-empty string is required to create a Parser")
+          case (Nil, None) => q"_root_.cats.parse.Parser.unit"
           case (Nil, Some(t)) => t
           case (x :: Nil, Some(t)) => q"$x <* $t"
           case (x :: Nil, None) => x

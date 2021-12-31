@@ -66,11 +66,25 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
 
   }
 
+  test("including a Parser0") {
+    assertEquals(
+      parser"foo${Parser.unit}".parseAll("foo"),
+      Right(())
+    )
+  }
+
+  test("Only a Parser0") {
+    assertEquals(
+      parser"${Parser.unit}".parseAll(""),
+      Right(())
+    )
+
+  }
+
   test("empty string") {
-    assert(
-      compileErrors(""" parser"" """).contains(
-        "java.lang.IllegalArgumentException: a non-empty string is required to create a Parser"
-      )
+    assertEquals(
+      parser"".parseAll(""),
+      Right(())
     )
   }
 

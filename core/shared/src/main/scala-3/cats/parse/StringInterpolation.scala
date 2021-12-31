@@ -50,7 +50,7 @@ object StringInterpolation {
     val argTerms = args match {
       case Varargs(argExprs) =>
         argExprs.toList.map {
-          case '{ $arg: Parser[t] } => (arg.asTerm, TypeTree.of[t])
+          case '{ $arg: Parser0[t] } => (arg.asTerm, TypeTree.of[t])
           case o => throw new IllegalArgumentException(s"${o.asTerm.tpe} is not a Parser")
         }
       case other =>
@@ -74,8 +74,7 @@ object StringInterpolation {
     val trailing = last.filter(_.nonEmpty).map(litParser).headOption
 
     ((parsers, trailing) match {
-      case (Nil, None) =>
-        throw new IllegalArgumentException("a non-empty string is required to create a Parser")
+      case (Nil, None) => '{ cats.parse.Parser.unit }.asTerm
       case (Nil, Some(t)) => t
       case (x :: Nil, Some(t)) =>
         Apply(
