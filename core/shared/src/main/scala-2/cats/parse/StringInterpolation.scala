@@ -36,7 +36,6 @@ class StringInterpolationMacros(val c: whitebox.Context) {
 
   private def lit(s: String) = q"_root_.cats.parse.Parser.string($s)"
 
-
   final def parser(args: c.Expr[Any]*) =
     c.prefix.tree match {
       case Apply(_, Apply(_, parts) :: Nil) =>
@@ -51,7 +50,8 @@ class StringInterpolationMacros(val c: whitebox.Context) {
         val trailing = last.filter(_.nonEmpty).headOption.map(lit)
 
         (parsers, trailing) match {
-          case (Nil, None) => throw new IllegalArgumentException("a non-empty string is required to create a Parser")
+          case (Nil, None) =>
+            throw new IllegalArgumentException("a non-empty string is required to create a Parser")
           case (Nil, Some(t)) => t
           case (x :: Nil, Some(t)) => q"$x <* $t"
           case (x :: Nil, None) => x
