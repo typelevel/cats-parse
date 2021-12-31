@@ -108,17 +108,16 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
   }
 
   test("a leading or trailing string results in Parser") {
-    val u = Parser.unit
+    def n(i: Int) = Parser.string(i.toString).?
 
-    val leading1: Parser[Any] = parser"foo$u"
-    assert(leading1.parseAll("foo").isRight)
-    val trailing1: Parser[Any] = parser"${u}foo"
-    assert(trailing1.parseAll("foo").isRight)
+    val leading1: Parser[Option[Unit]] = parser"foo${n(1)}"
+    assert(leading1.parseAll("foo1").isRight)
+    val trailing1: Parser[Option[Unit]] = parser"${n(1)}foo"
+    assert(trailing1.parseAll("1foo").isRight)
 
-    val leading2: Parser[Any] = parser"foo$u$u"
-    assert(leading2.parseAll("foo").isRight)
-    val trailing2: Parser[Any] = parser"${u}${u}foo"
-    assert(trailing2.parseAll("foo").isRight)
+    val leading2: Parser[(Option[Unit], Option[Unit])] = parser"foo${n(1)}${n(2)}"
+    assert(leading2.parseAll("foo12").isRight)
+    val trailing2: Parser[(Option[Unit], Option[Unit])] = parser"${n(1)}${n(2)}foo"
+    assert(trailing2.parseAll("12foo").isRight)
   }
-
 }

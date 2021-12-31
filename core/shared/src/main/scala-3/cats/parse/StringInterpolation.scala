@@ -124,7 +124,8 @@ object StringInterpolation {
           // but we need to get the types lined up for the tupler to work
           val usesParser0 = argTerms.map(_._3).contains(true)
           val catsImplicits = if (usesParser0) summonImplicits[Parser0] else summonImplicits[Parser]
-          val parserType = (if (usesParser0) TypeTree.of[Parser0] else TypeTree.of[Parser]) :: tupleType
+          val parserType =
+            (if (usesParser0) TypeTree.of[Parser0] else TypeTree.of[Parser]) :: tupleType
 
           Apply(
             Apply(
@@ -136,7 +137,7 @@ object StringInterpolation {
             ),
             catsImplicits
           )
-        }
+      }
 
     def stringBefore(s: String, t: Term, tpe: TypeTree): Term =
       Apply(
@@ -154,8 +155,7 @@ object StringInterpolation {
       if (argTerms.isEmpty) {
         // there is a single string
         if (stringHead.nonEmpty) lit(stringHead) else unitParser
-      }
-      else if (stringHead.nonEmpty) {
+      } else if (stringHead.nonEmpty) {
         // we have an initial string, so we can definitely do a Parser
         val right: List[Term] =
           argTerms.zip(stringParts.tail).map { case ((aterm, _, _), b) =>
@@ -163,20 +163,18 @@ object StringInterpolation {
           }
 
         stringBefore(stringHead, all(right), tupleOf(tupleType))
-      }
-      else {
+      } else {
         val last = stringParts.last
         val suffix = all {
           stringParts.init.zip(argTerms).map { case (a, (bterm, btpe, _)) =>
             if (a.isEmpty) bterm else stringBefore(a, bterm, btpe)
           }
         }
-        
+
         if (last.nonEmpty) {
           // we have an trailing string, so we can definitely do a Parser
           stringAfter(suffix, last)
-        }
-        else {
+        } else {
           // both the head and tail are empty strings
           // TODO: if there are any internal strings we could also return a Parser
           suffix
