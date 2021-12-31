@@ -74,12 +74,14 @@ object StringInterpolation {
     val trailing = last.filter(_.nonEmpty).map(litParser).headOption
 
     ((parsers, trailing) match {
-      case (Nil, None) => throw new IllegalArgumentException("a non-empty string is required to create a Parser")
+      case (Nil, None) =>
+        throw new IllegalArgumentException("a non-empty string is required to create a Parser")
       case (Nil, Some(t)) => t
-      case (x :: Nil, Some(t)) => Apply(
-        TypeApply(Select.unique(x, "<*"), List(TypeTree.of[Unit])),
-        List(t)
-      )
+      case (x :: Nil, Some(t)) =>
+        Apply(
+          TypeApply(Select.unique(x, "<*"), List(TypeTree.of[Unit])),
+          List(t)
+        )
       case (x :: Nil, None) => x
       case (xs, t) =>
         // it's possible to call `etaExpand` on the expression below without implicit arguments
@@ -112,12 +114,13 @@ object StringInterpolation {
           catsImplicits
         )
 
-        t.map(p => Apply(
-          TypeApply(Select.unique(tupled, "<*"), List(TypeTree.of[Unit])),
-          List(p)
-        )).getOrElse(tupled)
+        t.map(p =>
+          Apply(
+            TypeApply(Select.unique(tupled, "<*"), List(TypeTree.of[Unit])),
+            List(p)
+          )
+        ).getOrElse(tupled)
     }).asExpr
-
 
   }
 
