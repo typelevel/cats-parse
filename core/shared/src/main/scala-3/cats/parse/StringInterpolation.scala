@@ -126,7 +126,7 @@ object StringInterpolation {
 
           // NB: we need to find the LUB of all our parsers; it will be either `Parser0` or `Parser`.
           // but we need to get the types lined up for the tupler to work
-          val usesParser0 = argTerms.map(_._3).contains(true)
+          val usesParser0 = argTerms.exists(_._3)
           val catsImplicits = if (usesParser0) summonImplicits[Parser0] else summonImplicits[Parser]
           val parserType =
             (if (usesParser0) TypeTree.of[Parser0] else TypeTree.of[Parser]) :: tupleType
