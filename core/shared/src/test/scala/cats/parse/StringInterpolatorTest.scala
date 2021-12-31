@@ -25,10 +25,37 @@ import StringInterpolation._
 
 class StringInterpolatorTest extends munit.ScalaCheckSuite {
 
-  test("parser string interpolator") {
+  test("zero parser interpolation") {
+    assertEquals(
+      parser"foo".parseAll("foo"),
+      Right(())
+    )
+  }
+
+  test("single parser interpolator") {
+    val world = Parser.string("world").as(42)
+    val parser: Parser[Int] = parser"hello $world"
+
+    assertEquals(
+      parser.parseAll("hello world"),
+      Right(42)
+    )
+  }
+
+  test("trailing string literal") {
+    val hello = Parser.string("hello").as(42)
+    val parser: Parser[Int] = parser"$hello world"
+
+    assertEquals(
+      parser.parseAll("hello world"),
+      Right(42)
+    )
+  }
+
+  test("multi-parser interpolation") {
     val foo: Parser[Boolean] = Parser.string("spam").as(true) | Parser.string("eggs").as(false)
     val bar: Parser[BigInt] = Numbers.bigInt
-    val quux: Parser[Int] = Parser.string("quux").as(42)
+    val quux: Parser[Int] = parser"quux".as(42)
 
     val arrow: Parser[(Boolean, BigInt, Int)] = parser"$foo,$bar -> $quux"
 
@@ -36,5 +63,18 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
       arrow.parseAll("spam,1234 -> quux"),
       Right((true, BigInt(1234), 42))
     )
+
   }
+
+  test("empty string") {
+    assert(compileErrors(""" parser"" """).contains(
+        "java.lang.IllegalArgumentException: a non-empty string is required to create a Parser"
+    ))
+  }
+
+  test("including non-parser args") {
+    assert(compileErrors("""{ val i = 42; parser"hello $i" }""").nonEmpty)
+  }
+
+
 }

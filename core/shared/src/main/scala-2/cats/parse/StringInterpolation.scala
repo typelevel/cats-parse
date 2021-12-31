@@ -36,6 +36,7 @@ class StringInterpolationMacros(val c: whitebox.Context) {
 
   private def lit(s: String) = q"_root_.cats.parse.Parser.string($s)"
 
+
   final def parser(args: c.Expr[Any]*) =
     c.prefix.tree match {
       case Apply(_, Apply(_, parts) :: Nil) =>
@@ -44,18 +45,23 @@ class StringInterpolationMacros(val c: whitebox.Context) {
         val (matched, last) = stringParts.splitAt(args.length)
 
         val parsers: List[Tree] = matched.zip(args).map { case (a, b) =>
-          if (a.isEmpty) b.tree else q"${lit(a)} *> $b "
-        } ++ last.filter(_.nonEmpty).map(lit)
+          if (a.isEmpty) b.tree else q"${lit(a)} *> $b"
+        }
 
-        parsers match {
-          case Nil =>
-            throw new IllegalArgumentException("a non-empty string is required to create a Parser")
-          case x :: Nil => x
-          case xs =>
-            Apply(
+        val trailing = last.filter(_.nonEmpty).headOption.map(lit)
+
+        (parsers, trailing) match {
+          case (Nil, None) => throw new IllegalArgumentException("a non-empty string is required to create a Parser")
+          case (Nil, Some(t)) => t
+          case (x :: Nil, Some(t)) => q"$x <* $t"
+          case (x :: Nil, None) => x
+          case (xs, t) =>
+            val tupled = Apply(
               Select(q"_root_.cats.Semigroupal", TermName(s"tuple${parsers.length}")),
               xs
             )
+
+            t.map(p => q"$tupled <* $p").getOrElse(tupled)
         }
 
       case _ => c.abort(c.enclosingPosition, "Must be called as string interpolator")

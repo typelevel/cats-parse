@@ -51,7 +51,7 @@ object StringInterpolation {
       case Varargs(argExprs) =>
         argExprs.toList.map {
           case '{ $arg: Parser[t] } => (arg.asTerm, TypeTree.of[t])
-          case o => sys.error(s"${o.asTerm.tpe} is not a Parser")
+          case o => throw new IllegalArgumentException(s"${o.asTerm.tpe} is not a Parser")
         }
       case other =>
         throw new IllegalStateException(
@@ -69,13 +69,19 @@ object StringInterpolation {
           List(b)
         )
       }
-    } ++ last.filter(_.nonEmpty).map(litParser)
+    }
 
-    parsers match {
-      case Nil =>
-        throw new IllegalArgumentException("a non-empty string is required to create a Parser")
-      case x :: Nil => x.asExpr
-      case xs =>
+    val trailing = last.filter(_.nonEmpty).map(litParser).headOption
+
+    ((parsers, trailing) match {
+      case (Nil, None) => throw new IllegalArgumentException("a non-empty string is required to create a Parser")
+      case (Nil, Some(t)) => t
+      case (x :: Nil, Some(t)) => Apply(
+        TypeApply(Select.unique(x, "<*"), List(TypeTree.of[Unit])),
+        List(t)
+      )
+      case (x :: Nil, None) => x
+      case (xs, t) =>
         // it's possible to call `etaExpand` on the expression below without implicit arguments
         // which will give us a `Block` we could theoretically inspect and summon the appropriate implicits for.
         // However, that is a complicated general solution and we can probably assume that SemiGroupal.tuple[n]
@@ -95,7 +101,7 @@ object StringInterpolation {
           ).asTerm
         )
 
-        Apply(
+        val tupled = Apply(
           Apply(
             TypeApply(
               Select.unique('{ _root_.cats.Semigroupal }.asTerm, s"tuple${parsers.length}"),
@@ -104,8 +110,14 @@ object StringInterpolation {
             parsers
           ),
           catsImplicits
-        ).asExpr
-    }
+        )
+
+        t.map(p => Apply(
+          TypeApply(Select.unique(tupled, "<*"), List(TypeTree.of[Unit])),
+          List(p)
+        )).getOrElse(tupled)
+    }).asExpr
+
 
   }
 
