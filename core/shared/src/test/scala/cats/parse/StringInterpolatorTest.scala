@@ -84,7 +84,9 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
       Right(())
     )
     // this is definitely a Parser0
-    assert(compileErrors("""{ val p: Parser[Unit] = parser"${Parser.unit}" }""").nonEmpty)
+    // this annoying bit is about avoiding a scala 2.11 warning
+    // we can't do ${foo} but can do $foo
+    assert(compileErrors("""{ val u = Parser.unit; val p: Parser[Unit] = parser"$u" }""").nonEmpty)
   }
 
   test("multiple Parser0") {
