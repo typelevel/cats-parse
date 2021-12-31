@@ -26,7 +26,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [3.1.0, 2.11.12, 2.12.15, 2.13.6]
+        scala: [3.0.2, 2.11.12, 2.12.15, 2.13.7]
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -58,6 +58,7 @@ jobs:
       - run: |
           sbt ++${{ matrix.scala }} fmtCheck \
               "++${{ matrix.scala }} test" \
+              "++${{ matrix.scala }} doc" \
               "++${{ matrix.scala }} mimaReportBinaryIssues"
 
       - name: Compress target directories
@@ -76,7 +77,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.7]
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -132,12 +133,12 @@ jobs:
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.13.6)
+      - name: Download target directories (2.13.7)
         uses: actions/download-artifact@v2
         with:
-          name: target-${{ matrix.os }}-2.13.6-${{ matrix.java }}
+          name: target-${{ matrix.os }}-2.13.7-${{ matrix.java }}
 
-      - name: Inflate target directories (2.13.6)
+      - name: Inflate target directories (2.13.7)
         run: |
           tar xf targets.tar
           rm targets.tar
@@ -160,7 +161,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.7]
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -191,7 +192,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.7]
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
     steps:

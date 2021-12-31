@@ -21,39 +21,31 @@
 
 package cats.parse
 
-import scala.collection.mutable.BitSet
+import cats.Order
 
-object BitSetUtil {
-  type Tpe = BitSet
+/** This is a pointer to a zero based line, column, and total offset.
+  */
+case class Caret(line: Int, col: Int, offset: Int)
 
-  @inline final val isScalaJs = true
-  @inline final val isScalaJvm = false
+object Caret {
+  val Start: Caret = Caret(0, 0, 0)
 
-  @inline final def isSet(b: BitSet, idx: Int): Boolean =
-    (idx >= 0) && b(idx)
-
-  def bitSetFor(charArray: Array[Char]): BitSet = {
-    val min = charArray(0).toInt
-    val bs = new BitSet(charArray(charArray.length - 1).toInt + 1 - min)
-    var idx = 0
-    while (idx < charArray.length) {
-      bs += charArray(idx).toInt - min
-      idx += 1
+  /** This order is the same as offset order if the Carets are both from the same input string, but
+    * if from different ones will compare by line then by column and finally by offset.
+    */
+  implicit val caretOrder: Order[Caret] =
+    new Order[Caret] {
+      def compare(left: Caret, right: Caret): Int = {
+        val c0 = Integer.compare(left.line, right.line)
+        if (c0 != 0) c0
+        else {
+          val c1 = Integer.compare(left.col, right.col)
+          if (c1 != 0) c1
+          else Integer.compare(left.offset, right.offset)
+        }
+      }
     }
 
-    bs
-  }
-
-  def isSingleton(t: Tpe): Boolean = t.size == 1
-
-  def union(bs: List[(Int, BitSet)]): Iterable[Char] =
-    union(bs.iterator)
-
-  // what are all the Chars in these bitsets
-  def union(bs: Iterator[(Int, BitSet)]): Iterable[Char] = {
-    def toIter(m: Int, bs: BitSet): Iterator[Char] =
-      bs.iterator.map { i => (i + m).toChar } ++ Iterator.single(m.toChar)
-
-    bs.flatMap { case (m, bs) => toIter(m, bs) }.toSet
-  }
+  implicit val caretOrdering: Ordering[Caret] =
+    caretOrder.toOrdering
 }

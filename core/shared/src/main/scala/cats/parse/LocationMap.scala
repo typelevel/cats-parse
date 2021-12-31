@@ -29,8 +29,12 @@ import java.util.Arrays
   * numbers
   */
 class LocationMap(val input: String) {
+
   private[this] val lines: Array[String] =
     input.split("\n", -1)
+
+  private[this] val endsWithNewLine: Boolean =
+    (input.length > 0) && (input.last == '\n')
 
   // The position of the first element of the ith line
   private[this] val firstPos: Array[Int] = {
@@ -52,32 +56,64 @@ class LocationMap(val input: String) {
       .scanLeft(0)(_ + _)
   }
 
-  /** Given a string offset return the line and column
+  /** How many lines are there
+    */
+  def lineCount: Int = lines.length
+
+  def isValidOffset(offset: Int): Boolean =
+    (0 <= offset && offset <= input.length)
+
+  /** Given a string offset return the line and column If input.length is given (EOF) we return the
+    * same value as if the string were one character longer (i.e. if we have appended a non-newline
+    * character at the EOF)
     */
   def toLineCol(offset: Int): Option[(Int, Int)] =
-    if (offset < 0 || offset >= input.length) None
-    else {
+    if (isValidOffset(offset)) {
+      val Caret(line, col, _) = toCaretUnsafeImpl(offset)
+      Some((line, col))
+    } else None
+
+  // This does not do bounds checking because we
+  // don't want to check twice. Callers to this need to
+  // do bounds check
+  private def toCaretUnsafeImpl(offset: Int): Caret =
+    if (offset == input.length) {
+      // this is end of line
+      if (offset == 0) Caret.Start
+      else {
+        val Caret(line, col, _) = toCaretUnsafeImpl(offset - 1)
+        if (endsWithNewLine) Caret(line = line + 1, col = 0, offset = offset)
+        else Caret(line = line, col = col + 1, offset = offset)
+      }
+    } else {
       val idx = Arrays.binarySearch(firstPos, offset)
-      if (idx == firstPos.length) {
-        // greater than all elements
-        None
-      } else if (idx < 0) {
+      if (idx < 0) {
         // idx = (~(insertion pos) - 1)
         // The insertion point is defined as the point at which the key would be
         // inserted into the array: the index of the first element greater than
         // the key, or a.length if all elements in the array are less than the specified key.
         //
         // so insertion pos = ~(idx + 1)
-        val row = ~(idx + 1)
-        // so we are pointing into a row
-        val rowStart = firstPos(row)
-        val col = offset - rowStart
-        Some((row, col))
+        val line = ~(idx + 1)
+        // so we are pointing into a line
+        val lineStart = firstPos(line)
+        val col = offset - lineStart
+        Caret(line = line, col = col, offset = offset)
       } else {
         // idx is exactly the right value because offset is beginning of a line
-        Some((idx, 0))
+        Caret(line = idx, col = 0, offset = offset)
       }
     }
+
+  /** Convert an offset to a Caret. throws IllegalArgumentException if offset is longer than input
+    */
+  def toCaretUnsafe(offset: Int): Caret =
+    if (isValidOffset(offset)) toCaretUnsafeImpl(offset)
+    else throw new IllegalArgumentException(s"offset = $offset exceeds ${input.length}")
+
+  def toCaret(offset: Int): Option[Caret] =
+    if (isValidOffset(offset)) Some(toCaretUnsafeImpl(offset))
+    else None
 
   /** return the line without a newline
     */
@@ -85,6 +121,13 @@ class LocationMap(val input: String) {
     if (i >= 0 && i < lines.length) Some(lines(i))
     else None
 
+  /** Return the offset for a given line/col. if we return Some(input.length) this means EOF if we
+    * return Some(i) for 0 <= i < input.length it is a valid item else offset < 0 or offset >
+    * input.length we return None
+    */
+  def toOffset(line: Int, col: Int): Option[Int] =
+    if ((line < 0) || (line > lines.length)) None
+    else Some(firstPos(line) + col)
 }
 
 object LocationMap {

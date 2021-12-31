@@ -26,6 +26,13 @@ import Prop.forAll
 
 class LocationMapTest extends munit.ScalaCheckSuite {
 
+  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 20000
+
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters
+      .withMinSuccessfulTests(tests)
+      .withMaxDiscardRatio(10)
+
   property("single line locations") {
     val singleLine: Gen[String] =
       Arbitrary.arbitrary[String].map(_.filterNot(_ == '\n'))
@@ -44,10 +51,30 @@ class LocationMapTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("position of end-of-line is the same as adding a constant") {
+    forAll { (str: String) =>
+      val lm0 = LocationMap(str)
+      val lm1 = LocationMap(str + "a")
+
+      assert(lm0.toLineCol(str.length) == lm1.toLineCol(str.length))
+    }
+  }
+
+  property("adding more content never changes the Caret of an offset") {
+    forAll { (s0: String, s1: String) =>
+      val lm0 = LocationMap(s0)
+      val lm1 = LocationMap(s0 + s1)
+
+      (0 to s0.length).foreach { idx =>
+        assertEquals(lm0.toCaretUnsafe(idx), lm1.toCaretUnsafe(idx))
+      }
+    }
+  }
+
   test("some specific examples") {
     val lm0 = LocationMap("\n")
     assert(lm0.toLineCol(0) == Some((0, 0)))
-    assert(lm0.toLineCol(1) == None)
+    assertEquals(lm0.toLineCol(1), Some((1, 0)))
 
     val lm1 = LocationMap("012\n345\n678")
     assert(lm1.toLineCol(-1) == None)
@@ -62,7 +89,7 @@ class LocationMapTest extends munit.ScalaCheckSuite {
     assert(lm1.toLineCol(8) == Some((2, 0)))
     assert(lm1.toLineCol(9) == Some((2, 1)))
     assert(lm1.toLineCol(10) == Some((2, 2)))
-    assert(lm1.toLineCol(11) == None)
+    assert(lm1.toLineCol(11) == Some((2, 3)))
   }
 
   property("we can reassemble input with getLine") {
@@ -94,7 +121,7 @@ class LocationMapTest extends munit.ScalaCheckSuite {
               case None => fail(s"offset = $offset, s = $s")
               case Some(line) =>
                 assert(line.length >= col)
-                if (line.length == col) assert(s(offset) == '\n')
+                if (line.length == col) assert((offset == s.length) || s(offset) == '\n')
                 else assert(line(col) == s(offset))
             }
         }
@@ -107,8 +134,8 @@ class LocationMapTest extends munit.ScalaCheckSuite {
   property("if a string is not empty, 0 offset is (0, 0)") {
     forAll { (s: String) =>
       LocationMap(s).toLineCol(0) match {
-        case Some(r) => assert(r == ((0, 0)))
-        case None => assert(s.isEmpty)
+        case Some(r) => assertEquals(r, ((0, 0)))
+        case None => fail("could not get the first item")
       }
     }
   }
@@ -117,8 +144,8 @@ class LocationMapTest extends munit.ScalaCheckSuite {
 
     def slow(str: String, offset: Int): Option[(Int, Int)] = {
       val split = str.split("\n", -1)
-      def lineCol(off: Int, row: Int): Option[(Int, Int)] =
-        if (row == split.length) None
+      def lineCol(off: Int, row: Int): (Int, Int) =
+        if (row == split.length) (row, 0)
         else {
           val r = split(row)
           val extraNewLine =
@@ -126,18 +153,32 @@ class LocationMapTest extends munit.ScalaCheckSuite {
           val chars = r.length + extraNewLine
 
           if (off >= chars) lineCol(off - chars, row + 1)
-          else Some((row, off))
+          else (row, off)
         }
 
-      if (offset < 0 || offset >= str.length) None
-      else lineCol(offset, 0)
+      if (offset < 0 || offset > str.length) None
+      else if (offset == str.length) Some {
+        if (offset == 0) (0, 0)
+        else {
+          val (l, c) = lineCol(offset - 1, 0)
+          if (str.last == '\n') (l + 1, 0)
+          else (l, c + 1)
+        }
+      }
+      else Some(lineCol(offset, 0))
     }
 
     assert(slow("\n", 0) == Some((0, 0)))
     assert(LocationMap("\n").toLineCol(0) == Some((0, 0)))
 
+    assertEquals(slow("\n", 1), Some((1, 0)))
+    assertEquals(LocationMap("\n").toLineCol(1), Some((1, 0)))
+
     assert(slow(" \n", 1) == Some((0, 1)))
     assert(LocationMap(" \n").toLineCol(1) == Some((0, 1)))
+
+    assertEquals(slow(" \n", 2), Some((1, 0)))
+    assertEquals(LocationMap(" \n").toLineCol(2), Some((1, 0)))
 
     assert(slow(" \n ", 1) == Some((0, 1)))
     assert(LocationMap(" \n ").toLineCol(1) == Some((0, 1)))
@@ -148,9 +189,8 @@ class LocationMapTest extends munit.ScalaCheckSuite {
     forAll { (str: String, offset: Int) =>
       val lm = LocationMap(str)
       assertEquals(lm.toLineCol(offset), slow(str, offset))
-      if (str.length > 0) {
-        val validOffset = math.abs(offset % str.length)
-        assertEquals(lm.toLineCol(validOffset), slow(str, validOffset))
+      (0 to str.length).foreach { o =>
+        assertEquals(lm.toLineCol(o), slow(str, o))
       }
     }
   }
@@ -168,6 +208,66 @@ class LocationMapTest extends munit.ScalaCheckSuite {
           case other =>
             fail(other.toString)
         }
+      }
+    }
+  }
+
+  property("toLineCol toOffset round trips") {
+    forAll { (s: String, offset: Int) =>
+      val offsets = (-s.length to 2 * s.length).toSet + offset
+
+      val lm = LocationMap(s)
+      offsets.foreach { o =>
+        lm.toLineCol(o) match {
+          case Some((l, c)) =>
+            assertEquals(lm.toOffset(l, c), Some(o))
+          case None =>
+            assert(o < 0 || o > s.length)
+        }
+      }
+    }
+  }
+
+  property("lineCount and getLine are consistent") {
+    forAll { (s: String) =>
+      val lm = LocationMap(s)
+      assert(s.endsWith(lm.getLine(lm.lineCount - 1).get))
+    }
+  }
+
+  property("toLineCol and toCaret are consistent") {
+    forAll { (s: String, other: Int) =>
+      val lm = LocationMap(s)
+      (0 to s.length).foreach { offset =>
+        val c = lm.toCaretUnsafe(offset)
+        val oc = lm.toCaret(offset)
+        val lc = lm.toLineCol(offset)
+
+        assertEquals(oc, Some(c))
+        assertEquals(lc, oc.map { c => (c.line, c.col) })
+        assertEquals(c.offset, offset)
+        val Caret(line, col, off1) = c
+        assertEquals(line, c.line)
+        assertEquals(col, c.col)
+        assertEquals(off1, offset)
+      }
+
+      if (other < 0 || s.length < other) {
+        assert(scala.util.Try(lm.toCaretUnsafe(other)).isFailure)
+        assertEquals(lm.toCaret(other), None)
+        assertEquals(lm.toLineCol(other), None)
+      }
+    }
+  }
+
+  property("Caret ordering matches offset ordering") {
+    forAll { (s: String, o1: Int, o2: Int) =>
+      val lm = LocationMap(s)
+      val c1 = lm.toCaret(o1)
+      val c2 = lm.toCaret(o2)
+
+      if (c1.isDefined && c2.isDefined) {
+        assertEquals(Ordering[Option[Caret]].compare(c1, c2), Integer.compare(o1, o2))
       }
     }
   }

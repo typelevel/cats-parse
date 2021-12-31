@@ -49,13 +49,16 @@ object BitSetUtil {
   def isSingleton(t: Tpe): Boolean = t.cardinality() == 1
 
   // what are all the Chars in these bitsets
-  def union(bs: List[(Int, BitSet)]): Iterable[Char] = {
+  def union(bs: List[(Int, BitSet)]): Iterable[Char] =
+    union(bs.iterator)
+
+  def union(bs: Iterator[(Int, BitSet)]): Iterable[Char] = {
     def toIter(m: Int, bs: BitSet): Iterator[Char] =
       Iterator
         .iterate(0) { m => bs.nextSetBit(m + 1) }
         .takeWhile(_ >= 0)
         .map { i => (m + i).toChar }
 
-    bs.flatMap { case (m, bs) => toIter(m, bs) }
+    bs.flatMap { case (m, bs) => toIter(m, bs) }.toSet
   }
 }
