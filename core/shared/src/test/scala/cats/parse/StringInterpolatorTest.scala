@@ -73,12 +73,19 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
     )
   }
 
-  test("Only a Parser0") {
+  test("single Parser0") {
     assertEquals(
       parser"${Parser.unit}".parseAll(""),
       Right(())
     )
 
+  }
+
+  test("multiple Parser0") {
+    assertEquals(
+      parser"${Parser.unit}${Parser.unit}".parseAll(""),
+      Right(((), ()))
+    )
   }
 
   test("empty string") {

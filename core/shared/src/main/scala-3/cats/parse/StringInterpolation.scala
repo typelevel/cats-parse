@@ -39,6 +39,15 @@ object StringInterpolation {
       '{ Parser.string($stringExpr) }.asTerm
     }
 
+    def summonImplicits[F[_]: Type] = List(
+      Expr.summon[cats.Semigroupal[F]],
+      Expr.summon[cats.Invariant[F]]
+    ).map(
+      _.getOrElse(
+        throw new Exception("Could not find cats implicit instance for Parser!")
+      ).asTerm
+    )
+
     val stringParts = sc match {
       case '{ StringContext(${ Varargs(Exprs(parts)) }: _*) } => parts.toList
       case _ =>
@@ -50,7 +59,8 @@ object StringInterpolation {
     val argTerms = args match {
       case Varargs(argExprs) =>
         argExprs.toList.map {
-          case '{ $arg: Parser0[t] } => (arg.asTerm, TypeTree.of[t])
+          case '{ $arg: Parser[t] } => (arg.asTerm, TypeTree.of[t], false)
+          case '{ $arg: Parser0[t] } => (arg.asTerm, TypeTree.of[t], true)
           case o => throw new IllegalArgumentException(s"${o.asTerm.tpe} is not a Parser")
         }
       case other =>
@@ -61,7 +71,7 @@ object StringInterpolation {
 
     val (matched, last) = stringParts.splitAt(argTerms.length)
 
-    val parsers = matched.zip(argTerms).map { case (a, (b, t)) =>
+    val parsers = matched.zip(argTerms).map { case (a, (b, t, _)) =>
       if (a.isEmpty) b
       else {
         Apply(
@@ -93,20 +103,16 @@ object StringInterpolation {
         // we build
         // a `Semigroupal.tuple2[Parser, A, B](a, b)(implicitly[Semigroupal[Parser]], implicitly[Invariant[Parser]])
 
-        val catsImplicits = List(
-          Expr.summon[cats.Semigroupal[Parser]],
-          Expr.summon[cats.Invariant[Parser]]
-        ).map(
-          _.getOrElse(
-            throw new Exception("Could not find cats implicit instance for Parser!")
-          ).asTerm
-        )
+        // NB: we need to find the LUB of all our parsers; it will be either `Parser0` or `Parser`.
+        // but we need to get the types lined up for the tupler to work
+        val usesParser0 = argTerms.map(_._3).contains(true)
+        val catsImplicits = if (usesParser0) summonImplicits[Parser0] else summonImplicits[Parser]
 
         val tupled = Apply(
           Apply(
             TypeApply(
               Select.unique('{ _root_.cats.Semigroupal }.asTerm, s"tuple${parsers.length}"),
-              TypeTree.of[Parser] :: argTerms.map(_._2)
+              (if (usesParser0) TypeTree.of[Parser0] else TypeTree.of[Parser]) :: argTerms.map(_._2)
             ),
             parsers
           ),
