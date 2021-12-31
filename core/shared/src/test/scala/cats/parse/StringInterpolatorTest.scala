@@ -99,4 +99,16 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
     assert(compileErrors("""{ val i = 42; parser"hello $i" }""").nonEmpty)
   }
 
+  test("Parser vs Parser0") {
+    val p: Parser[Unit] = Parser.string("foo")
+    val p0: Parser0[Unit] = Parser.unit
+
+    assertEquals((parser"": Parser0[Unit]).parseAll(""), Right(()))
+    assertEquals((parser"$p": Parser[Unit]).parseAll("foo"), Right(()))
+    assertEquals((parser"$p0": Parser0[Unit]).parseAll(""), Right(()))
+    assertEquals((parser"foo$p0": Parser[Unit]).parseAll("foo"), Right(()))
+    assertEquals((parser"$p0$p0": Parser0[(Unit, Unit)]).parseAll(""), Right(((), ())))
+    assertEquals((parser"$p0$p": Parser[(Unit, Unit)]).parseAll("foo"), Right(((), ())))
+  }
+
 }
