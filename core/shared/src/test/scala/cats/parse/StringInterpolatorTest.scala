@@ -26,6 +26,11 @@ import StringInterpolation._
 class StringInterpolatorTest extends munit.ScalaCheckSuite {
 
   test("zero parser interpolation") {
+    val f: Parser[Unit] = parser"foo"
+    assertEquals(
+      f.parseAll("foo"),
+      Right(())
+    )
     assertEquals(
       parser"foo".parseAll("foo"),
       Right(())
@@ -33,7 +38,7 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
   }
 
   test("single parser interpolator") {
-    val world = Parser.string("world").as(42)
+    val world: Parser[Int] = Parser.string("world").as(42)
     val parser: Parser[Int] = parser"hello $world"
 
     assertEquals(
@@ -78,7 +83,8 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
       parser"${Parser.unit}".parseAll(""),
       Right(())
     )
-
+    // this is definitely a Parser0
+    assert(compileErrors("""{ val p: Parser[Unit] = parser"${Parser.unit}" }""").nonEmpty)
   }
 
   test("multiple Parser0") {
@@ -93,10 +99,26 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
       parser"".parseAll(""),
       Right(())
     )
+    // this is definitely a Parser0
+    assert(compileErrors("""{ val p: Parser[Unit] = parser"" }""").nonEmpty)
   }
 
   test("including non-parser args") {
     assert(compileErrors("""{ val i = 42; parser"hello $i" }""").nonEmpty)
+  }
+
+  test("a leading or trailing string results in Parser") {
+    val u = Parser.unit
+
+    val leading1: Parser[Any] = parser"foo$u"
+    assert(leading1.parseAll("foo").isRight)
+    val trailing1: Parser[Any] = parser"${u}foo"
+    assert(trailing1.parseAll("foo").isRight)
+
+    val leading2: Parser[Any] = parser"foo$u$u"
+    assert(leading2.parseAll("foo").isRight)
+    val trailing2: Parser[Any] = parser"${u}${u}foo"
+    assert(trailing2.parseAll("foo").isRight)
   }
 
 }

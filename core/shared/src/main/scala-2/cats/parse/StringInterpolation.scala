@@ -31,7 +31,7 @@ object StringInterpolation {
 
 }
 
-class StringInterpolationMacros(val c: whitebox.Context) {
+private class StringInterpolationMacros(val c: whitebox.Context) {
   import c.universe._
 
   private def lit(s: String) = q"_root_.cats.parse.Parser.string($s)"
@@ -39,30 +39,58 @@ class StringInterpolationMacros(val c: whitebox.Context) {
   final def parser(args: c.Expr[Any]*) =
     c.prefix.tree match {
       case Apply(_, Apply(_, parts) :: Nil) =>
+        // This has exactly 1 more than args (before, between and after
         val stringParts = parts.collect { case Literal(Constant(s: String)) => s }
+        val stringHead = stringParts.head
 
-        val (matched, last) = stringParts.splitAt(args.length)
+        val unitParser = q"_root_.cats.parse.Parser.unit"
+        def all(xs: List[Tree]): Tree =
+          xs match {
+            case Nil => sys.error("invariant violation: we never call this with size 0")
+            case h :: Nil => h
+            case _ =>
+              Apply(
+                Select(q"_root_.cats.Semigroupal", TermName(s"tuple${args.length}")),
+                xs
+              )
+          }
 
-        val parsers: List[Tree] = matched.zip(args).map { case (a, b) =>
-          if (a.isEmpty) b.tree else q"${lit(a)} *> $b"
+        def stringBefore(s: String, t: Tree): Tree =
+          q"${lit(s)} *> $t"
+
+        def stringAfter(t: Tree, s: String): Tree =
+          q"$t.with1 <* ${lit(s)}"
+
+        val argsTree = args.map(_.tree)
+
+        if (args.isEmpty) {
+          // there is a single string
+          if (stringHead.nonEmpty) lit(stringHead) else unitParser
+        } else if (stringHead.nonEmpty) {
+          // we have an initial string, so we can definitely do a Parser
+          val right: List[Tree] =
+            argsTree.toList.zip(stringParts.tail).map { case (a, b) =>
+              if (b.isEmpty) a else stringAfter(a, b)
+            }
+
+          stringBefore(stringHead, all(right))
+        } else {
+          val last = stringParts.last
+          val suffix = all {
+            stringParts.init.zip(argsTree).map { case (a, b) =>
+              if (a.isEmpty) b else stringBefore(a, b)
+            }
+          }
+
+          if (last.nonEmpty) {
+            // we have an trailing string, so we can definitely do a Parser
+            stringAfter(suffix, last)
+          } else {
+            // both the head and tail are empty strings
+            // TODO: if there are any internal strings we could also return a Parser
+            suffix
+          }
         }
-
-        val trailing = last.filter(_.nonEmpty).headOption.map(lit)
-
-        (parsers, trailing) match {
-          case (Nil, None) => q"_root_.cats.parse.Parser.unit"
-          case (Nil, Some(t)) => t
-          case (x :: Nil, Some(t)) => q"$x <* $t"
-          case (x :: Nil, None) => x
-          case (xs, t) =>
-            val tupled = Apply(
-              Select(q"_root_.cats.Semigroupal", TermName(s"tuple${parsers.length}")),
-              xs
-            )
-
-            t.map(p => q"$tupled <* $p").getOrElse(tupled)
-        }
-
       case _ => c.abort(c.enclosingPosition, "Must be called as string interpolator")
     }
 }
