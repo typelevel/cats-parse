@@ -108,6 +108,9 @@ class StringInterpolatorTest extends munit.ScalaCheckSuite {
     assertEquals((parser"$p0": Parser0[Unit]).parseAll(""), Right(()))
     assertEquals((parser"foo$p0": Parser[Unit]).parseAll("foo"), Right(()))
     assertEquals((parser"$p0$p0": Parser0[(Unit, Unit)]).parseAll(""), Right(((), ())))
+    // fails in scala 3 only due to our dodgy "type inference"
+    assertEquals((parser"a${p0}b${p0}": Parser[(Unit, Unit)]).parseAll("ab"), Right(((), ())))
+    // fails in scala 2/3 due to fundamental problem of using `tupleN`
     assertEquals((parser"$p0$p": Parser[(Unit, Unit)]).parseAll("foo"), Right(((), ())))
   }
 
