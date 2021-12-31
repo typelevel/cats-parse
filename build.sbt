@@ -127,6 +127,10 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
         munitScalacheck.value % Test
       )
     },
+    libraryDependencies ++= {
+      val isScala2 = CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 2)
+      if (isScala2) Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value) else Nil
+    },
     scalacOptions ++= {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       // this code seems to trigger a bug in 2.11 pattern analysis
