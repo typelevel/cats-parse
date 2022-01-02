@@ -28,36 +28,36 @@ import _root_.fastparse._, NoWhitespace._
 object JsonParse {
   def stringChars(c: Char) = c != '\"' && c != '\\'
 
-  def space[_: P] = P(CharsWhileIn(" \r\n", 0))
-  def digits[_: P] = P(CharsWhileIn("0-9"))
-  def exponent[_: P] = P(CharIn("eE") ~ CharIn("+\\-").? ~ digits)
-  def fractional[_: P] = P("." ~ digits)
-  def integral[_: P] = P("0" | CharIn("1-9") ~ digits.?)
+  def space(implicit ctx: P[_]) = P(CharsWhileIn(" \r\n", 0))
+  def digits(implicit ctx: P[_]) = P(CharsWhileIn("0-9"))
+  def exponent(implicit ctx: P[_]) = P(CharIn("eE") ~ CharIn("+\\-").? ~ digits)
+  def fractional(implicit ctx: P[_]) = P("." ~ digits)
+  def integral(implicit ctx: P[_]) = P("0" | CharIn("1-9") ~ digits.?)
 
-  def number[_: P] =
+  def number(implicit ctx: P[_]) =
     P(CharIn("+\\-").? ~ integral ~ fractional.? ~ exponent.?).!.map(x => JNum(x.toDouble))
 
-  def `null`[_: P] = P("null").map(_ => JNull)
-  def `false`[_: P] = P("false").map(_ => JFalse)
-  def `true`[_: P] = P("true").map(_ => JTrue)
+  def `null`(implicit ctx: P[_]) = P("null").map(_ => JNull)
+  def `false`(implicit ctx: P[_]) = P("false").map(_ => JFalse)
+  def `true`(implicit ctx: P[_]) = P("true").map(_ => JTrue)
 
-  def hexDigit[_: P] = P(CharIn("0-9a-fA-F"))
-  def unicodeEscape[_: P] = P("u" ~ hexDigit ~ hexDigit ~ hexDigit ~ hexDigit)
-  def escape[_: P] = P("\\" ~ (CharIn("\"/\\\\bfnrt") | unicodeEscape))
+  def hexDigit(implicit ctx: P[_]) = P(CharIn("0-9a-fA-F"))
+  def unicodeEscape(implicit ctx: P[_]) = P("u" ~ hexDigit ~ hexDigit ~ hexDigit ~ hexDigit)
+  def escape(implicit ctx: P[_]) = P("\\" ~ (CharIn("\"/\\\\bfnrt") | unicodeEscape))
 
-  def strChars[_: P] = P(CharsWhile(stringChars))
-  def string[_: P] =
+  def strChars(implicit ctx: P[_]) = P(CharsWhile(stringChars))
+  def string(implicit ctx: P[_]) =
     P(space ~ "\"" ~/ (strChars | escape).rep.! ~ "\"").map(JString.apply)
 
-  def array[_: P] =
+  def array(implicit ctx: P[_]) =
     P("[" ~/ jsonExpr.rep(sep = ","./) ~ space ~ "]").map(JArray.fromSeq)
 
-  def pair[_: P] = P(string.map(_.asString) ~/ ":" ~/ jsonExpr)
+  def pair(implicit ctx: P[_]) = P(string.map(_.asString) ~/ ":" ~/ jsonExpr)
 
-  def obj[_: P] =
+  def obj(implicit ctx: P[_]) =
     P("{" ~/ pair.rep(sep = ","./) ~ space ~ "}").map(JObject.fromSeq)
 
-  def jsonExpr[_: P]: P[JValue] = P(
+  def jsonExpr(implicit ctx: P[_]): P[JValue] = P(
     space ~ (obj | array | string | `true` | `false` | `null` | number) ~ space
   )
 }
