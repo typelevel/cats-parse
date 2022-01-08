@@ -2494,4 +2494,13 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(left, right)
     }
   }
+
+  property("foo.as(()) == foo.void") {
+    forAll(ParserGen.gen) { p =>
+      assertEquals(p.fa.void, p.fa.as(()))
+    } &&
+    forAll(ParserGen.gen0) { p =>
+      assertEquals(p.fa.void, p.fa.as(()))
+    }
+  }
 }
