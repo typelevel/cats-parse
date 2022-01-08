@@ -1347,10 +1347,21 @@ object Parser {
       case Impl.Map0(p0, f0) =>
         val f1 = f0 match {
           case Impl.ConstFn(a) => Impl.ConstFn(fn(a))
-          case _ => AndThen(f0).andThen(fn)
+          case _ =>
+            // we know that fn can only be ConstFn
+            // if p is voided, which means it
+            // does not have a non-const map
+            // so fn can't be Const in this case
+            AndThen(f0).andThen(fn)
         }
         Impl.Map0(p0, f1)
-      case _ => Impl.Map0(p, fn)
+      case _ =>
+        fn match {
+          case Impl.ConstFn(b) if Impl.alwaysSucceeds(p) =>
+            Impl.Pure(b)
+          case _ =>
+            Impl.Map0(p, fn)
+        }
     }
 
   /** transform a Parser result
@@ -1721,8 +1732,8 @@ object Parser {
       case v =>
         // If b is (), such as foo.as(())
         // we can just return v
-        if (b == ()) v.asInstanceOf[Parser0[B]]
-        else v.map(Impl.ConstFn(b))
+        if (b.equals(())) v.asInstanceOf[Parser0[B]]
+        else map0(v)(Impl.ConstFn(b))
     }
 
   /** Replaces parsed values with the given value.
@@ -1731,7 +1742,7 @@ object Parser {
     val v = pa.void
     // If b is (), such as foo.as(())
     // we can just return v
-    if (b == ()) v.asInstanceOf[Parser[B]]
+    if (b.equals(())) v.asInstanceOf[Parser[B]]
     else
       v match {
         case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
@@ -1744,7 +1755,7 @@ object Parser {
             case _ =>
               Impl.Map(ci, Impl.ConstFn(b))
           }
-        case notSingleChar => notSingleChar.map(Impl.ConstFn(b))
+        case notSingleChar => Impl.Map(notSingleChar, Impl.ConstFn(b))
       }
   }
 
