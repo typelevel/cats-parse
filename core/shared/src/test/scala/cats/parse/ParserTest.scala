@@ -1228,11 +1228,10 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("repExactlyAs is consistent with repAs") {
-    forAll(ParserGen.gen, Gen.choose(1, Int.MaxValue), Arbitrary.arbitrary[String]) {
-      (genP, n, str) =>
-        val repA = genP.fa.repAs[NonEmptyVector[_]](n, n)
-        val repB = genP.fa.repExactlyAs[NonEmptyVector[_]](n)
-        assertEquals(repA.parse(str), repB.parse(str))
+    forAll(ParserGen.gen, Gen.choose(1, 10000), Arbitrary.arbitrary[String]) { (genP, n, str) =>
+      val repA = genP.fa.repAs[NonEmptyVector[_]](n, n)
+      val repB = genP.fa.repExactlyAs[NonEmptyVector[_]](n)
+      assertEquals(repA.parse(str), repB.parse(str))
     }
   }
 

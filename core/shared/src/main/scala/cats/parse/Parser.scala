@@ -1350,6 +1350,8 @@ object Parser {
           case None =>
             p match {
               case Impl.Map0(p0, f0) =>
+                // reassociate in the function,
+                // not the parser, so we can quickly check if we match
                 Impl.Map0(p0, AndThen(f0).andThen(fn))
               case _ => Impl.Map0(p, fn)
             }
@@ -1364,10 +1366,12 @@ object Parser {
         p.as(fn(a))
       case None =>
         p match {
-          case Impl.Map(p0, f0) =>
-            Impl.Map(p0, AndThen(f0).andThen(fn))
           case f @ Impl.Fail() => f.widen
           case f @ Impl.FailWith(_) => f.widen
+          case Impl.Map(p0, f0) =>
+            // reassociate in the function,
+            // not the parser, so we can quickly check if we match
+            Impl.Map(p0, AndThen(f0).andThen(fn))
           case _ => Impl.Map(p, fn)
         }
     }
@@ -1747,13 +1751,12 @@ object Parser {
 
   /** Replaces parsed values with the given value.
     */
-  def as0[B](pa: Parser0[Any], b: B): Parser0[B] =
-    pa.void match {
-      case p1: Parser[_] => as(p1, b)
-      case voided =>
-        if (Impl.alwaysSucceeds(voided)) pure(b)
-        else Impl.Map0(voided, Impl.ConstFn(b))
-    }
+  def as0[B](pa: Parser0[Any], b: B): Parser0[B] = {
+    // voiding can never turn a Parser0 into a Parser
+    val voided = pa.void
+    if (Impl.alwaysSucceeds(voided)) pure(b)
+    else Impl.Map0(voided, Impl.ConstFn(b))
+  }
 
   /** Replaces parsed values with the given value.
     */
@@ -1965,15 +1968,20 @@ object Parser {
         case _ => false
       }
 
+    val someUnit: Some[Unit] = Some(())
     // *if* the parser succeeds, do we know the result?
     // it may not always suceed
     final def hasKnownResult[A](p: Parser0[A]): Option[A] =
       p match {
         case Pure(a) => Some(a)
+        case Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
+          Some(min.toChar.asInstanceOf[A])
         case Map0(_, ConstFn(a)) => Some(a)
         case Map(_, ConstFn(a)) => Some(a)
-        case Map0(a, f) => hasKnownResult(a).map(f)
-        case Map(a, f) => hasKnownResult(a).map(f)
+        case Map0(_, _) | Map(_, _) =>
+          // By construction, if the left hand side of
+          // a map is constant, then we have a ConstFn on the right
+          None
         case SoftProd0(a, b) =>
           for {
             ra <- hasKnownResult(a)
@@ -2008,13 +2016,11 @@ object Parser {
         case WithContextP0(_, p) => hasKnownResult(p)
         case Backtrack(p) => hasKnownResult(p)
         case Backtrack0(p) => hasKnownResult(p)
-        case Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
-          Some(min.toChar.asInstanceOf[A])
         case Not(_) | Peek(_) | Void(_) | Void0(_) | StartParser | EndParser | Str(_) | IgnoreCase(
               _
             ) =>
           // these are always unit
-          Some(())
+          someUnit.asInstanceOf[Option[A]]
         case Rep0(_, _, _) | Rep(_, _, _, _) | FlatMap0(_, _) | FlatMap(_, _) | TailRecM(_, _) |
             TailRecM0(_, _) | Defer(_) | Defer0(_) | GetCaret | Index | OneOf(_) | OneOf0(_) |
             Length(_) | StringIn(_) | Fail() | FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
