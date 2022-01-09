@@ -1051,6 +1051,73 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("a.flatMap(b) composes as expected parser00") {
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, str) =>
+      forAll(Gen.function1(ParserGen.gen0)(p1.cogen)) { fn =>
+        val flatMapped = p1.fa.flatMap { a => fn(a).fa }
+
+        val directResult = flatMapped.parse(str)
+
+        val indirect = p1.fa.parse(str) match {
+          case Left(err) => Left(err)
+          case Right((rest, a)) =>
+            val off = if (rest == "") str.length else str.lastIndexOf(rest)
+            // make the offsets the same by padding the front
+            val padded = Parser.length0(off) *> fn(a).fa
+            padded.parse(str)
+        }
+
+        assertEquals(indirect, directResult)
+      }
+    }
+  }
+
+  property("a.flatMap(b) composes as expected parser10") {
+    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (p1, str) =>
+      forAll(Gen.function1(ParserGen.gen0)(p1.cogen)) { fn =>
+        val flatMapped = p1.fa.flatMap { a => fn(a).fa }
+
+        val directResult = flatMapped.parse(str)
+
+        val indirect = p1.fa.parse(str) match {
+          case Left(err) => Left(err)
+          case Right((rest, a)) =>
+            val off = if (rest == "") str.length else str.lastIndexOf(rest)
+            // make the offsets the same by padding the front
+            val padded = Parser.length0(off) *> fn(a).fa
+            padded.parse(str)
+        }
+
+        // make sure we have a Parser
+        implicitly[flatMapped.type <:< Parser[Any]]
+        assertEquals(indirect, directResult)
+      }
+    }
+  }
+
+  property("a.flatMap(b) composes as expected parser01") {
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (p1, str) =>
+      forAll(Gen.function1(ParserGen.gen)(p1.cogen)) { fn =>
+        val flatMapped = p1.fa.with1.flatMap { a => fn(a).fa }
+
+        val directResult = flatMapped.parse(str)
+
+        val indirect = p1.fa.parse(str) match {
+          case Left(err) => Left(err)
+          case Right((rest, a)) =>
+            val off = if (rest == "") str.length else str.lastIndexOf(rest)
+            // make the offsets the same by padding the front
+            val padded = Parser.length0(off) *> fn(a).fa
+            padded.parse(str)
+        }
+
+        // make sure we have a Parser
+        implicitly[flatMapped.type <:< Parser[Any]]
+        assertEquals(indirect, directResult)
+      }
+    }
+  }
+
   test("range messages seem to work") {
     val pa = Parser.charIn('0' to '9')
     assertEquals(pa.parse("z").toString, "Left(Error(0,NonEmptyList(InRange(0,0,9))))")
