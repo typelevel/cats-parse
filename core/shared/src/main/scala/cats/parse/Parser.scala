@@ -1751,12 +1751,15 @@ object Parser {
 
   /** Replaces parsed values with the given value.
     */
-  def as0[B](pa: Parser0[Any], b: B): Parser0[B] = {
-    // voiding can never turn a Parser0 into a Parser
-    val voided = pa.void
-    if (Impl.alwaysSucceeds(voided)) pure(b)
-    else Impl.Map0(voided, Impl.ConstFn(b))
-  }
+  def as0[B](pa: Parser0[Any], b: B): Parser0[B] =
+    pa match {
+      case p: Parser[Any] => as(p, b)
+      case _ =>
+        val voided = pa.void
+        // void cannot make a Parser0 a Parser
+        if (Impl.alwaysSucceeds(voided)) pure(b)
+        else Impl.Map0(voided, Impl.ConstFn(b))
+    }
 
   /** Replaces parsed values with the given value.
     */
