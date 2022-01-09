@@ -1271,10 +1271,12 @@ object Parser {
   def product0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
       case f1: Parser[A] => product10(f1, second)
+      case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case _ =>
         second match {
           case s1: Parser[B] =>
             product01(first, s1)
+          case Impl.Pure(b) => first.map(Impl.ToTupleWith2(b))
           case _ => Impl.Prod0(first, second)
         }
     }
@@ -1285,7 +1287,11 @@ object Parser {
     first match {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
-      case _ => Impl.Prod(first, second)
+      case _ =>
+        second match {
+          case Impl.Pure(b) => first.map(Impl.ToTupleWith2(b))
+          case _ => Impl.Prod(first, second)
+        }
     }
 
   /** product with the second argument being a Parser
@@ -1293,6 +1299,7 @@ object Parser {
   def product01[A, B](first: Parser0[A], second: Parser[B]): Parser[(A, B)] =
     first match {
       case p1: Parser[A] => product10(p1, second)
+      case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case _ => Impl.Prod(first, second)
     }
 
@@ -1304,10 +1311,13 @@ object Parser {
   def softProduct0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
       case f1: Parser[A] => softProduct10(f1, second)
+      case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case _ =>
         second match {
           case s1: Parser[B] =>
             softProduct01(first, s1)
+          case Impl.Pure(b) =>
+            first.map(Impl.ToTupleWith2(b))
           case _ => Impl.SoftProd0(first, second)
         }
     }
@@ -1322,7 +1332,11 @@ object Parser {
     first match {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
-      case _ => Impl.SoftProd(first, second)
+      case _ =>
+        second match {
+          case Impl.Pure(b) => first.map(Impl.ToTupleWith2(b))
+          case _ => Impl.SoftProd(first, second)
+        }
     }
 
   /** softProduct with the second argument being a Parser A soft product backtracks if the first
@@ -1335,6 +1349,7 @@ object Parser {
     first match {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
+      case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case _ => Impl.SoftProd(first, second)
     }
 
@@ -1909,6 +1924,14 @@ object Parser {
 
       override def andThen[B](that: Function[A, B]): ConstFn[B] =
         ConstFn(that(result))
+    }
+
+    case class ToTupleWith1[A, C](item1: A) extends Function1[C, (A, C)] {
+      def apply(c: C) = (item1, c)
+    }
+
+    case class ToTupleWith2[B, C](item2: B) extends Function1[C, (C, B)] {
+      def apply(c: C) = (c, item2)
     }
 
     // this is used to make def unmap0 a pure function wrt `def equals`
