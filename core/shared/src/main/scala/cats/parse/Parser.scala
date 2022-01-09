@@ -1355,13 +1355,7 @@ object Parser {
             AndThen(f0).andThen(fn)
         }
         Impl.Map0(p0, f1)
-      case _ =>
-        fn match {
-          case Impl.ConstFn(b) if Impl.alwaysSucceeds(p) =>
-            Impl.Pure(b)
-          case _ =>
-            Impl.Map0(p, fn)
-        }
+      case _ => Impl.Map0(p, fn)
     }
 
   /** transform a Parser result

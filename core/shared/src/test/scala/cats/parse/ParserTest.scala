@@ -2503,4 +2503,22 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(p.fa.void, p.fa.as(()))
     }
   }
+
+  test("Parsers that always succeed, when we do .as become pure") {
+    assertEquals(Parser.index.as(42), Parser.pure(42))
+    assertEquals(Parser.index.map(_ * 4).as(42), Parser.pure(42))
+    assertEquals((Parser.index ~ Parser.pure(3)).as(42), Parser.pure(42))
+    assertEquals((Parser.index.soft ~ Parser.pure(3)).as(42), Parser.pure(42))
+
+    assertEquals(Parser.caret.as(42), Parser.pure(42))
+    assertEquals(Parser.caret.map(_.line).as(42), Parser.pure(42))
+    assertEquals((Parser.caret ~ Parser.pure(3)).as(42), Parser.pure(42))
+    assertEquals((Parser.caret.soft ~ Parser.pure(3)).as(42), Parser.pure(42))
+
+    assertEquals(Parser.pure(0).as(42), Parser.pure(42))
+    assertEquals(Parser.pure(0).map(_ + 2).as(42), Parser.pure(42))
+    assertEquals(Parser.pure(40).map(_ + 2), Parser.pure(42))
+    assertEquals((Parser.pure(1) ~ Parser.pure(3)).as(42), Parser.pure(42))
+    assertEquals((Parser.pure(1).soft ~ Parser.pure(3)).as(42), Parser.pure(42))
+  }
 }
