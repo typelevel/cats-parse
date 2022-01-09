@@ -1976,12 +1976,26 @@ object Parser {
         case Pure(a) => Some(a)
         case Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
           Some(min.toChar.asInstanceOf[A])
-        case Map0(_, ConstFn(a)) => Some(a)
-        case Map(_, ConstFn(a)) => Some(a)
-        case Map0(_, _) | Map(_, _) =>
-          // By construction, if the left hand side of
-          // a map is constant, then we have a ConstFn on the right
-          None
+        case Map0(_, fn) =>
+          // scala 3.0.2 seems to fail if we inline
+          // this match above
+          fn match {
+            case ConstFn(a) => Some(a)
+            case _ =>
+              // by construction, if the left hasKnownResult,
+              // the right is a ConstFn
+              None
+          }
+        case Map(_, fn) =>
+          // scala 3.0.2 seems to fail if we inline
+          // this match above
+          fn match {
+            case ConstFn(a) => Some(a)
+            case _ =>
+              // by construction, if the left hasKnownResult,
+              // the right is a ConstFn
+              None
+          }
         case SoftProd0(a, b) =>
           for {
             ra <- hasKnownResult(a)
