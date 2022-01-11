@@ -1347,7 +1347,12 @@ object Parser {
       case Impl.Map0(p0, f0) =>
         val f1 = f0 match {
           case Impl.ConstFn(a) => Impl.ConstFn(fn(a))
-          case _ => AndThen(f0).andThen(fn)
+          case _ =>
+            // we know that fn can only be ConstFn
+            // if p is voided, which means it
+            // does not have a non-const map
+            // so fn can't be Const in this case
+            AndThen(f0).andThen(fn)
         }
         Impl.Map0(p0, f1)
       case _ => Impl.Map0(p, fn)
@@ -1718,30 +1723,34 @@ object Parser {
   def as0[B](pa: Parser0[Any], b: B): Parser0[B] =
     pa.void match {
       case p1: Parser[_] => as(p1, b)
-      case _ =>
-        Impl.unmap0(pa) match {
-          case Impl.Pure(_) | Impl.Index | Impl.GetCaret => pure(b)
-          case notPure =>
-            Impl.Void0(notPure).map(Impl.ConstFn(b))
-        }
+      case v =>
+        // If b is (), such as foo.as(())
+        // we can just return v
+        if (b.equals(())) v.asInstanceOf[Parser0[B]]
+        else map0(v)(Impl.ConstFn(b))
     }
 
   /** Replaces parsed values with the given value.
     */
   def as[B](pa: Parser[Any], b: B): Parser[B] = {
-    pa.void match {
-      case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
-        // CharIn is common and cheap, no need to wrap
-        // with Void since CharIn always returns the char
-        // even when voided
-        b match {
-          case bc: Char if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
-            ci.asInstanceOf[Parser[B]]
-          case _ =>
-            Impl.Map(ci, Impl.ConstFn(b))
-        }
-      case notSingleChar => notSingleChar.map(Impl.ConstFn(b))
-    }
+    val v = pa.void
+    // If b is (), such as foo.as(())
+    // we can just return v
+    if (b.equals(())) v.asInstanceOf[Parser[B]]
+    else
+      v match {
+        case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
+          // CharIn is common and cheap, no need to wrap
+          // with Void since CharIn always returns the char
+          // even when voided
+          b match {
+            case bc: Char if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
+              ci.asInstanceOf[Parser[B]]
+            case _ =>
+              Impl.Map(ci, Impl.ConstFn(b))
+          }
+        case notSingleChar => Impl.Map(notSingleChar, Impl.ConstFn(b))
+      }
   }
 
   /** Add a context string to Errors to aid debugging
