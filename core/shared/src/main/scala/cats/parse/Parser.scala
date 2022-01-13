@@ -1772,14 +1772,22 @@ object Parser {
       case _ =>
         val voided = pa.void
         // void cannot make a Parser0 a Parser
-        if (Impl.alwaysSucceeds(voided)) pure(b)
+        // If b is (), such as foo.as(())
+        // we can just return v
+        if (b.equals(())) voided.asInstanceOf[Parser0[B]]
+        else if (Impl.alwaysSucceeds(voided)) pure(b)
         else Impl.Map0(voided, Impl.ConstFn(b))
     }
 
   /** Replaces parsed values with the given value.
     */
   def as[B](pa: Parser[Any], b: B): Parser[B] = {
-    pa.void match {
+    val v = pa.void
+    // If b is (), such as foo.as(())
+    // we can just return v
+    if (b.equals(())) v.asInstanceOf[Parser[B]]
+    else
+    v match {
       case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
         // CharIn is common and cheap, no need to wrap
         // with Void since CharIn always returns the char
