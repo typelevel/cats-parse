@@ -1787,20 +1787,20 @@ object Parser {
     // we can just return v
     if (b.equals(())) v.asInstanceOf[Parser[B]]
     else
-    v match {
-      case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
-        // CharIn is common and cheap, no need to wrap
-        // with Void since CharIn always returns the char
-        // even when voided
-        b match {
-          case bc: Char if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
-            ci.asInstanceOf[Parser[B]]
-          case _ =>
-            Impl.Map(ci, Impl.ConstFn(b))
-        }
-      case voided =>
-        Impl.Map(voided, Impl.ConstFn(b))
-    }
+      v match {
+        case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
+          // CharIn is common and cheap, no need to wrap
+          // with Void since CharIn always returns the char
+          // even when voided
+          b match {
+            case bc: Char if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
+              ci.asInstanceOf[Parser[B]]
+            case _ =>
+              Impl.Map(ci, Impl.ConstFn(b))
+          }
+        case voided =>
+          Impl.Map(voided, Impl.ConstFn(b))
+      }
   }
 
   /** Add a context string to Errors to aid debugging
@@ -2064,14 +2064,16 @@ object Parser {
         case WithContextP0(_, p) => hasKnownResult(p)
         case Backtrack(p) => hasKnownResult(p)
         case Backtrack0(p) => hasKnownResult(p)
-        case Not(_) | Peek(_) | Void(_) | Void0(_) | StartParser | EndParser | Str(_) | IgnoreCase(
+        case Not(_) | Peek(_) | Void(_) | Void0(_) | StartParser | EndParser | Str(_) | StringIn(
+              _
+            ) | IgnoreCase(
               _
             ) =>
           // these are always unit
           someUnit.asInstanceOf[Option[A]]
         case Rep0(_, _, _) | Rep(_, _, _, _) | FlatMap0(_, _) | FlatMap(_, _) | TailRecM(_, _) |
             TailRecM0(_, _) | Defer(_) | Defer0(_) | GetCaret | Index | OneOf(_) | OneOf0(_) |
-            Length(_) | StringIn(_) | Fail() | FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
+            Length(_) | Fail() | FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
               _
             ) | StringP0(_) | Select(_, _) | Select0(_, _) =>
           // these we don't know the value fundamentally or by construction
