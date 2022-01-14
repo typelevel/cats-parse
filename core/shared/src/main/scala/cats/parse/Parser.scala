@@ -1271,10 +1271,12 @@ object Parser {
   def product0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
       case f1: Parser[A] => product10(f1, second)
+      case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case _ =>
         second match {
           case s1: Parser[B] =>
             product01(first, s1)
+          case Impl.Pure(b) => first.map(Impl.ToTupleWith2(b))
           case _ => Impl.Prod0(first, second)
         }
     }
@@ -1285,7 +1287,11 @@ object Parser {
     first match {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
-      case _ => Impl.Prod(first, second)
+      case _ =>
+        second match {
+          case Impl.Pure(b) => first.map(Impl.ToTupleWith2(b))
+          case _ => Impl.Prod(first, second)
+        }
     }
 
   /** product with the second argument being a Parser
@@ -1293,6 +1299,7 @@ object Parser {
   def product01[A, B](first: Parser0[A], second: Parser[B]): Parser[(A, B)] =
     first match {
       case p1: Parser[A] => product10(p1, second)
+      case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case _ => Impl.Prod(first, second)
     }
 
@@ -1304,10 +1311,13 @@ object Parser {
   def softProduct0[A, B](first: Parser0[A], second: Parser0[B]): Parser0[(A, B)] =
     first match {
       case f1: Parser[A] => softProduct10(f1, second)
+      case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case _ =>
         second match {
           case s1: Parser[B] =>
             softProduct01(first, s1)
+          case Impl.Pure(b) =>
+            first.map(Impl.ToTupleWith2(b))
           case _ => Impl.SoftProd0(first, second)
         }
     }
@@ -1322,7 +1332,11 @@ object Parser {
     first match {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
-      case _ => Impl.SoftProd(first, second)
+      case _ =>
+        second match {
+          case Impl.Pure(b) => first.map(Impl.ToTupleWith2(b))
+          case _ => Impl.SoftProd(first, second)
+        }
     }
 
   /** softProduct with the second argument being a Parser A soft product backtracks if the first
@@ -1335,6 +1349,7 @@ object Parser {
     first match {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
+      case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case _ => Impl.SoftProd(first, second)
     }
 
@@ -1343,34 +1358,37 @@ object Parser {
   def map0[A, B](p: Parser0[A])(fn: A => B): Parser0[B] =
     p match {
       case p1: Parser[A] => map(p1)(fn)
-      case Impl.Pure(a) => Impl.Pure(fn(a))
-      case Impl.Map0(p0, f0) =>
-        val f1 = f0 match {
-          case Impl.ConstFn(a) => Impl.ConstFn(fn(a))
-          case _ =>
-            // we know that fn can only be ConstFn
-            // if p is voided, which means it
-            // does not have a non-const map
-            // so fn can't be Const in this case
-            AndThen(f0).andThen(fn)
+      case _ =>
+        Impl.hasKnownResult(p) match {
+          case Some(a) =>
+            p.as(fn(a))
+          case None =>
+            p match {
+              case Impl.Map0(p0, f0) =>
+                // reassociate in the function,
+                // not the parser, so we can quickly check if we match
+                Impl.Map0(p0, AndThen(f0).andThen(fn))
+              case _ => Impl.Map0(p, fn)
+            }
         }
-        Impl.Map0(p0, f1)
-      case _ => Impl.Map0(p, fn)
     }
 
   /** transform a Parser result
     */
   def map[A, B](p: Parser[A])(fn: A => B): Parser[B] =
-    p match {
-      case Impl.Map(p0, f0) =>
-        val f1 = f0 match {
-          case Impl.ConstFn(a) => Impl.ConstFn(fn(a))
-          case _ => AndThen(f0).andThen(fn)
+    Impl.hasKnownResult(p) match {
+      case Some(a) =>
+        p.as(fn(a))
+      case None =>
+        p match {
+          case f @ Impl.Fail() => f.widen
+          case f @ Impl.FailWith(_) => f.widen
+          case Impl.Map(p0, f0) =>
+            // reassociate in the function,
+            // not the parser, so we can quickly check if we match
+            Impl.Map(p0, AndThen(f0).andThen(fn))
+          case _ => Impl.Map(p, fn)
         }
-        Impl.Map(p0, f1)
-      case f @ Impl.Fail() => f.widen
-      case f @ Impl.FailWith(_) => f.widen
-      case _ => Impl.Map(p, fn)
     }
 
   /** Parse p and if we get the Left side, parse fn This function name comes from seletive functors.
@@ -1378,22 +1396,32 @@ object Parser {
     * every item parsed
     */
   def select0[A, B](p: Parser0[Either[A, B]])(fn: Parser0[A => B]): Parser0[B] =
-    Impl
-      .Select0(p, fn)
-      .map {
-        case Left((a, fn)) => fn(a)
-        case Right(b) => b
-      }
+    Impl.hasKnownResult(p) match {
+      case Some(Right(b)) => p.as(b)
+      case Some(Left(a)) => p *> fn.map(_(a))
+      case None =>
+        Impl
+          .Select0(p, fn)
+          .map {
+            case Left((a, fn)) => fn(a)
+            case Right(b) => b
+          }
+    }
 
   /** Parser version of select
     */
   def select[A, B](p: Parser[Either[A, B]])(fn: Parser0[A => B]): Parser[B] =
-    Impl
-      .Select(p, fn)
-      .map {
-        case Left((a, fn)) => fn(a)
-        case Right(b) => b
-      }
+    Impl.hasKnownResult(p) match {
+      case Some(Right(b)) => p.as(b)
+      case Some(Left(a)) => p *> fn.map(_(a))
+      case None =>
+        Impl
+          .Select(p, fn)
+          .map {
+            case Left((a, fn)) => fn(a)
+            case Right(b) => b
+          }
+    }
 
   /** Standard monadic flatMap Avoid this function if possible. If you can instead use product, ~,
     * *>, or <* use that. flatMap always has to allocate a parser, and the parser is less amenable
@@ -1402,7 +1430,13 @@ object Parser {
   def flatMap0[A, B](pa: Parser0[A])(fn: A => Parser0[B]): Parser0[B] =
     pa match {
       case p: Parser[A] => flatMap10(p)(fn)
-      case _ => Impl.FlatMap0(pa, fn)
+      case _ =>
+        Impl.hasKnownResult(pa) match {
+          case Some(a) =>
+            pa *> fn(a)
+          case None =>
+            Impl.FlatMap0(pa, fn)
+        }
     }
 
   /** Standard monadic flatMap where you start with a Parser Avoid this function if possible. If you
@@ -1413,7 +1447,13 @@ object Parser {
     pa match {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
-      case _ => Impl.FlatMap(pa, fn)
+      case _ =>
+        Impl.hasKnownResult(pa) match {
+          case Some(a) =>
+            pa *> fn(a)
+          case None =>
+            Impl.FlatMap(pa, fn)
+        }
     }
 
   /** Standard monadic flatMap where you end with a Parser Avoid this function if possible. If you
@@ -1423,7 +1463,13 @@ object Parser {
   def flatMap01[A, B](pa: Parser0[A])(fn: A => Parser[B]): Parser[B] =
     pa match {
       case p1: Parser[A] => flatMap10(p1)(fn)
-      case _ => Impl.FlatMap(pa, fn)
+      case _ =>
+        Impl.hasKnownResult(pa) match {
+          case Some(a) =>
+            pa.with1 *> fn(a)
+          case None =>
+            Impl.FlatMap(pa, fn)
+        }
     }
 
   /** tail recursive monadic flatMaps This is a rarely used function, but needed to implement
@@ -1721,13 +1767,16 @@ object Parser {
   /** Replaces parsed values with the given value.
     */
   def as0[B](pa: Parser0[Any], b: B): Parser0[B] =
-    pa.void match {
-      case p1: Parser[_] => as(p1, b)
-      case v =>
+    pa match {
+      case p: Parser[Any] => as(p, b)
+      case _ =>
+        val voided = pa.void
+        // void cannot make a Parser0 a Parser
         // If b is (), such as foo.as(())
         // we can just return v
-        if (b.equals(())) v.asInstanceOf[Parser0[B]]
-        else map0(v)(Impl.ConstFn(b))
+        if (b.equals(())) voided.asInstanceOf[Parser0[B]]
+        else if (Impl.alwaysSucceeds(voided)) pure(b)
+        else Impl.Map0(voided, Impl.ConstFn(b))
     }
 
   /** Replaces parsed values with the given value.
@@ -1749,7 +1798,8 @@ object Parser {
             case _ =>
               Impl.Map(ci, Impl.ConstFn(b))
           }
-        case notSingleChar => Impl.Map(notSingleChar, Impl.ConstFn(b))
+        case voided =>
+          Impl.Map(voided, Impl.ConstFn(b))
       }
   }
 
@@ -1884,6 +1934,14 @@ object Parser {
         ConstFn(that(result))
     }
 
+    case class ToTupleWith1[A, C](item1: A) extends Function1[C, (A, C)] {
+      def apply(c: C) = (item1, c)
+    }
+
+    case class ToTupleWith2[B, C](item2: B) extends Function1[C, (C, B)] {
+      def apply(c: C) = (c, item2)
+    }
+
     // this is used to make def unmap0 a pure function wrt `def equals`
     case class UnmapDefer0(fn: () => Parser0[Any]) extends Function0[Parser0[Any]] {
       def apply(): Parser0[Any] = unmap0(compute0(fn))
@@ -1942,6 +2000,84 @@ object Parser {
         // it would just be the same as unit
         // case Not(Fail() | FailWith(_)) => true
         case _ => false
+      }
+
+    val someUnit: Some[Unit] = Some(())
+    // *if* the parser succeeds, do we know the result?
+    // it may not always suceed
+    final def hasKnownResult[A](p: Parser0[A]): Option[A] =
+      p match {
+        case Pure(a) => Some(a)
+        case Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
+          Some(min.toChar.asInstanceOf[A])
+        case Map0(_, fn) =>
+          // scala 3.0.2 seems to fail if we inline
+          // this match above
+          fn match {
+            case ConstFn(a) => Some(a)
+            case _ =>
+              // by construction, if the left hasKnownResult,
+              // the right is a ConstFn
+              None
+          }
+        case Map(_, fn) =>
+          // scala 3.0.2 seems to fail if we inline
+          // this match above
+          fn match {
+            case ConstFn(a) => Some(a)
+            case _ =>
+              // by construction, if the left hasKnownResult,
+              // the right is a ConstFn
+              None
+          }
+        case SoftProd0(a, b) =>
+          for {
+            ra <- hasKnownResult(a)
+            rb <- hasKnownResult(b)
+          } yield (ra, rb).asInstanceOf[A]
+        case Prod0(a, b) =>
+          for {
+            ra <- hasKnownResult(a)
+            rb <- hasKnownResult(b)
+          } yield (ra, rb).asInstanceOf[A]
+        case SoftProd(a, b) =>
+          for {
+            ra <- hasKnownResult(a)
+            rb <- hasKnownResult(b)
+          } yield (ra, rb).asInstanceOf[A]
+        case Prod(a, b) =>
+          for {
+            ra <- hasKnownResult(a)
+            rb <- hasKnownResult(b)
+          } yield (ra, rb).asInstanceOf[A]
+        case OneOf(h :: t) =>
+          val ra = hasKnownResult(h)
+          if (ra.isDefined && t.forall { p => hasKnownResult(p) == ra }) {
+            ra
+          } else None
+        case OneOf0(h :: t) =>
+          val ra = hasKnownResult(h)
+          if (ra.isDefined && t.forall { p => hasKnownResult(p) == ra }) {
+            ra
+          } else None
+        case WithContextP(_, p) => hasKnownResult(p)
+        case WithContextP0(_, p) => hasKnownResult(p)
+        case Backtrack(p) => hasKnownResult(p)
+        case Backtrack0(p) => hasKnownResult(p)
+        case Not(_) | Peek(_) | Void(_) | Void0(_) | StartParser | EndParser | Str(_) | StringIn(
+              _
+            ) | IgnoreCase(
+              _
+            ) =>
+          // these are always unit
+          someUnit.asInstanceOf[Option[A]]
+        case Rep0(_, _, _) | Rep(_, _, _, _) | FlatMap0(_, _) | FlatMap(_, _) | TailRecM(_, _) |
+            TailRecM0(_, _) | Defer(_) | Defer0(_) | GetCaret | Index | OneOf(_) | OneOf0(_) |
+            Length(_) | Fail() | FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
+              _
+            ) | StringP0(_) | Select(_, _) | Select0(_, _) =>
+          // these we don't know the value fundamentally or by construction
+          None
       }
 
     /** This removes any trailing map functions which can cause wasted allocations if we are later
