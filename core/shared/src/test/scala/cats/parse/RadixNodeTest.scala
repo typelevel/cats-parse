@@ -72,7 +72,8 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
     def law(ss0: List[String], target: String): Prop = {
       val ss = ss0.filter(_.nonEmpty)
       val radix = RadixNode.fromStrings(ss)
-      assertEquals(radix.matchAt(target, 0) >= 0, ss.exists(target.startsWith(_)))
+      val matchLen = radix.matchAt(target, 0)
+      assertEquals(matchLen >= 0, ss.exists(target.startsWith(_)), s"ss=$ss, ss.size = ${ss.size}, matchLen=$matchLen, radix=$radix")
     }
 
     val p1 = forAll { (ss: List[String], head: Char, tail: String) =>
@@ -87,7 +88,13 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
     regressions.foldLeft(p1) { case (p, (ss, t)) => p && law(ss, t) }
   }
 
-  property("If we match everything in the set") {
+  property("fromString(Nil) matches nothing") {
+    forAll { (s: String) =>
+      assert(RadixNode.fromStrings(Nil).matchAt(s, 0) < 0)
+    }
+  }
+
+  property("we match everything in the set") {
     forAll { (ss0: List[String], head: Char, tail: String) =>
       val s1 = s"$head$tail"
       val ss = s1 :: ss0
@@ -95,6 +102,24 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
       ss.foreach { target =>
         assert((radix.matchAt(target, 0) >= 0) || target.isEmpty)
       }
+    }
+  }
+
+  property("commonPrefix is associative") {
+    val sl = RadixNode.commonPrefixSemilattice
+    forAll { (s0: String, s1: String, s2: String) =>
+      val left = sl.combine(sl.combine(s0, s1), s2)
+      val right = sl.combine(s0, sl.combine(s1, s2))
+      assertEquals(left, right)
+    }
+  }
+
+  property("commonPrefix commutes") {
+    val sl = RadixNode.commonPrefixSemilattice
+    forAll { (s0: String, s1: String) =>
+      val left = sl.combine(s0, s1)
+      val right = sl.combine(s1, s0)
+      assertEquals(left, right)
     }
   }
 }

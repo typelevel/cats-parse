@@ -22,18 +22,24 @@
 package cats.parse
 
 import cats.data.NonEmptyList
-import java.util.Arrays
+import cats.kernel.Semilattice
 import scala.annotation.tailrec
 
+import cats.syntax.all._
+
 private[parse] final class RadixNode(
-    protected val fsts: Array[Char],
+    protected val matched: String,
+    protected val bitMask: Int,
     // the prefixes are the rest of the string after the fsts (not including the fsts Char)
     protected val prefixes: Array[String],
-    protected val children: Array[RadixNode],
-    protected val word: Boolean
+    protected val children: Array[RadixNode]
 ) {
-  override def toString(): String =
-    s"RadixNode(${fsts.mkString("[", ", ", "]")}, ${children.mkString("[", ", ", "]")}, $word)"
+  override def toString(): String = {
+    def list[A](ary: Array[A]): String = ary.mkString("[", ", ", "]")
+    val ps = list(prefixes)
+    val cs = list(children)
+    s"RadixNode($matched, $bitMask, $ps, $cs)"
+  }
 
   /** If this matches, return the new offset, else return -1
     *
@@ -44,95 +50,81 @@ private[parse] final class RadixNode(
     * @return
     *   the new offset after a match, or -1
     */
-  def matchAt(str: String, off: Int): Int = {
-    val strLength = str.length
-    var offset = off
-    var tree = this
-    var cont = offset < strLength
-    var lastMatch = -1
-
-    while (cont) {
-      val c = str.charAt(offset)
-      val idx = Arrays.binarySearch(tree.fsts, c)
-      if (idx >= 0) {
-        val prefix = tree.prefixes(idx)
-        // accept the prefix fo this character
-        if (str.startsWith(prefix, offset + 1)) {
-          val children = tree.children(idx)
-          offset += (prefix.length + 1)
-          tree = children
-          cont = offset < strLength
-          if (children.word) lastMatch = offset
-        } else {
-          cont = false
-        }
-      } else {
-        cont = false
-      }
+  def matchAt(str: String, off: Int): Int =
+    matchAtOrNull(str, off) match {
+      case null => -1
+      case nonNull => nonNull.length
     }
 
-    lastMatch
-  }
+  @tailrec
+  final def matchAtOrNull(str: String, offset: Int): String =
+    if (offset < str.length)  {
+      val c = str.charAt(offset)
+      // this is a hash of c
+      val idx = c.toInt & bitMask
+      val prefix = prefixes(idx)
+      if (prefix ne null) {
+        // accept the prefix fo this character
+        if (str.regionMatches(offset, prefix, 0, prefix.length)) {
+          children(idx).matchAtOrNull(str, offset + prefix.length)
+        } else {
+          matched
+        }
+      } else {
+        matched
+      }
+    }
+    else {
+      matched
+    }
 }
 
 private[parse] object RadixNode {
-  @tailrec
-  private def groupByNonEmptyPrefix(
-      keys: List[String],
-      prefix: String,
-      current: NonEmptyList[String],
-      acc: List[(Char, String, NonEmptyList[String])]
-  ): List[(Char, String, NonEmptyList[String])] =
-    keys match {
-      case key :: keys =>
-        val prefixSize = commonPrefixLength(prefix, key)
-        if (prefixSize == 0) {
-          // no common prefix, group current suffixes together sorted again
-          groupByNonEmptyPrefix(
-            keys,
-            key,
-            NonEmptyList.one(key),
-            (prefix(0), prefix.tail, current.map(_.drop(prefix.size)).reverse) :: acc
-          )
-        } else {
-          // clip the prefix to the length, and continue
-          groupByNonEmptyPrefix(keys, prefix.take(prefixSize), key :: current, acc)
-        }
-      case Nil =>
-        (prefix(0), prefix.tail, current.map(_.drop(prefix.size)).reverse) :: acc
+  private val emptyStringArray = new Array[String](1)
+  private val emptyChildrenArray = new Array[RadixNode](1)
+
+  private def fromNonEmpty(prefix: String, nonEmpty: NonEmptyList[String]): RadixNode = {
+    val nonEmpties = nonEmpty.toList.filter(_.nonEmpty)
+    val headKeys = nonEmpties.iterator.map(_.head).toSet
+
+    @tailrec
+    def findBitMask(b: Int): Int =
+      if (b == 0xffff) b // biggest it can be
+      else {
+        val allDistinct = headKeys.iterator.map { c => c.toInt & b }.toSet.size == headKeys.size
+        if (allDistinct) b
+        else findBitMask((b << 1) | 1)
+      }
+
+    val bitMask = findBitMask((1 << Integer.highestOneBit(headKeys.size)) - 1)
+    val branching = bitMask + 1
+    val prefixes = new Array[String](branching)
+    val children = new Array[RadixNode](branching)
+    val tree = nonEmpties.groupByNel { s => (s.head.toInt & bitMask) }
+    tree.foreach { case (idx, strings) =>
+      // strings is a NonEmptyList[String] which all start with the same char
+      val prefix1 = strings.reduce(commonPrefixSemilattice)
+      val plen = prefix1.length
+      val node = fromNonEmpty(prefix + prefix1, strings.map(_.drop(plen)))
+      prefixes(idx) = prefix1
+      children(idx) = node
     }
+
+    // If nonEmpty contains the empty string, we have a valid prefix
+    val thisPrefix = if (nonEmpty.exists(_.isEmpty)) prefix else null
+    new RadixNode(thisPrefix, bitMask, prefixes, children)
+  }
 
   def fromSortedStrings(strings: NonEmptyList[String]): RadixNode =
-    NonEmptyList.fromList(strings.filter(_.nonEmpty)) match {
-      case Some(nonEmpty) =>
-        val grouped =
-          groupByNonEmptyPrefix(
-            nonEmpty.tail,
-            nonEmpty.head,
-            NonEmptyList.one(nonEmpty.head),
-            Nil
-          ).reverse
-            .map { case (fst, prefix, v) => (fst, prefix, fromSortedStrings(v)) }
-
-        val (fsts, prefixes, children) = grouped.unzip3
-
-        new RadixNode(
-          fsts.toArray,
-          prefixes.toArray,
-          children.toArray,
-          nonEmpty.size < strings.size
-        )
-      case None =>
-        leaf
-    }
+    fromNonEmpty("", strings)
 
   def fromStrings(strs: Iterable[String]): RadixNode =
-    NonEmptyList.fromList(strs.toList.distinct.sorted) match {
+    NonEmptyList.fromList(strs.toList.distinct) match {
       case Some(nel) => fromSortedStrings(nel)
-      case None => leaf
+      case None => empty
     }
 
-  private val leaf = new RadixNode(Array.empty, Array.empty, Array.empty, true)
+  private val empty = new RadixNode(null, 0, emptyStringArray, emptyChildrenArray)
 
   final def commonPrefixLength(s1: String, s2: String): Int = {
     val len = Integer.min(s1.length, s2.length)
@@ -148,4 +140,15 @@ private[parse] object RadixNode {
 
     idx
   }
+
+  val commonPrefixSemilattice: Semilattice[String] =
+    new Semilattice[String] {
+      def combine(x: String, y: String): String = {
+        val l = commonPrefixLength(x, y)
+        if (l == 0) ""
+        else if (l == x.length) x
+        else if (l == y.length) y
+        else x.take(l)
+      }
+    }
 }
