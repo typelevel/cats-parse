@@ -19,7 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package cats.parse.bench
+package cats.parse
+package bench
 
 import cats.parse.Parser
 import java.util.concurrent.TimeUnit
@@ -32,18 +33,19 @@ class StringInBenchmarks {
   val inputs =
     List("foofoo", "bar", "foobat", "foot", "foobar")
 
-  val stringIn = Parser.stringIn("foo" :: "bar" :: "foobar" :: "foofoo" :: "foobaz" :: Nil)
+  val stringsToMatch =     
+    "foobar" :: "foofoo" :: "foobaz" :: "foo" :: "bar" :: Nil
+  
+  val radixNode = RadixNode.fromStrings(stringsToMatch)
+
+  val stringIn = Parser.stringIn(stringsToMatch)
 
   val oneOf =
     Parser.oneOf(
-      Parser.string("foobar") ::
-        Parser.string("foobaz") ::
-        Parser.string("foofoo") ::
-        Parser.string("foo") ::
-        Parser.string("bar") ::
-        Nil
+      stringsToMatch.map { s => Parser.string(s) }
     )
 
+    /*
   @Benchmark
   def stringInParse(): Unit =
     inputs.foreach(stringIn.parseAll(_))
@@ -51,5 +53,13 @@ class StringInBenchmarks {
   @Benchmark
   def oneOfParse(): Unit =
     inputs.foreach(oneOf.parseAll(_))
+    */
 
+  @Benchmark
+  def radixMatchIn(): Unit =
+    inputs.foreach { s => radixNode.matchAt(s, 0) >= 0 }
+
+  @Benchmark
+  def linearMatchIn(): Unit =
+    inputs.foreach { s => stringsToMatch.exists(s.startsWith(_)) }
 }

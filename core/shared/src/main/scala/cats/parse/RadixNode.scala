@@ -22,18 +22,57 @@
 package cats.parse
 
 import cats.data.NonEmptyList
-
+import java.util.Arrays
 import scala.annotation.tailrec
 
-private[parse] class RadixNode(
-    val fsts: Array[Char],
+private[parse] final class RadixNode(
+    protected val fsts: Array[Char],
     // the prefixes are the rest of the string after the fsts (not including the fsts Char)
-    val prefixes: Array[String],
-    val children: Array[RadixNode],
-    val word: Boolean
+    protected val prefixes: Array[String],
+    protected val children: Array[RadixNode],
+    protected val word: Boolean
 ) {
   override def toString(): String =
     s"RadixNode(${fsts.mkString("[", ", ", "]")}, ${children.mkString("[", ", ", "]")}, $word)"
+
+  /** If this matches, return the new offset, else return -1
+    *
+    * @param str
+    *   the string to match against this RadixNode
+    * @param offset
+    *   the initial offset
+    * @return
+    *   the new offset after a match, or -1
+    */
+  def matchAt(str: String, off: Int): Int = {
+    val strLength = str.length
+    var offset = off
+    var tree = this
+    var cont = offset < strLength
+    var lastMatch = -1
+
+    while (cont) {
+      val c = str.charAt(offset)
+      val idx = Arrays.binarySearch(tree.fsts, c)
+      if (idx >= 0) {
+        val prefix = tree.prefixes(idx)
+        // accept the prefix fo this character
+        if (str.startsWith(prefix, offset + 1)) {
+          val children = tree.children(idx)
+          offset += (prefix.length + 1)
+          tree = children
+          cont = offset < strLength
+          if (children.word) lastMatch = offset
+        } else {
+          cont = false
+        }
+      } else {
+        cont = false
+      }
+    }
+
+    lastMatch
+  }
 }
 
 private[parse] object RadixNode {
@@ -85,6 +124,12 @@ private[parse] object RadixNode {
         )
       case None =>
         leaf
+    }
+
+  def fromStrings(strs: Iterable[String]): RadixNode =
+    NonEmptyList.fromList(strs.toList.distinct.sorted) match {
+      case Some(nel) => fromSortedStrings(nel)
+      case None => leaf
     }
 
   private val leaf = new RadixNode(Array.empty, Array.empty, Array.empty, true)
