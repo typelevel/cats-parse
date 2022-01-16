@@ -25,8 +25,6 @@ import cats.data.NonEmptyList
 import cats.kernel.Semilattice
 import scala.annotation.tailrec
 
-import cats.syntax.all._
-
 private[parse] final class RadixNode(
     matched: String,
     bitMask: Int,
@@ -114,10 +112,10 @@ private[parse] object RadixNode {
       val branching = bitMask + 1
       val prefixes = new Array[String](branching)
       val children = new Array[RadixNode](branching)
-      val tree = nonEmpties.groupByNel { s => (s.head.toInt & bitMask) }
+      val tree = nonEmpties.groupBy { s => (s.head.toInt & bitMask) }
       tree.foreach { case (idx, strings) =>
         // strings is a NonEmptyList[String] which all start with the same char
-        val prefix1 = strings.reduce(commonPrefixSemilattice)
+        val prefix1 = strings.reduce(commonPrefixSemilattice.combine(_, _))
         val plen = prefix1.length
         val node = fromTree(thisPrefix, prefix + prefix1, strings.map(_.drop(plen)).toList)
         prefixes(idx) = prefix1
@@ -129,7 +127,7 @@ private[parse] object RadixNode {
   }
 
   def fromSortedStrings(strings: NonEmptyList[String]): RadixNode =
-    fromTree(null, "", strings.distinct.toList)
+    fromTree(null, "", strings.toList.distinct)
 
   def fromStrings(strs: Iterable[String]): RadixNode =
     fromTree(null, "", strs.toList.distinct)
