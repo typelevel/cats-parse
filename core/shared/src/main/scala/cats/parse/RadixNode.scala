@@ -91,12 +91,12 @@ private[parse] object RadixNode {
   private val emptyStringArray = new Array[String](1)
   private val emptyChildrenArray = new Array[RadixNode](1)
 
-  private def fromTree(prefix: String, rest: List[String]): RadixNode = {
+  private def fromTree(prevMatch: String, prefix: String, rest: List[String]): RadixNode = {
     val nonEmpties = rest.toList.filter(_.nonEmpty)
     val headKeys = nonEmpties.iterator.map(_.head).toSet
 
     // If nonEmpty contains the empty string, we have a valid prefix
-    val thisPrefix = if (rest.exists(_.isEmpty)) prefix else null
+    val thisPrefix = if (rest.exists(_.isEmpty)) prefix else prevMatch
 
     if (nonEmpties.isEmpty) {
       new RadixNode(thisPrefix, 0, emptyStringArray, emptyChildrenArray)
@@ -119,7 +119,7 @@ private[parse] object RadixNode {
         // strings is a NonEmptyList[String] which all start with the same char
         val prefix1 = strings.reduce(commonPrefixSemilattice)
         val plen = prefix1.length
-        val node = fromTree(prefix + prefix1, strings.map(_.drop(plen)).toList)
+        val node = fromTree(thisPrefix, prefix + prefix1, strings.map(_.drop(plen)).toList)
         prefixes(idx) = prefix1
         children(idx) = node
       }
@@ -129,10 +129,10 @@ private[parse] object RadixNode {
   }
 
   def fromSortedStrings(strings: NonEmptyList[String]): RadixNode =
-    fromTree("", strings.distinct.toList)
+    fromTree(null, "", strings.distinct.toList)
 
   def fromStrings(strs: Iterable[String]): RadixNode =
-    fromTree("", strs.toList.distinct)
+    fromTree(null, "", strs.toList.distinct)
 
   final def commonPrefixLength(s1: String, s2: String): Int = {
     val len = Integer.min(s1.length, s2.length)

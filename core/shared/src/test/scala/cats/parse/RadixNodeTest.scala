@@ -139,9 +139,9 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
   }
 
   property("RadixTree singleton") {
-    forAll { (s: String, prefix: String) =>
+    forAll { (s: String, prefix: String, suffix: String) =>
       val tree = RadixNode.fromStrings(s :: Nil)
-      assertEquals(tree.matchAtOrNull(prefix + s, prefix.length), s)
+      assertEquals(tree.matchAtOrNull(prefix + s + suffix, prefix.length), s)
     }
   }
 
@@ -174,4 +174,8 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
     }
   }
 
+  test("example from ParserTest") {
+    val tree = RadixNode.fromStrings(List("foo", "foobar", "foofoo", "foobat"))
+    assertEquals(tree.matchAtOrNull("foobal", 0), "foo")
+  }
 }
