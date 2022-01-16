@@ -33,9 +33,9 @@ class StringInBenchmarks {
   val inputs =
     List("foofoo", "bar", "foobat", "foot", "foobar")
 
-  val stringsToMatch =     
+  val stringsToMatch =
     "foobar" :: "foofoo" :: "foobaz" :: "foo" :: "bar" :: Nil
-  
+
   val radixNode = RadixNode.fromStrings(stringsToMatch)
 
   val stringIn = Parser.stringIn(stringsToMatch)
@@ -45,7 +45,6 @@ class StringInBenchmarks {
       stringsToMatch.map { s => Parser.string(s) }
     )
 
-    /*
   @Benchmark
   def stringInParse(): Unit =
     inputs.foreach(stringIn.parseAll(_))
@@ -53,7 +52,6 @@ class StringInBenchmarks {
   @Benchmark
   def oneOfParse(): Unit =
     inputs.foreach(oneOf.parseAll(_))
-    */
 
   @Benchmark
   def radixMatchIn(): Unit =

@@ -21,7 +21,7 @@
 
 package cats.parse
 
-import org.scalacheck.Prop
+import org.scalacheck.{Gen, Prop}
 import org.scalacheck.Prop.forAll
 
 class RadixNodeTest extends munit.ScalaCheckSuite {
@@ -73,7 +73,11 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
       val ss = ss0.filter(_.nonEmpty)
       val radix = RadixNode.fromStrings(ss)
       val matchLen = radix.matchAt(target, 0)
-      assertEquals(matchLen >= 0, ss.exists(target.startsWith(_)), s"ss=$ss, ss.size = ${ss.size}, matchLen=$matchLen, radix=$radix")
+      assertEquals(
+        matchLen >= 0,
+        ss.exists(target.startsWith(_)),
+        s"ss=$ss, ss.size = ${ss.size}, matchLen=$matchLen, radix=$radix"
+      )
     }
 
     val p1 = forAll { (ss: List[String], head: Char, tail: String) =>
@@ -86,12 +90,6 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
         Nil
 
     regressions.foldLeft(p1) { case (p, (ss, t)) => p && law(ss, t) }
-  }
-
-  property("fromString(Nil) matches nothing") {
-    forAll { (s: String) =>
-      assert(RadixNode.fromStrings(Nil).matchAt(s, 0) < 0)
-    }
   }
 
   property("we match everything in the set") {
@@ -122,4 +120,58 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
       assertEquals(left, right)
     }
   }
+
+  property("RadixNode.fromStrings(emptyString :: Nil) matches everything") {
+    val nilRadix = RadixNode.fromStrings("" :: Nil)
+    forAll { (targ: String) =>
+      forAll(Gen.choose(0, targ.length)) { off =>
+        assertEquals(nilRadix.matchAtOrNull(targ, off), "")
+      }
+    }
+  }
+
+  property("fromString(Nil) matches nothing") {
+    forAll { (s: String) =>
+      forAll(Gen.choose(-1, s.length + 1)) { off =>
+        assert(RadixNode.fromStrings(Nil).matchAt(s, off) < 0)
+      }
+    }
+  }
+
+  property("RadixTree singleton") {
+    forAll { (s: String, prefix: String) =>
+      val tree = RadixNode.fromStrings(s :: Nil)
+      assertEquals(tree.matchAtOrNull(prefix + s, prefix.length), s)
+    }
+  }
+
+  property("RadixTree union property") {
+    forAll { (t1: List[String], t2: List[String], targ: String) =>
+      val tree1 = RadixNode.fromStrings(t1)
+      val tree2 = RadixNode.fromStrings(t2)
+      val tree3 = RadixNode.fromStrings(t1 ::: t2)
+
+      forAll(Gen.choose(-1, targ.length + 1)) { off =>
+        val m1 = math.max(tree1.matchAt(targ, off), tree2.matchAt(targ, off))
+        assertEquals(m1, tree3.matchAt(targ, off))
+      }
+    }
+  }
+
+  property("matchAtOrNull is consistent") {
+    forAll { (args: List[String], targ: String) =>
+      val radix = RadixNode.fromStrings(args)
+      forAll(Gen.choose(-1, targ.length + 1)) { off =>
+        radix.matchAt(targ, off) match {
+          case x if x < 0 =>
+            assertEquals(radix.matchAtOrNull(targ, off), null)
+          case len =>
+            val left = radix.matchAtOrNull(targ, off)
+            assert(off + len <= targ.length, s"len = $len, off = $off")
+            assertEquals(left, targ.substring(off, off + len), s"len = $len, left = $left")
+        }
+      }
+    }
+  }
+
 }
