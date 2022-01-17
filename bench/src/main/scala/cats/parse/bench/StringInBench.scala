@@ -30,20 +30,40 @@ import org.openjdk.jmh.annotations._
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 class StringInBenchmarks {
-  val inputs =
-    List("foofoo", "bar", "foobat", "foot", "foobar")
+  @Param(Array("foo", "broad"))
+  var test: String = _
 
-  val stringsToMatch =
-    "foobar" :: "foofoo" :: "foobaz" :: "foo" :: "bar" :: Nil
+  var inputs: List[String] = _
 
-  val radixNode = RadixNode.fromStrings(stringsToMatch)
+  var stringsToMatch: List[String] = _
 
-  val stringIn = Parser.stringIn(stringsToMatch)
+  var radixNode: RadixNode = _
 
-  val oneOf =
-    Parser.oneOf(
-      stringsToMatch.map { s => Parser.string(s) }
-    )
+  var stringIn: Parser[Unit] = _
+
+  var oneOf: Parser[Unit] = _
+
+  @Setup(Level.Trial)
+  def setup(): Unit = {
+    if (test == "foo") {
+      inputs = List("foofoo", "bar", "foobat", "foot", "foobar")
+      stringsToMatch = List("foobar", "foofoo", "foobaz", "foo", "bar")
+    }
+    else if (test == "broad") {
+      // test all lower ascii strings like aaaa, aaab, aaac, ... bbba, bbbb, bbbc, ...
+      stringsToMatch = (for {
+        h <- 'a' to 'z'
+        t <- 'a' to 'z'
+      } yield s"$h$h$h$t").toList
+      
+      // take 10% of the inputs
+      inputs = stringsToMatch.filter(_.hashCode % 10 == 0)
+    }
+
+    radixNode = RadixNode.fromStrings(stringsToMatch)
+    stringIn = Parser.stringIn(stringsToMatch).void
+    oneOf = Parser.oneOf(stringsToMatch.map(Parser.string(_)))
+  }
 
   @Benchmark
   def stringInParse(): Unit =
