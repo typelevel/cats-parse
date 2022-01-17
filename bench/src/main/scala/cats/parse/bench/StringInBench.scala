@@ -48,14 +48,13 @@ class StringInBenchmarks {
     if (test == "foo") {
       inputs = List("foofoo", "bar", "foobat", "foot", "foobar")
       stringsToMatch = List("foobar", "foofoo", "foobaz", "foo", "bar")
-    }
-    else if (test == "broad") {
+    } else if (test == "broad") {
       // test all lower ascii strings like aaaa, aaab, aaac, ... bbba, bbbb, bbbc, ...
       stringsToMatch = (for {
         h <- 'a' to 'z'
         t <- 'a' to 'z'
       } yield s"$h$h$h$t").toList
-      
+
       // take 10% of the inputs
       inputs = stringsToMatch.filter(_.hashCode % 10 == 0)
     }
