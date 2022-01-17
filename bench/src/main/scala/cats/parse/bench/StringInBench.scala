@@ -29,7 +29,7 @@ import org.openjdk.jmh.annotations._
 @State(Scope.Benchmark)
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-class StringInBenchmarks {
+private[parse] class StringInBenchmarks {
   @Param(Array("foo", "broad"))
   var test: String = _
 
