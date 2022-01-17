@@ -71,10 +71,10 @@ private[parse] final class RadixNode(
     }
 
   final def matchAtOrNull(str: String, offset: Int): String =
-    if (offset < 0) null
+    if ((offset < 0) || (str.length < offset)) null
     else matchAtOrNullLoop(str, offset)
 
-  // loop invariant: 0 <= offset
+  // loop invariant: 0 <= offset <= str.length
   @tailrec
   final protected def matchAtOrNullLoop(str: String, offset: Int): String =
     if (offset < str.length) {
@@ -83,7 +83,12 @@ private[parse] final class RadixNode(
       val idx = c.toInt & bitMask
       val prefix = prefixes(idx)
       if (prefix ne null) {
-        // accept the prefix fo this character
+        /*
+         * this prefix *may* match here, but may not
+         * note we only know that c & bitMask matches
+         * what the prefix has to be, it could differ
+         * on other bits.
+         */
         val plen = prefix.length
         if (str.regionMatches(offset, prefix, 0, plen)) {
           children(idx).matchAtOrNullLoop(str, offset + plen)
@@ -93,10 +98,9 @@ private[parse] final class RadixNode(
       } else {
         matched
       }
-    } else if (offset > str.length) {
-      null
     } else {
       // this is only the case where offset == str.length
+      // due to our invariant
       matched
     }
 }
@@ -106,20 +110,29 @@ private[parse] object RadixNode {
   private val emptyChildrenArray = new Array[RadixNode](1)
 
   private def fromTree(prevMatch: String, prefix: String, rest: List[String]): RadixNode = {
-    val nonEmpties = rest.filter(_.nonEmpty)
+    val (nonEmpties, empties) = rest.partition(_.nonEmpty)
 
-    // If nonEmpty contains the empty string, we have a valid prefix
-    val thisPrefix = if (rest.exists(_.isEmpty)) prefix else prevMatch
+    // If rest contains the empty string, we have a valid prefix
+    val thisPrefix = if (empties.nonEmpty) prefix else prevMatch
 
     if (nonEmpties.isEmpty) {
       new RadixNode(thisPrefix, 0, emptyStringArray, emptyChildrenArray)
     } else {
       val headKeys = nonEmpties.iterator.map(_.head).toSet
+      /*
+       * The idea here is to use b lowest bits of the char
+       * as an index into the array, with the smallest
+       * number b such that all the keys are unique & b
+       */
       @tailrec
       def findBitMask(b: Int): Int =
         if (b == 0xffff) b // biggest it can be
         else {
-          val allDistinct = headKeys.iterator.map { c => c.toInt & b }.toSet.size == headKeys.size
+          val hs = headKeys.size
+          val allDistinct =
+            // they can't all be distinct if the size isn't as big as the headKeys size
+            ((b + 1) >= hs) &&
+              (headKeys.iterator.map { c => c.toInt & b }.toSet.size == hs)
           if (allDistinct) b
           else findBitMask((b << 1) | 1)
         }
@@ -128,16 +141,16 @@ private[parse] object RadixNode {
       val branching = bitMask + 1
       val prefixes = new Array[String](branching)
       val children = new Array[RadixNode](branching)
-      val tree = nonEmpties.groupBy { s => (s.head.toInt & bitMask) }
-      tree.foreach { case (idx, strings) =>
-        // strings is a NonEmptyList[String] which all start with the same char
-        val prefix1 = strings.reduce(commonPrefixSemilattice.combine(_, _))
-        val plen = prefix1.length
-        val s1 = if (plen == 0) strings else strings.map(_.drop(plen))
-        val node = fromTree(thisPrefix, prefix + prefix1, s1)
-        prefixes(idx) = prefix1
-        children(idx) = node
-      }
+      nonEmpties
+        .groupBy { s => (s.head.toInt & bitMask) }
+        .foreach { case (idx, strings) =>
+          // strings is a non-empty List[String] which all start with the same char
+          val prefix1 = strings.reduce(commonPrefixSemilattice.combine(_, _))
+          // note prefix1.length >= 1 because they all match on the first character
+          prefixes(idx) = prefix1
+          children(idx) =
+            fromTree(thisPrefix, prefix + prefix1, strings.map(_.drop(prefix1.length)))
+        }
 
       new RadixNode(thisPrefix, bitMask, prefixes, children)
     }
