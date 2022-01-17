@@ -121,6 +121,14 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("commonPrefix is finds prefix") {
+    val sl = RadixNode.commonPrefixSemilattice
+    forAll { (s0: String, suffix: String) =>
+      assertEquals(sl.combine(s0, s0 + suffix), s0)
+      assertEquals(sl.combine(s0 + suffix, s0), s0)
+    }
+  }
+
   property("RadixNode.fromStrings(emptyString :: Nil) matches everything") {
     val nilRadix = RadixNode.fromStrings("" :: Nil)
     forAll { (targ: String) =>
