@@ -39,6 +39,22 @@ private[parse] final class RadixNode(
     s"RadixNode($matched, $bitMask, $ps, $cs)"
   }
 
+  /** @return
+    *   all strings that are in this RadixNode
+    */
+  def allStrings: List[String] = {
+    // matched may be null (meaning there is not yet a partial match)
+    // or it may be non-null: there is a partial match
+    // if it is non-null it may be duplicated in children
+    val rest = children.iterator.flatMap {
+      case null => Nil
+      case c => c.allStrings
+    }
+
+    if (matched eq null) rest.toList
+    else (matched :: rest.filterNot(_ == matched).toList)
+  }
+
   /** If this matches, return the new offset, else return -1
     *
     * @param str
@@ -90,8 +106,7 @@ private[parse] object RadixNode {
   private val emptyChildrenArray = new Array[RadixNode](1)
 
   private def fromTree(prevMatch: String, prefix: String, rest: List[String]): RadixNode = {
-    val nonEmpties = rest.toList.filter(_.nonEmpty)
-    val headKeys = nonEmpties.iterator.map(_.head).toSet
+    val nonEmpties = rest.filter(_.nonEmpty)
 
     // If nonEmpty contains the empty string, we have a valid prefix
     val thisPrefix = if (rest.exists(_.isEmpty)) prefix else prevMatch
@@ -99,6 +114,7 @@ private[parse] object RadixNode {
     if (nonEmpties.isEmpty) {
       new RadixNode(thisPrefix, 0, emptyStringArray, emptyChildrenArray)
     } else {
+      val headKeys = nonEmpties.iterator.map(_.head).toSet
       @tailrec
       def findBitMask(b: Int): Int =
         if (b == 0xffff) b // biggest it can be
@@ -117,7 +133,8 @@ private[parse] object RadixNode {
         // strings is a NonEmptyList[String] which all start with the same char
         val prefix1 = strings.reduce(commonPrefixSemilattice.combine(_, _))
         val plen = prefix1.length
-        val node = fromTree(thisPrefix, prefix + prefix1, strings.map(_.drop(plen)).toList)
+        val s1 = if (plen == 0) strings else strings.map(_.drop(plen))
+        val node = fromTree(thisPrefix, prefix + prefix1, s1)
         prefixes(idx) = prefix1
         children(idx) = node
       }
@@ -126,6 +143,8 @@ private[parse] object RadixNode {
     }
   }
 
+  /** This is identical to fromStrings and only here for binary compatibility
+    */
   def fromSortedStrings(strings: NonEmptyList[String]): RadixNode =
     fromTree(null, "", strings.toList.distinct)
 

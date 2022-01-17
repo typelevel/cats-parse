@@ -178,4 +178,10 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
     val tree = RadixNode.fromStrings(List("foo", "foobar", "foofoo", "foobat"))
     assertEquals(tree.matchAtOrNull("foobal", 0), "foo")
   }
+
+  property("RadixNode.allStrings roundTrips") {
+    forAll { (ss: List[String]) =>
+      assertEquals(RadixNode.fromStrings(ss).allStrings.sorted, ss.distinct.sorted)
+    }
+  }
 }
