@@ -12,6 +12,7 @@ ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
 ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.15", "2.13.8")
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
 
 ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Run(
@@ -132,6 +133,14 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     mimaPreviousArtifacts := {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       if (isScala211) Set.empty else mimaPreviousArtifacts.value
+    },
+    mimaBinaryIssueFilters ++= {
+      if (tlIsScala3.value)
+        List(
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error"),
+          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_=")
+        )
+      else Nil
     }
   )
   .jsSettings(
