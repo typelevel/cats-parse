@@ -12,7 +12,6 @@ ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
 ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.15", "2.13.8")
-ThisBuild / tlFatalWarningsInCi := !tlIsScala3.value
 
 ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Run(
@@ -114,6 +113,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .settings(
     name := "cats-parse",
+    tlFatalWarningsInCi := !tlIsScala3.value,
     libraryDependencies ++= {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       Seq(
