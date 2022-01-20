@@ -5,21 +5,14 @@ import Dependencies._
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
-addCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
+tlReplaceCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
 
-ThisBuild / baseVersion := "0.3"
-
-ThisBuild / organization := "org.typelevel"
-ThisBuild / organizationName := "Typelevel"
-
-ThisBuild / publishGithubUser := "johnynek"
-ThisBuild / publishFullName := "P. Oscar Boykin"
+ThisBuild / tlBaseVersion := "0.3"
+ThisBuild / startYear := Some(2021)
+ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
 ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.15", "2.13.8")
-
-ThisBuild / spiewakCiReleaseSnapshots := true
-
-ThisBuild / spiewakMainBranches := List("main")
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
 
 ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Run(
@@ -66,18 +59,7 @@ ThisBuild / githubWorkflowPublish ++= Seq(
   )
 )
 
-ThisBuild / homepage := Some(url("https://github.com/typelevel/cats-parse"))
-
-ThisBuild / scmInfo := Some(
-  ScmInfo(
-    url("https://github.com/typelevel/cats-parse"),
-    "git@github.com:typelevel/cats-parse.git"
-  )
-)
-
 ThisBuild / licenses := List(("MIT", url("http://opensource.org/licenses/MIT")))
-
-ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 
 lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
   case v if v.matchesSemVer(SemanticSelector(">1.8")) =>
@@ -96,7 +78,7 @@ lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
 lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, bench)
-  .enablePlugins(NoPublishPlugin, SonatypeCiReleasePlugin)
+  .enablePlugins(NoPublishPlugin)
   .settings(scalaVersion := "2.13.8")
 
 lazy val docs = project
@@ -115,7 +97,6 @@ lazy val docs = project
       "empty" -> "",
       "version" -> version.value
     ),
-    githubWorkflowArtifactUpload := false,
     git.remoteRepo := "git@github.com:typelevel/cats-parse.git",
     mdocIn := (Compile / baseDirectory).value / "src",
     Compile / paradox / sourceDirectory := mdocOut.value,
@@ -132,6 +113,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .settings(
     name := "cats-parse",
+    tlFatalWarningsInCi := !tlIsScala3.value,
     libraryDependencies ++= {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       Seq(
@@ -141,8 +123,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       )
     },
     libraryDependencies ++= {
-      val isScala2 = CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 2)
-      if (isScala2) Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value) else Nil
+      if (tlIsScala3.value) Nil else Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value)
     },
     scalacOptions ++= {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
@@ -152,19 +133,19 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     mimaPreviousArtifacts := {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       if (isScala211) Set.empty else mimaPreviousArtifacts.value
+    },
+    mimaBinaryIssueFilters ++= {
+      if (tlIsScala3.value)
+        List(
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error"),
+          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_=")
+        )
+      else Nil
     }
   )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
-    Global / scalaJSStage := FastOptStage,
-    parallelExecution := false,
-    jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
-    // batch mode decreases the amount of memory needed to compile scala.js code
-    scalaJSLinkerConfig := scalaJSLinkerConfig.value
-      .withBatchMode(scala.sys.env.get("TRAVIS").isDefined)
-      .withModuleKind(ModuleKind.CommonJSModule),
-    coverageEnabled := false,
-    scalaJSUseMainModuleInitializer := false
+    coverageEnabled := false
   )
 
 lazy val coreJVM = core.jvm.settings(jvmVersionSettings)
