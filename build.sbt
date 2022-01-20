@@ -96,7 +96,6 @@ lazy val docs = project
       "empty" -> "",
       "version" -> version.value
     ),
-    githubWorkflowArtifactUpload := false,
     git.remoteRepo := "git@github.com:typelevel/cats-parse.git",
     mdocIn := (Compile / baseDirectory).value / "src",
     Compile / paradox / sourceDirectory := mdocOut.value,
@@ -123,8 +122,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       )
     },
     libraryDependencies ++= {
-      val isScala2 = CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 2)
-      if (isScala2) Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value) else Nil
+      if (tlIsScala3.value) Nil else Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value)
     },
     scalacOptions ++= {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
@@ -138,15 +136,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
-    Global / scalaJSStage := FastOptStage,
-    parallelExecution := false,
-    jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
-    // batch mode decreases the amount of memory needed to compile scala.js code
-    scalaJSLinkerConfig := scalaJSLinkerConfig.value
-      .withBatchMode(scala.sys.env.get("TRAVIS").isDefined)
-      .withModuleKind(ModuleKind.CommonJSModule),
     coverageEnabled := false,
-    scalaJSUseMainModuleInitializer := false
   )
 
 lazy val coreJVM = core.jvm.settings(jvmVersionSettings)
