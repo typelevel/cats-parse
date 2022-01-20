@@ -7,19 +7,11 @@ addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 addCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
 
-ThisBuild / baseVersion := "0.3"
+ThisBuild / tlBaseVersion := "0.3"
 
-ThisBuild / organization := "org.typelevel"
-ThisBuild / organizationName := "Typelevel"
-
-ThisBuild / publishGithubUser := "johnynek"
-ThisBuild / publishFullName := "P. Oscar Boykin"
+ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
 ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.15", "2.13.8")
-
-ThisBuild / spiewakCiReleaseSnapshots := true
-
-ThisBuild / spiewakMainBranches := List("main")
 
 ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Run(
@@ -66,18 +58,7 @@ ThisBuild / githubWorkflowPublish ++= Seq(
   )
 )
 
-ThisBuild / homepage := Some(url("https://github.com/typelevel/cats-parse"))
-
-ThisBuild / scmInfo := Some(
-  ScmInfo(
-    url("https://github.com/typelevel/cats-parse"),
-    "git@github.com:typelevel/cats-parse.git"
-  )
-)
-
 ThisBuild / licenses := List(("MIT", url("http://opensource.org/licenses/MIT")))
-
-ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 
 lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
   case v if v.matchesSemVer(SemanticSelector(">1.8")) =>
@@ -96,7 +77,7 @@ lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
 lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, bench)
-  .enablePlugins(NoPublishPlugin, SonatypeCiReleasePlugin)
+  .enablePlugins(NoPublishPlugin)
   .settings(scalaVersion := "2.13.8")
 
 lazy val docs = project
