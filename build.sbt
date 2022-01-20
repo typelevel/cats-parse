@@ -12,6 +12,7 @@ ThisBuild / tlBaseVersion := "0.3"
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
 ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.15", "2.13.8")
+ThisBuild / tlFatalWarningsInCi := !tlIsScala3.value
 
 ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Run(
