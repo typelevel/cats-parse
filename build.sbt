@@ -5,7 +5,7 @@ import Dependencies._
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
-addCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
+tlReplaceCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
 
 ThisBuild / tlBaseVersion := "0.3"
 
