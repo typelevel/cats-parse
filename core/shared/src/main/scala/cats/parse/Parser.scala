@@ -1536,7 +1536,7 @@ object Parser {
     if (cs.isEmpty) fail
     else {
       val ary = cs.toArray
-      java.util.Arrays.sort(ary)
+      Arrays.sort(ary)
       rangesFor(ary) match {
         case NonEmptyList((low, high), Nil) if low == Char.MinValue && high == Char.MaxValue =>
           anyChar
@@ -2444,33 +2444,9 @@ object Parser {
 
     final def stringIn[A](radix: RadixNode, all: SortedSet[String], state: State): Unit = {
       val str = state.str
-      val strLength = str.length
       val startOffset = state.offset
+      val lastMatch = radix.matchAt(str, startOffset)
 
-      var offset = startOffset
-      var tree = radix
-      var cont = offset < strLength
-      var lastMatch = -1
-
-      while (cont) {
-        val c = str.charAt(offset)
-        val idx = Arrays.binarySearch(tree.fsts, c)
-        if (idx >= 0) {
-          val prefix = tree.prefixes(idx)
-          // accept the prefix fo this character
-          if (str.startsWith(prefix, offset + 1)) {
-            val children = tree.children(idx)
-            offset += (prefix.length + 1)
-            tree = children
-            cont = offset < strLength
-            if (children.word) lastMatch = offset
-          } else {
-            cont = false
-          }
-        } else {
-          cont = false
-        }
-      }
       if (lastMatch < 0) {
         state.error = Eval.later(Chain.one(Expectation.OneOfStr(startOffset, all.toList)))
         state.offset = startOffset

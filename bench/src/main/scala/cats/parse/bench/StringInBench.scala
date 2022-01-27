@@ -19,7 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package cats.parse.bench
+package cats.parse
+package bench
 
 import cats.parse.Parser
 import java.util.concurrent.TimeUnit
@@ -28,21 +29,40 @@ import org.openjdk.jmh.annotations._
 @State(Scope.Benchmark)
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-class StringInBenchmarks {
-  val inputs =
-    List("foofoo", "bar", "foobat", "foot", "foobar")
+private[parse] class StringInBenchmarks {
+  @Param(Array("foo", "broad"))
+  var test: String = _
 
-  val stringIn = Parser.stringIn("foo" :: "bar" :: "foobar" :: "foofoo" :: "foobaz" :: Nil)
+  var inputs: List[String] = _
 
-  val oneOf =
-    Parser.oneOf(
-      Parser.string("foobar") ::
-        Parser.string("foobaz") ::
-        Parser.string("foofoo") ::
-        Parser.string("foo") ::
-        Parser.string("bar") ::
-        Nil
-    )
+  var stringsToMatch: List[String] = _
+
+  var radixNode: RadixNode = _
+
+  var stringIn: Parser[Unit] = _
+
+  var oneOf: Parser[Unit] = _
+
+  @Setup(Level.Trial)
+  def setup(): Unit = {
+    if (test == "foo") {
+      inputs = List("foofoo", "bar", "foobat", "foot", "foobar")
+      stringsToMatch = List("foobar", "foofoo", "foobaz", "foo", "bar")
+    } else if (test == "broad") {
+      // test all lower ascii strings like aaaa, aaab, aaac, ... bbba, bbbb, bbbc, ...
+      stringsToMatch = (for {
+        h <- 'a' to 'z'
+        t <- 'a' to 'z'
+      } yield s"$h$h$h$t").toList
+
+      // take 10% of the inputs
+      inputs = stringsToMatch.filter(_.hashCode % 10 == 0)
+    }
+
+    radixNode = RadixNode.fromStrings(stringsToMatch)
+    stringIn = Parser.stringIn(stringsToMatch).void
+    oneOf = Parser.oneOf(stringsToMatch.map(Parser.string(_)))
+  }
 
   @Benchmark
   def stringInParse(): Unit =
@@ -52,4 +72,11 @@ class StringInBenchmarks {
   def oneOfParse(): Unit =
     inputs.foreach(oneOf.parseAll(_))
 
+  @Benchmark
+  def radixMatchIn(): Unit =
+    inputs.foreach { s => radixNode.matchAt(s, 0) >= 0 }
+
+  @Benchmark
+  def linearMatchIn(): Unit =
+    inputs.foreach { s => stringsToMatch.exists(s.startsWith(_)) }
 }
