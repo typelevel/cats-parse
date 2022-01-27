@@ -1181,6 +1181,18 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("charIn range matches charIn list") {
+    forAll { (c1: Char, c2: Char, str: String) =>
+      val start = c1.min(c2)
+      val end = c2.max(c2)
+
+      val p1 = Parser.charIn(start to end)
+      val p2 = Parser.charIn((start to end).toList)
+
+      assertEquals(p1.parse(str), p2.parse(str))
+    }
+  }
+
   property("Parser.end gives the right error") {
     forAll { (str: String) =>
       Parser.end.parse(str) match {

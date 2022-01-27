@@ -28,6 +28,7 @@ import cats.implicits._
 import scala.collection.immutable.SortedSet
 import scala.collection.mutable.ListBuffer
 import java.util.Arrays
+import scala.collection.immutable.NumericRange
 
 /** Parser0[A] attempts to extract an `A` value from the given input, potentially moving its offset
   * forward in the process.
@@ -1533,16 +1534,22 @@ object Parser {
   /** An empty iterable is the same as fail
     */
   def charIn(cs: Iterable[Char]): Parser[Char] =
-    if (cs.isEmpty) fail
-    else {
-      val ary = cs.toArray
-      Arrays.sort(ary)
-      rangesFor(ary) match {
-        case NonEmptyList((low, high), Nil) if low == Char.MinValue && high == Char.MaxValue =>
-          anyChar
-        case notAnyChar =>
-          Impl.CharIn(ary(0).toInt, BitSetUtil.bitSetFor(ary), notAnyChar)
-      }
+    cs match {
+      case _ if cs.isEmpty => fail
+      case range: NumericRange.Inclusive[Char] if range.step.toInt == 1 =>
+        val start = range.start.toInt
+        val end = range.end.toInt
+        val bitSet = BitSetUtil.bitSetForRange(end - start + 1)
+        Impl.CharIn(start, bitSet, NonEmptyList.one(range.start -> range.end))
+      case _ =>
+        val ary = cs.toArray
+        Arrays.sort(ary)
+        rangesFor(ary) match {
+          case NonEmptyList((low, high), Nil) if low == Char.MinValue && high == Char.MaxValue =>
+            anyChar
+          case notAnyChar =>
+            Impl.CharIn(ary(0).toInt, BitSetUtil.bitSetFor(ary), notAnyChar)
+        }
     }
 
   /** Parse any single character in a set of characters as lower or upper case
