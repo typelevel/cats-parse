@@ -138,7 +138,13 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       if (tlIsScala3.value)
         List(
           ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error"),
-          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_=")
+          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_="),
+          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.RadixNode.this"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.fsts"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.prefixes"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.children"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.word"),
+          ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode")
         )
       else Nil
     }
