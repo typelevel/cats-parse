@@ -64,7 +64,7 @@ object BitSetUtil {
 
   def bitSetForRange(count: Int): BitSet = {
     val bs = new BitSet(count)
-    bs.flip(0, count - 1)
+    bs.flip(0, count)
     bs
   }
 }
