@@ -67,7 +67,7 @@ private[parse] final class RadixNode(
   def matchAt(str: String, off: Int): Int =
     matchAtOrNull(str, off) match {
       case null => -1
-      case nonNull => nonNull.length
+      case nonNull => off + nonNull.length
     }
 
   final def matchAtOrNull(str: String, offset: Int): String =

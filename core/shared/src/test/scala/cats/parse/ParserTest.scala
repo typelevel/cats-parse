@@ -2587,4 +2587,16 @@ class ParserTest extends munit.ScalaCheckSuite {
     assertEquals((Parser.pure(1) ~ Parser.pure(3)).as(42), Parser.pure(42))
     assertEquals((Parser.pure(1).soft ~ Parser.pure(3)).as(42), Parser.pure(42))
   }
+
+  property("stringIn after skipping test") {
+    forAll { (first: String, oneOf0: List[String], content0: String) =>
+      val oneOf = oneOf0.filter(_.nonEmpty)
+      forAll(Gen.oneOf(content0 :: oneOf0)) { content =>
+        assertEquals(
+          Parser.stringIn(oneOf).parse(content).toOption,
+          (Parser.string0(first) *> Parser.stringIn(oneOf)).parse(first + content).toOption
+        )
+      }
+    }
+  }
 }
