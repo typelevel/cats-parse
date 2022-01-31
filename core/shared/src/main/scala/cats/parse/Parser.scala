@@ -1002,19 +1002,18 @@ object Parser {
           flatten(rest, acc += notOneOf)
       }
 
-    val flattened = flatten(parsers, new ListBuffer)
+    val flat0 = flatten(parsers, new ListBuffer)
     // we unmap if we can to make merging work better
-    val isStr = flattened.forall(Impl.matchesString)
-    val maybeUnmap = if (isStr) flattened.map(Impl.unmap) else flattened
+    val isStr = flat0.forall(Impl.matchesString)
+    val flat = if (isStr) flat0.map(Impl.unmap) else flat0
 
-    val cs = Impl.mergeCharIn[Any, Parser[Any]](maybeUnmap)
-    val res = Impl.mergeStrIn[Any, Parser[Any]](cs) match {
+    val cs0 = Impl.mergeCharIn[Any, Parser[Any]](flat)
+    val cs = (if (isStr) cs0.map(string(_)) else cs0).asInstanceOf[List[Parser[A]]]
+    Impl.mergeStrIn[A, Parser[A]](cs) match {
       case Nil => fail
       case p :: Nil => p
       case two => Impl.OneOf(two)
     }
-
-    (if (isStr) string(res) else res).asInstanceOf[Parser[A]]
   }
 
   /** go through the list of parsers trying each as long as they are epsilon failures (don't
@@ -1050,14 +1049,13 @@ object Parser {
     val isStr = flat0.forall(Impl.matchesString)
     val flat = if (isStr) flat0.map(Impl.unmap0) else flat0
 
-    val cs = Impl.mergeCharIn[Any, Parser0[Any]](flat)
-    val res = Impl.mergeStrIn[Any, Parser0[Any]](cs) match {
+    val cs0 = Impl.mergeCharIn[Any, Parser0[Any]](flat)
+    val cs = (if (isStr) cs0.map(string0(_)) else cs0).asInstanceOf[List[Parser0[A]]]
+    Impl.mergeStrIn[A, Parser0[A]](cs) match {
       case Nil => fail
       case p :: Nil => p
       case two => Impl.OneOf0(two)
     }
-
-    (if (isStr) string0(res) else res).asInstanceOf[Parser0[A]]
   }
 
   /** Parse the longest matching string between alternatives. The order of the strings does not
@@ -1076,7 +1074,6 @@ object Parser {
           .StringIn(
             SortedSet(two: _*)
           ) // sadly scala 2.12 doesn't have the `SortedSet.from` constructor function
-          .string
     }
 
   /** Version of stringIn that allows the empty string
@@ -1665,7 +1662,6 @@ object Parser {
           case f @ Impl.Fail() => f.widen
           case f @ Impl.FailWith(_) => f.widen
           case p: Impl.Str => p
-          case p: Impl.StringIn => p
           case p: Impl.IgnoreCase => p
           case notVoid => Impl.Void(notVoid)
         }
@@ -1695,9 +1691,9 @@ object Parser {
         Impl.unmap(pa) match {
           case len @ Impl.Length(_) => len
           case strP @ Impl.Str(expect) => strP.as(expect)
-          case ci @ Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
+          case ci @ Impl.SingleChar(c) =>
             // we can allocate the returned string once here
-            val minStr = min.toChar.toString
+            val minStr = c.toString
             Impl.Map(ci, Impl.ConstFn(minStr))
           case f @ Impl.Fail() => f.widen
           case f @ Impl.FailWith(_) => f.widen
@@ -1788,12 +1784,12 @@ object Parser {
     if (b.equals(())) v.asInstanceOf[Parser[B]]
     else
       v match {
-        case Impl.Void(ci @ Impl.CharIn(min, bs, _)) =>
+        case Impl.Void(ci @ Impl.SingleChar(c)) =>
           // CharIn is common and cheap, no need to wrap
           // with Void since CharIn always returns the char
           // even when voided
           b match {
-            case bc: Char if BitSetUtil.isSingleton(bs) && (min.toChar == bc) =>
+            case bc: Char if bc == c =>
               ci.asInstanceOf[Parser[B]]
             case _ =>
               Impl.Map(ci, Impl.ConstFn(b))
@@ -1972,13 +1968,28 @@ object Parser {
         case _ => false
       }
 
+    object SingleChar {
+      def unapply(p: Parser[Any]): Option[Char] =
+        p match {
+          case CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) => Some(min.toChar)
+          case _ => None
+        }
+    }
+
+    object DefiniteString {
+      def unapply(p: Parser0[Any]): Option[String] =
+        p match {
+          case Pure("") => Some("")
+          case Map(Str(e1), ConstFn(e2)) if e1 == e2 => Some(e1)
+          case Map(SingleChar(c), ConstFn(e: String)) if (e.length == 1) && (e.charAt(0) == c) => Some(e)
+          case _ => None
+        }
+    }
     // does this parser return the string it matches
     def matchesString(p: Parser0[Any]): Boolean =
       p match {
-        case StringP0(_) | StringP(_) | Pure("") | Length(_) | Fail() | FailWith(_) => true
-        case Map(Str(e1), ConstFn(e2)) => e1 == e2
-        case Map(CharIn(min, bs, _), ConstFn(e)) if BitSetUtil.isSingleton(bs) =>
-          e == min.toChar.toString
+        case StringP0(_) | StringP(_) | StringIn(_) | Length(_) | Fail() | FailWith(_) => true
+        case DefiniteString(_) => true
         case OneOf(ss) => ss.forall(matchesString)
         case OneOf0(ss) => ss.forall(matchesString)
         case WithContextP(_, p) => matchesString(p)
@@ -2008,8 +2019,8 @@ object Parser {
     final def hasKnownResult[A](p: Parser0[A]): Option[A] =
       p match {
         case Pure(a) => Some(a)
-        case Impl.CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) =>
-          Some(min.toChar.asInstanceOf[A])
+        case SingleChar(c) =>
+          Some(c.asInstanceOf[A])
         case Map0(_, fn) =>
           // scala 3.0.2 seems to fail if we inline
           // this match above
@@ -2064,18 +2075,15 @@ object Parser {
         case WithContextP0(_, p) => hasKnownResult(p)
         case Backtrack(p) => hasKnownResult(p)
         case Backtrack0(p) => hasKnownResult(p)
-        case Not(_) | Peek(_) | Void(_) | Void0(_) | StartParser | EndParser | Str(_) | StringIn(
-              _
-            ) | IgnoreCase(
-              _
-            ) =>
+        case Not(_) | Peek(_) | Void(_) | Void0(_) | StartParser | EndParser |
+          Str(_) | IgnoreCase(_) =>
           // these are always unit
           someUnit.asInstanceOf[Option[A]]
         case Rep0(_, _, _) | Rep(_, _, _, _) | FlatMap0(_, _) | FlatMap(_, _) | TailRecM(_, _) |
             TailRecM0(_, _) | Defer(_) | Defer0(_) | GetCaret | Index | OneOf(_) | OneOf0(_) |
             Length(_) | Fail() | FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
               _
-            ) | StringP0(_) | Select(_, _) | Select0(_, _) =>
+            ) | StringP0(_) | Select(_, _) | Select0(_, _) | StringIn(_)=>
           // these we don't know the value fundamentally or by construction
           None
       }
@@ -2286,9 +2294,9 @@ object Parser {
       state.capture = false
       val init = state.offset
       pa.parseMut(state)
-      val str = state.str.substring(init, state.offset)
       state.capture = s0
-      str
+      if (state.error eq null) state.str.substring(init, state.offset)
+      else null
     }
 
     case class StringP0[A](parser: Parser0[A]) extends Parser0[String] {
@@ -2442,16 +2450,19 @@ object Parser {
       null.asInstanceOf[A]
     }
 
-    final def stringIn[A](radix: RadixNode, all: SortedSet[String], state: State): Unit = {
+    final def stringIn(radix: RadixNode, all: SortedSet[String], state: State): String = {
       val str = state.str
       val startOffset = state.offset
-      val lastMatch = radix.matchAt(str, startOffset)
+      val matched = radix.matchAtOrNull(str, startOffset)
 
-      if (lastMatch < 0) {
+      if (matched eq null) {
         state.error = Eval.later(Chain.one(Expectation.OneOfStr(startOffset, all.toList)))
         state.offset = startOffset
+        null
       } else {
+        val lastMatch = startOffset + matched.length
         state.offset = lastMatch
+        matched
       }
     }
 
@@ -2469,13 +2480,13 @@ object Parser {
       override def parseMut(state: State): A = oneOf(ary, state)
     }
 
-    case class StringIn(sorted: SortedSet[String]) extends Parser[Unit] {
+    case class StringIn(sorted: SortedSet[String]) extends Parser[String] {
       require(sorted.size >= 2, s"expected more than two items, found: ${sorted.size}")
       require(!sorted.contains(""), "empty string is not allowed in alternatives")
       private[this] val tree =
         RadixNode.fromSortedStrings(NonEmptyList.fromListUnsafe(sorted.toList))
 
-      override def parseMut(state: State): Unit = stringIn(tree, sorted, state)
+      override def parseMut(state: State): String = stringIn(tree, sorted, state)
     }
 
     final def prod[A, B](pa: Parser0[A], pb: Parser0[B], state: State): (A, B) = {
@@ -2805,7 +2816,7 @@ object Parser {
           case AnyChar :: tail =>
             // AnyChar is bigger than all subsequent CharIn:
             // and any direct prefix CharIns
-            val tail1 = tail.filterNot(_.isInstanceOf[CharIn])
+            val tail1 = tail.filterNot { p => p.isInstanceOf[CharIn] || p.isInstanceOf[AnyChar.type] }
             (result :+ AnyChar.asInstanceOf[P0]) ++ Chain.fromSeq(tail1)
           case (ci: CharIn) :: tail =>
             loop(tail, ci :: front, result)
@@ -2830,44 +2841,71 @@ object Parser {
      * there are no prefixes of the right inside the left
      */
     def mergeStrIn[A, P0 <: Parser0[A]](ps: List[P0]): List[P0] = {
-      @annotation.tailrec
-      def loop(ps: List[P0], front: SortedSet[String], result: Chain[P0]): Chain[P0] = {
-        @inline
-        def res(front: SortedSet[String]): Chain[P0] =
-          if (front.isEmpty) Chain.nil
-          else if (front.size == 1) Chain.one(Str(front.head).asInstanceOf[P0])
-          else Chain.one(StringIn(front).asInstanceOf[P0])
+      val reset = Left(SortedSet.empty[String])
 
+      @annotation.tailrec
+      def loop(ps: List[P0], front: Either[SortedSet[String], StringIn], result: Chain[P0]): Chain[P0] = {
+        @inline
+        def res(front: Either[SortedSet[String], StringIn]): Chain[P0] =
+          front match {
+            case Right(si) => Chain.one(si.asInstanceOf[P0])
+            case Left(set) =>
+              if (set.isEmpty) Chain.nil
+              else if (set.size == 1) Chain.one {
+                val p = set.head match {
+                  case "" => emptyStringParser0
+                  case ne => Parser.string(ne).string
+                }
+                p.asInstanceOf[P0]
+              }
+              else Chain.one(StringIn(set).asInstanceOf[P0])
+          }
+
+        val frontSet: SortedSet[String] =
+          front match {
+            case Right(si) => si.sorted
+            case Left(s) => s
+          }
         // returns if there is a strict prefix (equality does not count)
         def frontHasPrefixOf(s: String): Boolean =
-          front.exists { f => s.startsWith(f) && (f.length != s.length) }
+          frontSet.exists { f => s.startsWith(f) && (f.length != s.length) }
 
         ps match {
           case Nil => result ++ res(front)
-          case Str(s) :: tail =>
+          case StringP(ci @ CharIn(_, _, _)) :: tail if frontSet.nonEmpty && !ci.allChars.exists { c => frontHasPrefixOf(c.toString) } =>
+            // we can merge all these into the non-empty StringIn
+            loop(tail, Left(frontSet ++ ci.allChars.map(_.toString)), result)
+          case DefiniteString(s) :: tail if s.nonEmpty =>
+            // we can't add empty string to `StringIn`
             if (frontHasPrefixOf(s)) {
               // there is an overlap, so we need to match what we have first, then come here
-              loop(tail, SortedSet(s), result ++ res(front))
+              loop(tail, Left(SortedSet(s)), result ++ res(front))
             } else {
               // there is no overlap in the tree, just merge it in:
-              loop(tail, front + s, result)
+              loop(tail, Left(frontSet + s), result)
             }
-          case StringIn(ss) :: tail =>
+          case (si @ StringIn(ss)) :: tail =>
             val (rights, lefts) = ss.partition(frontHasPrefixOf(_))
-            val front1 = front | lefts
             if (rights.nonEmpty) {
               // there are some that can't be merged in
-              loop(tail, rights, result ++ res(front1))
+              val front1 =
+                if (lefts.nonEmpty) Left(frontSet | lefts)
+                else front
+
+              loop(tail, Left(rights), result ++ res(front1))
             } else {
               // everything can be merged in
-              loop(tail, front1, result)
+              val newFront =
+                if (frontSet.isEmpty) Right(si)
+                else Left(frontSet | lefts)
+              loop(tail, newFront, result)
             }
           case h :: tail =>
-            loop(tail, SortedSet.empty, (result ++ res(front)) :+ h)
+            loop(tail, reset, (result ++ res(front)) :+ h)
         }
       }
 
-      loop(ps, SortedSet.empty, Chain.nil).toList
+      loop(ps, reset, Chain.nil).toList
     }
 
     case object AnyChar extends Parser[Char] {
@@ -2889,6 +2927,8 @@ object Parser {
         extends Parser[Char] {
 
       override def toString = s"CharIn($min, bitSet = ..., $ranges)"
+
+      def allChars: Iterable[Char] = BitSetUtil.union((min, bitSet) :: Nil)
 
       def makeError(offset: Int): Chain[Expectation] = {
         var result = Chain.empty[Expectation]

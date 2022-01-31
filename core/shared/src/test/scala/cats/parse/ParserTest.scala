@@ -847,13 +847,15 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("oneOf0 composes as expected") {
     forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
-      assertEquals(genP1.fa.orElse(genP2.fa).parse(str), orElse(genP1.fa, genP2.fa, str))
+      assertEquals(genP1.fa.orElse(genP2.fa).parse(str).leftMap(_.offsets),
+        orElse(genP1.fa, genP2.fa, str).leftMap(_.offsets))
     }
   }
 
   property("oneOf composes as expected") {
     forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
-      assertEquals(genP1.fa.orElse(genP2.fa).parse(str), orElse(genP1.fa, genP2.fa, str))
+      assertEquals(genP1.fa.orElse(genP2.fa).parse(str).leftMap(_.offsets),
+        orElse(genP1.fa, genP2.fa, str).leftMap(_.offsets))
     }
   }
 
@@ -1438,8 +1440,8 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  property("p orElse p == p") {
-    forAll(ParserGen.gen, Arbitrary.arbitrary[String]) { (genP, str) =>
+  property("p orElse p == p (0)") {
+    forAll(ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP, str) =>
       val res0 = genP.fa.parse(str)
       val res1 = genP.fa.orElse(genP.fa).parse(str)
       assertEquals(res1, res0)
@@ -2426,7 +2428,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         val left = Parser.oneOf0(as.map(_.fa.string))
         val right = Parser.oneOf0[Any](as.map(_.fa)).string
 
-        assertEquals(left.parse(toParse), right.parse(toParse))
+        assertEquals(left.parse(toParse).leftMap(_.offsets), right.parse(toParse).leftMap(_.offsets))
     }
   }
 
@@ -2436,7 +2438,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         val left = Parser.oneOf(as.map(_.fa.string))
         val right = Parser.oneOf[Any](as.map(_.fa)).string
 
-        assertEquals(left.parse(toParse), right.parse(toParse))
+        assertEquals(left.parse(toParse).leftMap(_.offsets), right.parse(toParse).leftMap(_.offsets))
     }
   }
 
