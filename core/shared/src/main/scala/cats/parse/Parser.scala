@@ -27,6 +27,7 @@ import cats.data.{AndThen, Chain, NonEmptyList}
 import cats.implicits._
 import scala.collection.immutable.SortedSet
 import scala.collection.mutable.ListBuffer
+import scala.annotation.tailrec
 import java.util.Arrays
 
 /** Parser0[A] attempts to extract an `A` value from the given input, potentially moving its offset
@@ -741,7 +742,7 @@ object Parser {
       }
 
     private def mergeInRange(irs: List[InRange]): List[InRange] = {
-      @annotation.tailrec
+      @tailrec
       def merge(rs: List[InRange], aux: Chain[InRange] = Chain.empty): Chain[InRange] =
         rs match {
           case x :: y :: rest =>
@@ -761,14 +762,14 @@ object Parser {
         Some(OneOfStr(ooss.head.offset, ssb.result().toList))
       }
 
-    @annotation.tailrec
+    @tailrec
     private def stripContext(ex: Expectation): Expectation =
       ex match {
         case WithContext(_, inner) => stripContext(inner)
         case _ => ex
       }
 
-    @annotation.tailrec
+    @tailrec
     private def addContext(revCtx: List[String], ex: Expectation): Expectation =
       revCtx match {
         case Nil => ex
@@ -990,30 +991,28 @@ object Parser {
     * Note: order matters here, since we don't backtrack by default.
     */
   def oneOf[A](parsers: List[Parser[A]]): Parser[A] = {
-    @annotation.tailrec
-    def flatten(ls: List[Parser[A]], acc: ListBuffer[Parser[A]]): List[Parser[A]] =
-      ls match {
-        case Nil => acc.toList.distinct
-        case Impl.OneOf(ps) :: rest =>
-          flatten(ps ::: rest, acc)
-        case Impl.Fail() :: rest =>
-          flatten(rest, acc)
-        case notOneOf :: rest =>
-          flatten(rest, acc += notOneOf)
+    @tailrec
+    def loop(ps: List[Parser[A]], acc: List[Parser[A]]): Parser[A] =
+      ps match {
+        case Nil =>
+          acc match {
+            case Nil => Impl.Fail()
+            case one :: Nil => one
+            case many => Impl.OneOf(many.reverse)
+          }
+        case h :: Nil => loop(Nil, h :: acc)
+        case h1 :: (tail @ (h2 :: tail2)) =>
+          Impl.merge(h1, h2) match {
+            case Some(NonEmptyList(h, Nil)) => loop(h :: tail2, acc)
+            case Some(NonEmptyList(h, t)) => loop(t ::: tail2, h :: acc)
+            case None => loop(tail, h1 :: acc)
+          }
       }
-
-    val flat0 = flatten(parsers, new ListBuffer)
-    // we unmap if we can to make merging work better
-    val isStr = flat0.forall(Impl.matchesString)
-    val flat = if (isStr) flat0.map(Impl.unmap) else flat0
-
-    val cs0 = Impl.mergeCharIn[Any, Parser[Any]](flat)
-    val cs = (if (isStr) cs0.map(string(_)) else cs0).asInstanceOf[List[Parser[A]]]
-    Impl.mergeStrIn[A, Parser[A]](cs) match {
-      case Nil => fail
-      case p :: Nil => p
-      case two => Impl.OneOf(two)
+    val flattened = parsers.flatMap {
+      case Impl.OneOf(os) => os
+      case notOneOf => notOneOf :: Nil
     }
+    loop(flattened, Nil)
   }
 
   /** go through the list of parsers trying each as long as they are epsilon failures (don't
@@ -1026,36 +1025,30 @@ object Parser {
     * Note: order matters here, since we don't backtrack by default.
     */
   def oneOf0[A](ps: List[Parser0[A]]): Parser0[A] = {
-    @annotation.tailrec
-    def flatten(ls: List[Parser0[A]], acc: ListBuffer[Parser0[A]]): List[Parser0[A]] =
-      ls match {
-        case Nil => acc.toList.distinct
-        case Impl.OneOf0(ps) :: rest =>
-          flatten(ps ::: rest, acc)
-        case Impl.OneOf(ps) :: rest =>
-          flatten(ps ::: rest, acc)
-        case Impl.Fail() :: rest =>
-          flatten(rest, acc)
-        case notOneOf :: rest =>
-          if (Impl.alwaysSucceeds(notOneOf)) {
-            (acc += notOneOf).toList.distinct
-          } else {
-            flatten(rest, acc += notOneOf)
+
+    @tailrec
+    def loop(ps: List[Parser0[A]], acc: List[Parser0[A]]): Parser0[A] =
+      ps match {
+        case Nil =>
+          acc match {
+            case Nil => Impl.Fail()
+            case one :: Nil => one
+            case many => Impl.OneOf0(many.reverse)
+          }
+        case h :: Nil => loop(Nil, h :: acc)
+        case h1 :: (tail @ (h2 :: tail2)) =>
+          Impl.merge0(h1, h2) match {
+            case Some(NonEmptyList(h, Nil)) => loop(h :: tail2, acc)
+            case Some(NonEmptyList(h, t)) => loop(t ::: tail2, h :: acc)
+            case None => loop(tail, h1 :: acc)
           }
       }
 
-    val flat0 = flatten(ps, new ListBuffer)
-    // we unmap if we can to make merging work better
-    val isStr = flat0.forall(Impl.matchesString)
-    val flat = if (isStr) flat0.map(Impl.unmap0) else flat0
-
-    val cs0 = Impl.mergeCharIn[Any, Parser0[Any]](flat)
-    val cs = (if (isStr) cs0.map(string0(_)) else cs0).asInstanceOf[List[Parser0[A]]]
-    Impl.mergeStrIn[A, Parser0[A]](cs) match {
-      case Nil => fail
-      case p :: Nil => p
-      case two => Impl.OneOf0(two)
+    val flattened = ps.flatMap {
+      case Impl.OneOf0(os) => os
+      case notOneOf => notOneOf :: Nil
     }
+    loop(flattened, Nil)
   }
 
   /** Parse the longest matching string between alternatives. The order of the strings does not
@@ -1689,6 +1682,7 @@ object Parser {
       case str if Impl.matchesString(str) => str.asInstanceOf[Parser[String]]
       case _ =>
         Impl.unmap(pa) match {
+          case si @ Impl.StringIn(_) => si
           case len @ Impl.Length(_) => len
           case strP @ Impl.Str(expect) => strP.as(expect)
           case ci @ Impl.SingleChar(c) =>
@@ -1951,7 +1945,7 @@ object Parser {
     final def doesBacktrackCheat(p: Parser0[Any]): Boolean =
       doesBacktrack(p)
 
-    @annotation.tailrec
+    @tailrec
     final def doesBacktrack(p: Parser0[Any]): Boolean =
       p match {
         case Backtrack0(_) | Backtrack(_) | AnyChar | CharIn(_, _, _) | Str(_) | IgnoreCase(_) |
@@ -1981,7 +1975,8 @@ object Parser {
         p match {
           case Pure("") => Some("")
           case Map(Str(e1), ConstFn(e2)) if e1 == e2 => Some(e1)
-          case Map(SingleChar(c), ConstFn(e: String)) if (e.length == 1) && (e.charAt(0) == c) => Some(e)
+          case Map(SingleChar(c), ConstFn(e: String)) if (e.length == 1) && (e.charAt(0) == c) =>
+            Some(e)
           case _ => None
         }
     }
@@ -2075,15 +2070,16 @@ object Parser {
         case WithContextP0(_, p) => hasKnownResult(p)
         case Backtrack(p) => hasKnownResult(p)
         case Backtrack0(p) => hasKnownResult(p)
-        case Not(_) | Peek(_) | Void(_) | Void0(_) | StartParser | EndParser |
-          Str(_) | IgnoreCase(_) =>
+        case Not(_) | Peek(_) | Void(_) | Void0(_) | StartParser | EndParser | Str(_) | IgnoreCase(
+              _
+            ) =>
           // these are always unit
           someUnit.asInstanceOf[Option[A]]
         case Rep0(_, _, _) | Rep(_, _, _, _) | FlatMap0(_, _) | FlatMap(_, _) | TailRecM(_, _) |
             TailRecM0(_, _) | Defer(_) | Defer0(_) | GetCaret | Index | OneOf(_) | OneOf0(_) |
             Length(_) | Fail() | FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
               _
-            ) | StringP0(_) | Select(_, _) | Select0(_, _) | StringIn(_)=>
+            ) | StringP0(_) | Select(_, _) | Select0(_, _) | StringIn(_) =>
           // these we don't know the value fundamentally or by construction
           None
       }
@@ -2644,14 +2640,14 @@ object Parser {
       override def parseMut(state: State): B = Impl.tailRecM(p1, fn, state)
     }
 
-    @annotation.tailrec
+    @tailrec
     final def compute0[A](fn: () => Parser0[A]): Parser0[A] =
       fn() match {
         case Defer(f) => compute(f)
         case Defer0(f) => compute0(f)
         case notDefer0 => notDefer0
       }
-    @annotation.tailrec
+    @tailrec
     final def compute[A](fn: () => Parser[A]): Parser[A] =
       fn() match {
         case Defer(f) => compute(f)
@@ -2794,119 +2790,75 @@ object Parser {
       }
     }
 
-    /*
-     * Merge CharIn bitsets
-     */
-    def mergeCharIn[A, P0 <: Parser0[A]](ps: List[P0]): List[P0] = {
-      @annotation.tailrec
-      def loop(ps: List[P0], front: List[CharIn], result: Chain[P0]): Chain[P0] = {
-        @inline
-        def frontRes: Chain[P0] =
-          front match {
-            case Nil => Chain.nil
-            case one :: Nil => Chain.one(one.asInstanceOf[P0])
-            case many =>
-              // we need to union
-              val minBs = many.iterator.map { case CharIn(m, bs, _) => (m, bs) }
-              Chain.one(Parser.charIn(BitSetUtil.union(minBs)).asInstanceOf[P0])
-          }
+    private def oneONEL[A](a: A): Option[NonEmptyList[A]] = Some(NonEmptyList(a, Nil))
 
-        ps match {
-          case Nil => result ++ frontRes
-          case AnyChar :: tail =>
-            // AnyChar is bigger than all subsequent CharIn:
-            // and any direct prefix CharIns
-            val tail1 = tail.filterNot { p => p.isInstanceOf[CharIn] || p.isInstanceOf[AnyChar.type] }
-            (result :+ AnyChar.asInstanceOf[P0]) ++ Chain.fromSeq(tail1)
-          case (ci: CharIn) :: tail =>
-            loop(tail, ci :: front, result)
-          case h :: tail =>
-            // h is not an AnyChar or CharIn
-            // we make our prefix frontRes
-            // and resume working on the tail
-            loop(tail, Nil, (result ++ frontRes) :+ h)
-        }
+    def merge0[A](left: Parser0[A], right: Parser0[A]): Option[NonEmptyList[Parser0[A]]] =
+      (left, right) match {
+        case (l1: Parser[A], r1: Parser[A]) => merge(l1, r1)
+        case (_, _) if alwaysSucceeds(left) => oneONEL(left)
+        case (Fail(), _) => oneONEL(right)
+        case (_, Fail()) => oneONEL(left)
+        case _ => None
       }
-
-      loop(ps, Nil, Chain.nil).toList
-    }
-
-    /*
-     * Merge Str and StringIn
-     *
-     * the semantic issue is this:
-     * oneOf matches the first, left to right
-     * StringIn matches the longest.
-     * we can only merge into the left if
-     * there are no prefixes of the right inside the left
-     */
-    def mergeStrIn[A, P0 <: Parser0[A]](ps: List[P0]): List[P0] = {
-      val reset = Left(SortedSet.empty[String])
-
-      @annotation.tailrec
-      def loop(ps: List[P0], front: Either[SortedSet[String], StringIn], result: Chain[P0]): Chain[P0] = {
-        @inline
-        def res(front: Either[SortedSet[String], StringIn]): Chain[P0] =
-          front match {
-            case Right(si) => Chain.one(si.asInstanceOf[P0])
-            case Left(set) =>
-              if (set.isEmpty) Chain.nil
-              else if (set.size == 1) Chain.one {
-                val p = set.head match {
-                  case "" => emptyStringParser0
-                  case ne => Parser.string(ne).string
-                }
-                p.asInstanceOf[P0]
-              }
-              else Chain.one(StringIn(set).asInstanceOf[P0])
+    def merge[A](left: Parser[A], right: Parser[A]): Option[NonEmptyList[Parser[A]]] =
+      (left, right) match {
+        case (Fail(), _) => oneONEL(right)
+        case (_, Fail()) => oneONEL(left)
+        case (CharIn(_, _, _), AnyChar) => oneONEL(AnyChar)
+        case (CharIn(m1, b1, _), CharIn(m2, b2, _)) =>
+          oneONEL(Parser.charIn(BitSetUtil.union((m1, b1) :: (m2, b2) :: Nil)))
+        case (Void(l1), Void(r1)) =>
+          merge(l1, r1).map(_.map(_.void))
+        case (Str(l), Str(r)) =>
+          // if l is a prefix of r, it matches first
+          // if not, then we can make a StringIn(_).void
+          if (r.startsWith(l)) oneONEL(left)
+          else oneONEL(StringIn(SortedSet(l, r)).void)
+        case (StringIn(ls), Map(Str(s1), ConstFn(s2))) if s1 == s2 =>
+          if (ls.exists { l => s1.startsWith(l) && (l.length < s1.length) }) None
+          else oneONEL(StringIn(ls + s1))
+        case (Map(Str(l), ConstFn(s2)), StringIn(rs)) if l == s2 =>
+          // any string in rs that doesn't have a substring in ls can be moved
+          // over, since substrings would match first in oneOf but not StringIn
+          val (bad, good) = rs.partition { s =>
+            s.startsWith(l) && (l.length < s.length)
           }
-
-        val frontSet: SortedSet[String] =
-          front match {
-            case Right(si) => si.sorted
-            case Left(s) => s
+          if (good.isEmpty) None
+          else {
+            val newLeft = StringIn(good + l)
+            if (bad.isEmpty) oneONEL(newLeft)
+            else if (bad.size > 1) {
+              Some(NonEmptyList(newLeft, StringIn(bad) :: Nil))
+            } else {
+              Some(NonEmptyList(newLeft, Str(bad.head).string :: Nil))
+            }
           }
-        // returns if there is a strict prefix (equality does not count)
-        def frontHasPrefixOf(s: String): Boolean =
-          frontSet.exists { f => s.startsWith(f) && (f.length != s.length) }
-
-        ps match {
-          case Nil => result ++ res(front)
-          case StringP(ci @ CharIn(_, _, _)) :: tail if frontSet.nonEmpty && !ci.allChars.exists { c => frontHasPrefixOf(c.toString) } =>
-            // we can merge all these into the non-empty StringIn
-            loop(tail, Left(frontSet ++ ci.allChars.map(_.toString)), result)
-          case DefiniteString(s) :: tail if s.nonEmpty =>
-            // we can't add empty string to `StringIn`
-            if (frontHasPrefixOf(s)) {
-              // there is an overlap, so we need to match what we have first, then come here
-              loop(tail, Left(SortedSet(s)), result ++ res(front))
+        case (StringIn(ls), StringIn(rs)) =>
+          // any string in rs that doesn't have a substring in ls can be moved
+          // over, since substrings would match first in oneOf but not StringIn
+          val (bad, good) = rs.partition { s =>
+            ls.exists { l => s.startsWith(l) && (l.length < s.length) }
+          }
+          if (good.isEmpty) None
+          else {
+            val newLeft = StringIn(ls | good)
+            if (bad.isEmpty) oneONEL(newLeft)
+            else if (bad.size > 1) {
+              Some(NonEmptyList(newLeft, StringIn(bad) :: Nil))
             } else {
-              // there is no overlap in the tree, just merge it in:
-              loop(tail, Left(frontSet + s), result)
+              Some(NonEmptyList(newLeft, Str(bad.head).string :: Nil))
             }
-          case (si @ StringIn(ss)) :: tail =>
-            val (rights, lefts) = ss.partition(frontHasPrefixOf(_))
-            if (rights.nonEmpty) {
-              // there are some that can't be merged in
-              val front1 =
-                if (lefts.nonEmpty) Left(frontSet | lefts)
-                else front
-
-              loop(tail, Left(rights), result ++ res(front1))
-            } else {
-              // everything can be merged in
-              val newFront =
-                if (frontSet.isEmpty) Right(si)
-                else Left(frontSet | lefts)
-              loop(tail, newFront, result)
-            }
-          case h :: tail =>
-            loop(tail, reset, (result ++ res(front)) :+ h)
-        }
+          }
+        case (StringP(l1), StringP(r1)) =>
+          merge(l1, r1).map(_.map(_.string))
+        case (AnyChar, FailWith(_)) =>
+          // preserve the failWith message
+          None
+        case (AnyChar, _) =>
+          // a parser must consume to advance, and AnyChar will succeed
+          oneONEL(left)
+        case _ => None
       }
-
-      loop(ps, reset, Chain.nil).toList
-    }
 
     case object AnyChar extends Parser[Char] {
       override def parseMut(state: State): Char = {

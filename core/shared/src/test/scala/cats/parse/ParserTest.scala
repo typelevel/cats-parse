@@ -847,15 +847,19 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("oneOf0 composes as expected") {
     forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
-      assertEquals(genP1.fa.orElse(genP2.fa).parse(str).leftMap(_.offsets),
-        orElse(genP1.fa, genP2.fa, str).leftMap(_.offsets))
+      assertEquals(
+        genP1.fa.orElse(genP2.fa).parse(str).leftMap(_.offsets),
+        orElse(genP1.fa, genP2.fa, str).leftMap(_.offsets)
+      )
     }
   }
 
   property("oneOf composes as expected") {
     forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
-      assertEquals(genP1.fa.orElse(genP2.fa).parse(str).leftMap(_.offsets),
-        orElse(genP1.fa, genP2.fa, str).leftMap(_.offsets))
+      assertEquals(
+        genP1.fa.orElse(genP2.fa).parse(str).leftMap(_.offsets),
+        orElse(genP1.fa, genP2.fa, str).leftMap(_.offsets)
+      )
     }
   }
 
@@ -2428,7 +2432,10 @@ class ParserTest extends munit.ScalaCheckSuite {
         val left = Parser.oneOf0(as.map(_.fa.string))
         val right = Parser.oneOf0[Any](as.map(_.fa)).string
 
-        assertEquals(left.parse(toParse).leftMap(_.offsets), right.parse(toParse).leftMap(_.offsets))
+        assertEquals(
+          left.parse(toParse).leftMap(_.offsets),
+          right.parse(toParse).leftMap(_.offsets)
+        )
     }
   }
 
@@ -2438,7 +2445,10 @@ class ParserTest extends munit.ScalaCheckSuite {
         val left = Parser.oneOf(as.map(_.fa.string))
         val right = Parser.oneOf[Any](as.map(_.fa)).string
 
-        assertEquals(left.parse(toParse).leftMap(_.offsets), right.parse(toParse).leftMap(_.offsets))
+        assertEquals(
+          left.parse(toParse).leftMap(_.offsets),
+          right.parse(toParse).leftMap(_.offsets)
+        )
     }
   }
 
@@ -2599,6 +2609,15 @@ class ParserTest extends munit.ScalaCheckSuite {
           (Parser.string0(first) *> Parser.stringIn(oneOf)).parse(first + content).toOption
         )
       }
+    }
+  }
+
+  property("stringIn(s).void.string == stringIn(s)") {
+    forAll { (ss0: List[String]) =>
+      val ss = ss0.filter(_.nonEmpty)
+      val si = Parser.stringIn(ss)
+
+      assertEquals(si.void.string, si)
     }
   }
 }

@@ -200,7 +200,8 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
       forAllNoShrink(Gen.oneOf(head :: tail ::: ss)) { prefix =>
         assertEquals(
           rn.matchesWithPrefix(prefix).sorted,
-          ss.filter(_.startsWith(prefix)).distinct.sorted)
+          ss.filter(_.startsWith(prefix)).distinct.sorted
+        )
       }
     }
   }

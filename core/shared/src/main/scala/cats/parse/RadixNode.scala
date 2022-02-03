@@ -55,7 +55,6 @@ private[parse] final class RadixNode(
     else (matched :: rest.filterNot(_ == matched).toList)
   }
 
-
   final def matchesWithPrefix(prefix: String): List[String] =
     matchesWithPrefixLoop(prefix, 0, prefix.length)
 
@@ -64,8 +63,7 @@ private[parse] final class RadixNode(
     if (start >= end) {
       // this is the empty string, all the strings start with empty
       allStrings
-    }
-    else {
+    } else {
       // start < end, there is at least another character to match
       val c = prefix.charAt(start)
       val idx = c.toInt & bitMask
@@ -76,8 +74,7 @@ private[parse] final class RadixNode(
           val len = math.min(end - start, p.length)
           if (prefix.regionMatches(start, p, 0, len)) {
             children(idx).matchesWithPrefixLoop(prefix, start + len, end)
-          }
-          else Nil
+          } else Nil
       }
     }
 
