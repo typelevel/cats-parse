@@ -2804,20 +2804,27 @@ object Parser {
       (left, right) match {
         case (Fail(), _) => oneONEL(right)
         case (_, Fail()) => oneONEL(left)
+        case (Void(l1), Void(r1)) =>
+          merge(l1, r1).map(_.map(_.void))
+        case (StringP(l1), StringP(r1)) =>
+          merge(l1, r1).map(_.map(_.string))
         case (CharIn(_, _, _), AnyChar) => oneONEL(AnyChar)
         case (CharIn(m1, b1, _), CharIn(m2, b2, _)) =>
           oneONEL(Parser.charIn(BitSetUtil.union((m1, b1) :: (m2, b2) :: Nil)))
-        case (Void(l1), Void(r1)) =>
-          merge(l1, r1).map(_.map(_.void))
         case (Str(l), Str(r)) =>
           // if l is a prefix of r, it matches first
           // if not, then we can make a StringIn(_).void
           if (r.startsWith(l)) oneONEL(left)
           else oneONEL(StringIn(SortedSet(l, r)).void)
-        case (StringIn(ls), Map(Str(s1), ConstFn(s2))) if s1 == s2 =>
+        case (DefiniteString(l), DefiniteString(r)) =>
+          // if l is a prefix of r, it matches first
+          // if not, then we can make a StringIn(_).void
+          if (r.startsWith(l)) oneONEL(left)
+          else oneONEL(StringIn(SortedSet(l, r)).asInstanceOf[Parser[A]])
+        case (StringIn(ls), DefiniteString(s1)) =>
           if (ls.exists { l => s1.startsWith(l) && (l.length < s1.length) }) None
           else oneONEL(StringIn(ls + s1))
-        case (Map(Str(l), ConstFn(s2)), StringIn(rs)) if l == s2 =>
+        case (DefiniteString(l), StringIn(rs)) =>
           // any string in rs that doesn't have a substring in ls can be moved
           // over, since substrings would match first in oneOf but not StringIn
           val (bad, good) = rs.partition { s =>
@@ -2849,8 +2856,6 @@ object Parser {
               Some(NonEmptyList(newLeft, Str(bad.head).string :: Nil))
             }
           }
-        case (StringP(l1), StringP(r1)) =>
-          merge(l1, r1).map(_.map(_.string))
         case (AnyChar, FailWith(_)) =>
           // preserve the failWith message
           None
