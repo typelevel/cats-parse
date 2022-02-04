@@ -1007,11 +1007,7 @@ object Parser {
             case None => loop(tail, h1 :: acc)
           }
       }
-    val flattened = parsers.flatMap {
-      case Impl.OneOf(os) => os
-      case notOneOf => notOneOf :: Nil
-    }
-    loop(flattened, Nil)
+    loop(parsers, Nil)
   }
 
   /** go through the list of parsers trying each as long as they are epsilon failures (don't
@@ -1041,12 +1037,7 @@ object Parser {
             case None => loop(tail, h1 :: acc)
           }
       }
-
-    val flattened = ps.flatMap {
-      case Impl.OneOf0(os) => os
-      case notOneOf => notOneOf :: Nil
-    }
-    loop(flattened, Nil)
+    loop(ps, Nil)
   }
 
   /** Parse the longest matching string between alternatives. The order of the strings does not
@@ -1570,9 +1561,10 @@ object Parser {
     */
   def charWhere(fn: Char => Boolean): Parser[Char] =
     fn match {
-      case s: Set[Char] =>
-        // Set extends function, but it is also iterable
-        charIn(s)
+      case s: Set[_] =>
+        // Set extends function, so if the fn is a Set it has to be a Set[Char]
+        // but it is also iterable
+        charIn(s.asInstanceOf[Set[Char]])
       case _ =>
         charIn(Impl.allChars.filter(fn))
     }
@@ -1961,7 +1953,7 @@ object Parser {
       }
 
     object SingleChar {
-      def unapply(p: Parser[Any]): Option[Char] =
+      def unapply(p: Parser0[Any]): Option[Char] =
         p match {
           case CharIn(min, bs, _) if BitSetUtil.isSingleton(bs) => Some(min.toChar)
           case _ => None
@@ -1972,9 +1964,12 @@ object Parser {
       def unapply(p: Parser0[Any]): Option[String] =
         p match {
           case Pure("") => Some("")
-          case Map(Str(e1), ConstFn(e2)) if e1 == e2 => Some(e1)
-          case Map(SingleChar(c), ConstFn(e: String)) if (e.length == 1) && (e.charAt(0) == c) =>
-            Some(e)
+          case Map(left, ConstFn(res: String)) =>
+            left match {
+              case Str(s0) if s0 == res => Some(s0)
+              case SingleChar(c) if (res.length == 1) && (res.charAt(0) == c) => Some(res)
+              case _ => None
+            }
           case _ => None
         }
     }
@@ -2012,8 +2007,7 @@ object Parser {
     final def hasKnownResult[A](p: Parser0[A]): Option[A] =
       p match {
         case Pure(a) => Some(a)
-        case SingleChar(c) =>
-          Some(c.asInstanceOf[A])
+        case SingleChar(c) => Some(c.asInstanceOf[A])
         case Map0(_, fn) =>
           // scala 3.0.2 seems to fail if we inline
           // this match above
@@ -2794,20 +2788,46 @@ object Parser {
         case (_, _) if alwaysSucceeds(left) => Some(left)
         case (Fail(), _) => Some(right)
         case (_, Fail()) => Some(left)
-        case (left, OneOf0(h :: t)) =>
-          merge0(left, h).map { h1 => OneOf0(h1 :: t) }
-        case (left, OneOf(h :: t)) =>
-          merge0(left, h).map {
-            case h: Parser[A] => OneOf(h :: t)
-            case h0 => OneOf0(h0 :: t)
+        case (OneOf0(_), OneOf(rs)) =>
+          merge0(left, OneOf0(rs))
+        case (OneOf(ls), OneOf0(_)) =>
+          merge0(OneOf0(ls), right)
+        case (OneOf0(ls), OneOf0(rights @ (h :: t))) =>
+          merge0(ls.last, h) match {
+            case None =>
+              // just concat
+              Some(OneOf0(ls ::: rights))
+            case Some(l1) =>
+              val newLeft = OneOf0(ls.init :+ l1)
+              t match {
+                case rlast :: Nil =>
+                  merge0(newLeft, rlast)
+                case twoOrMore =>
+                  merge0(newLeft, OneOf0(twoOrMore))
+              }
           }
+        case (left, OneOf0(rs @ (h :: t))) =>
+          merge0(left, h)
+            .map { h1 => OneOf0(h1 :: t) }
+            .orElse(Some(OneOf0(left :: rs)))
+        case (left, OneOf(rs @ (h :: t))) =>
+          merge0(left, h)
+            .map {
+              case h: Parser[A] => OneOf(h :: t)
+              case h0 => OneOf0(h0 :: t)
+            }
+            .orElse(Some(OneOf0(left :: rs)))
         case (OneOf0(ls), right) =>
-          merge0(ls.last, right).map { l1 => OneOf0(ls.init :+ l1) }
+          merge0(ls.last, right)
+            .map { l1 => OneOf0(ls.init :+ l1) }
+            .orElse(Some(OneOf0(ls :+ right)))
         case (OneOf(ls), right) =>
-          merge0(ls.last, right).map {
-            case l: Parser[A] => OneOf(ls.init :+ l)
-            case l => OneOf0(ls.init :+ l)
-          }
+          merge0(ls.last, right)
+            .map {
+              case l: Parser[A] => OneOf(ls.init :+ l)
+              case l => OneOf0(ls.init :+ l)
+            }
+            .orElse(Some(OneOf0(ls :+ right)))
         case _ => None
       }
 
@@ -2815,10 +2835,28 @@ object Parser {
       (left, right) match {
         case (Fail(), _) => Some(right)
         case (_, Fail()) => Some(left)
-        case (left, OneOf(h :: t)) =>
-          merge(left, h).map { h1 => OneOf(h1 :: t) }
+        case (OneOf(ls), OneOf(rights @ (h :: t))) =>
+          merge(ls.last, h) match {
+            case None =>
+              // just concat
+              Some(OneOf(ls ::: rights))
+            case Some(l1) =>
+              val newLeft = OneOf(ls.init :+ l1)
+              t match {
+                case rlast :: Nil =>
+                  merge(newLeft, rlast)
+                case twoOrMore =>
+                  merge(newLeft, OneOf(twoOrMore))
+              }
+          }
+        case (left, OneOf(rs @ (h :: t))) =>
+          merge(left, h)
+            .map { h1 => OneOf(h1 :: t) }
+            .orElse(Some(OneOf(left :: rs)))
         case (OneOf(ls), right) =>
-          merge(ls.last, right).map { l1 => OneOf(ls.init :+ l1) }
+          merge(ls.last, right)
+            .map { l1 => OneOf(ls.init :+ l1) }
+            .orElse(Some(OneOf(ls :+ right)))
         case (Void(l1), Void(r1)) =>
           merge(l1, r1).map(_.void)
         case (StringP(l1), StringP(r1)) =>
@@ -2836,7 +2874,17 @@ object Parser {
           // if l is a prefix of r, it matches first
           // if not, then we can make a StringIn(_).void
           if (r.startsWith(l)) Some(left)
-          else Some(StringIn(SortedSet(l, r)).asInstanceOf[Parser[A]])
+          else
+            Some {
+              val res =
+                if (l.length == 1 && r.length == 1) {
+                  charIn(l.head :: r.head :: Nil).string
+                } else {
+                  StringIn(SortedSet(l, r))
+                }
+
+              res.asInstanceOf[Parser[A]]
+            }
         case (StringIn(ls), DefiniteString(s1)) =>
           if (ls.exists { l => s1.startsWith(l) && (l.length <= s1.length) }) {
             // if left didn't match, then s1 can't match
@@ -2882,8 +2930,6 @@ object Parser {
         extends Parser[Char] {
 
       override def toString = s"CharIn($min, bitSet = ..., $ranges)"
-
-      def allChars: Iterable[Char] = BitSetUtil.union((min, bitSet) :: Nil)
 
       def makeError(offset: Int): Chain[Expectation] = {
         var result = Chain.empty[Expectation]

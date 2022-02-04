@@ -71,7 +71,7 @@ object ParserGen {
     }
 
   implicit val cogenCaret: Cogen[Caret] =
-    Cogen { caret: Caret =>
+    Cogen { (caret: Caret) =>
       (caret.offset.toLong << 32) | (caret.col.toLong << 16) | (caret.line.toLong)
     }
 
