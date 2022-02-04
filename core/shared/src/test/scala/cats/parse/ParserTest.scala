@@ -845,21 +845,45 @@ class ParserTest extends munit.ScalaCheckSuite {
       case right => right
     }
 
+  def oneOfLaw(left: Parser0[Any], right: Parser0[Any], str: String) = {
+    assertEquals(
+      left.orElse(right).parse(str).leftMap(_.offsets),
+      orElse(left, right, str).leftMap(_.offsets)
+    )
+  }
+
   property("oneOf0 composes as expected") {
     forAll(ParserGen.gen0, ParserGen.gen0, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
-      assertEquals(
-        genP1.fa.orElse(genP2.fa).parse(str).leftMap(_.offsets),
-        orElse(genP1.fa, genP2.fa, str).leftMap(_.offsets)
-      )
+      oneOfLaw(genP1.fa, genP2.fa, str)
     }
   }
 
   property("oneOf composes as expected") {
     forAll(ParserGen.gen, ParserGen.gen, Arbitrary.arbitrary[String]) { (genP1, genP2, str) =>
-      assertEquals(
-        genP1.fa.orElse(genP2.fa).parse(str).leftMap(_.offsets),
-        orElse(genP1.fa, genP2.fa, str).leftMap(_.offsets)
-      )
+      oneOfLaw(genP1.fa, genP2.fa, str)
+    }
+  }
+
+  property("check some specific oneOf compositions") {
+    val pairs: List[(Parser0[Any], Parser0[Any])] =
+      (Parser.string("foo").string, Parser.stringIn("foo" :: "bar" :: "foobar" :: Nil)) ::
+        (Parser.stringIn("foo" :: "quux" :: Nil), Parser.string("foobar").string) ::
+        (Parser.stringIn("foo" :: "quux" :: Nil), Parser.char('f').string) ::
+        (Parser.stringIn("foo" :: "quux" :: Nil), Parser.stringIn("foo" :: "quux" :: Nil)) ::
+        (
+          Parser.stringIn("foo" :: "quux" :: "bar" :: Nil),
+          Parser.stringIn("foo" :: "quux" :: Nil)
+        ) ::
+        (
+          Parser.stringIn("foo" :: "quux" :: Nil),
+          Parser.stringIn("foo" :: "quux" :: "bar" :: Nil)
+        ) ::
+        Nil
+
+    forAll { (str: String) =>
+      pairs.foreach { case (p1, p2) =>
+        oneOfLaw(p1, p2, str)
+      }
     }
   }
 

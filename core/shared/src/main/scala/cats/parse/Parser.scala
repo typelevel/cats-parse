@@ -1003,8 +1003,7 @@ object Parser {
         case h :: Nil => loop(Nil, h :: acc)
         case h1 :: (tail @ (h2 :: tail2)) =>
           Impl.merge(h1, h2) match {
-            case Some(NonEmptyList(h, Nil)) => loop(h :: tail2, acc)
-            case Some(NonEmptyList(h, t)) => loop(t ::: tail2, h :: acc)
+            case Some(h) => loop(h :: tail2, acc)
             case None => loop(tail, h1 :: acc)
           }
       }
@@ -1038,8 +1037,7 @@ object Parser {
         case h :: Nil => loop(Nil, h :: acc)
         case h1 :: (tail @ (h2 :: tail2)) =>
           Impl.merge0(h1, h2) match {
-            case Some(NonEmptyList(h, Nil)) => loop(h :: tail2, acc)
-            case Some(NonEmptyList(h, t)) => loop(t ::: tail2, h :: acc)
+            case Some(h) => loop(h :: tail2, acc)
             case None => loop(tail, h1 :: acc)
           }
       }
@@ -2790,78 +2788,78 @@ object Parser {
       }
     }
 
-    private def oneONEL[A](a: A): Option[NonEmptyList[A]] = Some(NonEmptyList(a, Nil))
-
-    def merge0[A](left: Parser0[A], right: Parser0[A]): Option[NonEmptyList[Parser0[A]]] =
+    def merge0[A](left: Parser0[A], right: Parser0[A]): Option[Parser0[A]] =
       (left, right) match {
         case (l1: Parser[A], r1: Parser[A]) => merge(l1, r1)
-        case (_, _) if alwaysSucceeds(left) => oneONEL(left)
-        case (Fail(), _) => oneONEL(right)
-        case (_, Fail()) => oneONEL(left)
+        case (_, _) if alwaysSucceeds(left) => Some(left)
+        case (Fail(), _) => Some(right)
+        case (_, Fail()) => Some(left)
+        case (left, OneOf0(h :: t)) =>
+          merge0(left, h).map { h1 => OneOf0(h1 :: t) }
+        case (left, OneOf(h :: t)) =>
+          merge0(left, h).map {
+            case h: Parser[A] => OneOf(h :: t)
+            case h0 => OneOf0(h0 :: t)
+          }
+        case (OneOf0(ls), right) =>
+          merge0(ls.last, right).map { l1 => OneOf0(ls.init :+ l1) }
+        case (OneOf(ls), right) =>
+          merge0(ls.last, right).map {
+            case l: Parser[A] => OneOf(ls.init :+ l)
+            case l => OneOf0(ls.init :+ l)
+          }
         case _ => None
       }
-    def merge[A](left: Parser[A], right: Parser[A]): Option[NonEmptyList[Parser[A]]] =
+
+    def merge[A](left: Parser[A], right: Parser[A]): Option[Parser[A]] =
       (left, right) match {
-        case (Fail(), _) => oneONEL(right)
-        case (_, Fail()) => oneONEL(left)
+        case (Fail(), _) => Some(right)
+        case (_, Fail()) => Some(left)
+        case (left, OneOf(h :: t)) =>
+          merge(left, h).map { h1 => OneOf(h1 :: t) }
+        case (OneOf(ls), right) =>
+          merge(ls.last, right).map { l1 => OneOf(ls.init :+ l1) }
         case (Void(l1), Void(r1)) =>
-          merge(l1, r1).map(_.map(_.void))
+          merge(l1, r1).map(_.void)
         case (StringP(l1), StringP(r1)) =>
-          merge(l1, r1).map(_.map(_.string))
-        case (CharIn(_, _, _), AnyChar) => oneONEL(AnyChar)
+          merge(l1, r1).map(_.string)
+        case (CharIn(_, _, _), AnyChar) => Some(AnyChar)
+        case (AnyChar, CharIn(_, _, _)) => Some(AnyChar)
         case (CharIn(m1, b1, _), CharIn(m2, b2, _)) =>
-          oneONEL(Parser.charIn(BitSetUtil.union((m1, b1) :: (m2, b2) :: Nil)))
+          Some(Parser.charIn(BitSetUtil.union((m1, b1) :: (m2, b2) :: Nil)))
         case (Str(l), Str(r)) =>
           // if l is a prefix of r, it matches first
           // if not, then we can make a StringIn(_).void
-          if (r.startsWith(l)) oneONEL(left)
-          else oneONEL(StringIn(SortedSet(l, r)).void)
+          if (r.startsWith(l)) Some(left)
+          else Some(StringIn(SortedSet(l, r)).void)
         case (DefiniteString(l), DefiniteString(r)) =>
           // if l is a prefix of r, it matches first
           // if not, then we can make a StringIn(_).void
-          if (r.startsWith(l)) oneONEL(left)
-          else oneONEL(StringIn(SortedSet(l, r)).asInstanceOf[Parser[A]])
+          if (r.startsWith(l)) Some(left)
+          else Some(StringIn(SortedSet(l, r)).asInstanceOf[Parser[A]])
         case (StringIn(ls), DefiniteString(s1)) =>
-          if (ls.exists { l => s1.startsWith(l) && (l.length < s1.length) }) None
-          else oneONEL(StringIn(ls + s1))
+          if (ls.exists { l => s1.startsWith(l) && (l.length <= s1.length) }) {
+            // if left didn't match, then s1 can't match
+            Some(left)
+          } else Some(StringIn(ls + s1))
         case (DefiniteString(l), StringIn(rs)) =>
-          // any string in rs that doesn't have a substring in ls can be moved
-          // over, since substrings would match first in oneOf but not StringIn
-          val (bad, good) = rs.partition { s =>
-            s.startsWith(l) && (l.length < s.length)
-          }
-          if (good.isEmpty) None
+          // We know if we go to rs that l did
+          // not match so nothing in rs can have l as a prefix
+          val good = rs.filterNot(_.startsWith(l))
+          if (good.isEmpty) Some(left)
           else {
-            val newLeft = StringIn(good + l)
-            if (bad.isEmpty) oneONEL(newLeft)
-            else if (bad.size > 1) {
-              Some(NonEmptyList(newLeft, StringIn(bad) :: Nil))
-            } else {
-              Some(NonEmptyList(newLeft, Str(bad.head).string :: Nil))
-            }
+            Some(StringIn(good + l))
           }
         case (StringIn(ls), StringIn(rs)) =>
           // any string in rs that doesn't have a substring in ls can be moved
           // over, since substrings would match first in oneOf but not StringIn
-          val (bad, good) = rs.partition { s =>
-            ls.exists { l => s.startsWith(l) && (l.length < s.length) }
+          val canMatch = rs.filterNot { s =>
+            ls.exists { l => s.startsWith(l) && (l.length <= s.length) }
           }
-          if (good.isEmpty) None
+          if (canMatch.isEmpty) Some(left)
           else {
-            val newLeft = StringIn(ls | good)
-            if (bad.isEmpty) oneONEL(newLeft)
-            else if (bad.size > 1) {
-              Some(NonEmptyList(newLeft, StringIn(bad) :: Nil))
-            } else {
-              Some(NonEmptyList(newLeft, Str(bad.head).string :: Nil))
-            }
+            Some(StringIn(ls | canMatch))
           }
-        case (AnyChar, FailWith(_)) =>
-          // preserve the failWith message
-          None
-        case (AnyChar, _) =>
-          // a parser must consume to advance, and AnyChar will succeed
-          oneONEL(left)
         case _ => None
       }
 
