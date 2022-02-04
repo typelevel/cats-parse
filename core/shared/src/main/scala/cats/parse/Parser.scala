@@ -995,10 +995,20 @@ object Parser {
     def loop(ps: List[Parser[A]], acc: List[Parser[A]]): Parser[A] =
       ps match {
         case Nil =>
-          acc match {
+          /*
+           * we can still have inner oneof if the head items
+           * were not oneof and couldn't be merged
+           * but the last items did have oneof
+           */
+          val flat = acc.reverse.flatMap {
+            case Impl.OneOf(ps) => ps
+            case one => one :: Nil
+          }
+
+          flat match {
             case Nil => Impl.Fail()
             case one :: Nil => one
-            case many => Impl.OneOf(many.reverse)
+            case many => Impl.OneOf(many)
           }
         case h :: Nil => loop(Nil, h :: acc)
         case h1 :: (tail @ (h2 :: tail2)) =>
@@ -1025,10 +1035,20 @@ object Parser {
     def loop(ps: List[Parser0[A]], acc: List[Parser0[A]]): Parser0[A] =
       ps match {
         case Nil =>
-          acc match {
+          /*
+           * we can still have inner oneof if the head items
+           * were not oneof and couldn't be merged
+           * but the last items did have oneof
+           */
+          val flat = acc.reverse.flatMap {
+            case Impl.OneOf(ps) => ps
+            case Impl.OneOf0(ps) => ps
+            case one => one :: Nil
+          }
+          flat match {
             case Nil => Impl.Fail()
             case one :: Nil => one
-            case many => Impl.OneOf0(many.reverse)
+            case many => Impl.OneOf0(many)
           }
         case h :: Nil => loop(Nil, h :: acc)
         case h1 :: (tail @ (h2 :: tail2)) =>
