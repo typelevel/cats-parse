@@ -600,7 +600,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   import ParserGen.{arbParser0, arbParser, biasSmall}
 
-  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 2000
+  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 200
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters
@@ -2642,6 +2642,26 @@ class ParserTest extends munit.ScalaCheckSuite {
       val si = Parser.stringIn(ss)
 
       assertEquals(si.void.string, si)
+    }
+  }
+
+  property("a | b is associative") {
+    def law(a: Parser0[Any], b: Parser0[Any], c: Parser0[Any]) =
+      assertEquals((a | b) | c, a | (b | c))
+    val regressions: List[(Parser0[Any], Parser0[Any], Parser0[Any])] =
+      (Parser.char('c'), Parser.unit, Parser.char('b')) ::
+      (Parser.string("foo"), Parser.string("bar"), Parser.string("cow")) ::
+      (Parser.char('a'), Parser.char('b'), Parser.char('c')) ::
+      (Parser.end, Parser.string("foo"), Parser.char('c')) ::
+      Nil
+
+    regressions.foreach { case (a, b, c) => law(a, b, c) }
+
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen) { (a, b, c) =>
+      law(a.fa, b.fa, c.fa)
+    } &&
+    forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0) { (a, b, c) =>
+      law(a.fa, b.fa, c.fa)
     }
   }
 }
