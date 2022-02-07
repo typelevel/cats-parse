@@ -1008,13 +1008,36 @@ object Parser {
           flat match {
             case Nil => Impl.Fail()
             case one :: Nil => one
-            case many => Impl.OneOf(many)
+            case many =>
+              many.traverse[Option, Parser[Any]] {
+                case Impl.StringP(p) => Some(p)
+                case _ => None
+              } match {
+                case Some(m0) =>
+                  Impl
+                    .StringP(Impl.OneOf(m0))
+                    .asInstanceOf[Parser[A]]
+                case None =>
+                  many.traverse[Option, Parser[Any]] {
+                    case Impl.Void(p) => Some(p)
+                    case _ => None
+                  } match {
+                    case Some(m0) =>
+                      Impl
+                        .Void(Impl.OneOf(m0))
+                        .asInstanceOf[Parser[A]]
+                    case None =>
+                      Impl.OneOf(many)
+                  }
+              }
           }
         case h :: Nil => loop(Nil, h :: acc)
-        case h1 :: (tail @ (h2 :: tail2)) =>
+        case h1 :: (t1 @ (h2 :: tail2)) =>
           Impl.merge(h1, h2) match {
-            case Some(h) => loop(h :: tail2, acc)
-            case None => loop(tail, h1 :: acc)
+            case Impl.OneOf(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
+              loop(t1, h1 :: acc)
+            case h =>
+              loop(h :: tail2, acc)
           }
       }
     loop(parsers, Nil)
@@ -1032,34 +1055,38 @@ object Parser {
   def oneOf0[A](ps: List[Parser0[A]]): Parser0[A] =
     if (ps.forall(_.isInstanceOf[Parser[_]])) oneOf(ps.asInstanceOf[List[Parser[A]]])
     else {
-    @tailrec
-    def loop(ps: List[Parser0[A]], acc: List[Parser0[A]]): Parser0[A] =
-      ps match {
-        case Nil =>
-          /*
-           * we can still have inner oneof if the head items
-           * were not oneof and couldn't be merged
-           * but the last items did have oneof
-           */
-          val flat = acc.reverse.flatMap {
-            case Impl.OneOf(ps) => ps
-            case Impl.OneOf0(ps) => ps
-            case one => one :: Nil
-          }
-          flat match {
-            case Nil => Impl.Fail()
-            case one :: Nil => one
-            case many => Impl.OneOf0(many)
-          }
-        case h :: Nil => loop(Nil, h :: acc)
-        case h1 :: (tail @ (h2 :: tail2)) =>
-          Impl.merge0(h1, h2) match {
-            case Some(h) => loop(h :: tail2, acc)
-            case None => loop(tail, h1 :: acc)
-          }
-      }
-    loop(ps, Nil)
-  }
+      @tailrec
+      def loop(ps: List[Parser0[A]], acc: List[Parser0[A]]): Parser0[A] =
+        ps match {
+          case Nil =>
+            /*
+             * we can still have inner oneof if the head items
+             * were not oneof and couldn't be merged
+             * but the last items did have oneof
+             */
+            val flat = acc.reverse.flatMap {
+              case Impl.OneOf(ps) => ps
+              case Impl.OneOf0(ps) => ps
+              case one => one :: Nil
+            }
+            flat match {
+              case Nil => Impl.Fail()
+              case one :: Nil => one
+              case many => Impl.OneOf0(many)
+            }
+          case h :: Nil => loop(Nil, h :: acc)
+          case h1 :: (t1 @ (h2 :: tail2)) =>
+            Impl.merge0(h1, h2) match {
+              case Impl.OneOf0(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
+                loop(t1, h1 :: acc)
+              case Impl.OneOf(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
+                loop(t1, h1 :: acc)
+              case h =>
+                loop(h :: tail2, acc)
+            }
+        }
+      loop(ps, Nil)
+    }
 
   /** Parse the longest matching string between alternatives. The order of the strings does not
     * matter.
@@ -1641,19 +1668,13 @@ object Parser {
     */
   def void0(pa: Parser0[Any]): Parser0[Unit] =
     pa match {
-      case v @ Impl.Void0(_) => v
       case p1: Parser[_] => void(p1)
       case s if Impl.alwaysSucceeds0(s) => unit
+      case v @ Impl.Void0(_) => v
       case _ =>
-        Impl.unmap0(pa) match {
-          case Impl.StartParser => Impl.StartParser
-          case Impl.EndParser => Impl.EndParser
-          case n @ Impl.Not(_) => n
-          case p @ Impl.Peek(_) => p
-          case o @ Impl.OneOf0(ps) if ps.forall(Impl.voidReturnsSame(_)) =>
-            o.asInstanceOf[Parser0[Unit]]
-          case other => Impl.Void0(other)
-        }
+        val unmapped = Impl.unmap0(pa)
+        if (Impl.isVoided(unmapped)) unmapped.asInstanceOf[Parser0[Unit]]
+        else Impl.Void0(unmapped)
     }
 
   /** discard the value in a Parser. This is an optimization because we remove trailing map
@@ -1667,11 +1688,9 @@ object Parser {
         Impl.unmap(pa) match {
           case f @ Impl.Fail() => f.widen
           case f @ Impl.FailWith(_) => f.widen
-          case p: Impl.Str => p
-          case p: Impl.IgnoreCase => p
-          case o @ Impl.OneOf(ps) if ps.forall(Impl.voidReturnsSame(_)) =>
-            o.asInstanceOf[Parser[Unit]]
-          case notVoid => Impl.Void(notVoid)
+          case notVoid =>
+            if (Impl.isVoided(notVoid)) notVoid.asInstanceOf[Parser[Unit]]
+            else Impl.Void(notVoid)
         }
     }
 
@@ -1756,7 +1775,8 @@ object Parser {
   def backtrack0[A](pa: Parser0[A]): Parser0[A] =
     pa match {
       case p1: Parser[A] => backtrack(p1)
-      case pa if Impl.doesBacktrack(pa) | Impl.eventuallySucceeds(pa) => pa
+      case pa if Impl.doesBacktrack(pa) => pa
+      case Impl.Void0(b) => Impl.Void0(Impl.Backtrack0(b))
       case nbt => Impl.Backtrack0(nbt)
     }
 
@@ -1765,7 +1785,8 @@ object Parser {
     */
   def backtrack[A](pa: Parser[A]): Parser[A] =
     pa match {
-      case pa if Impl.doesBacktrack(pa) | Impl.eventuallySucceeds(pa) => pa
+      case pa if Impl.doesBacktrack(pa) => pa
+      case Impl.Void(b) => Impl.Void(Impl.Backtrack(b))
       case nbt => Impl.Backtrack(nbt)
     }
 
@@ -1803,6 +1824,8 @@ object Parser {
             case _ =>
               Impl.Map(ci, Impl.ConstFn(b))
           }
+        case f @ Impl.Fail() => f.widen
+        case f @ Impl.FailWith(_) => f.widen
         case voided =>
           Impl.Map(voided, Impl.ConstFn(b))
       }
@@ -1811,12 +1834,19 @@ object Parser {
   /** Add a context string to Errors to aid debugging
     */
   def withContext0[A](p0: Parser0[A], ctx: String): Parser0[A] =
-    Impl.WithContextP0(ctx, p0)
+    p0 match {
+      case Impl.Void0(p) => Impl.Void0(withContext0(p, ctx)).asInstanceOf[Parser0[A]]
+      case _ if Impl.alwaysSucceeds0(p0) => p0
+      case _ => Impl.WithContextP0(ctx, p0)
+    }
 
   /** Add a context string to Errors to aid debugging
     */
   def withContext[A](p: Parser[A], ctx: String): Parser[A] =
-    Impl.WithContextP(ctx, p)
+    p match {
+      case Impl.Void(p) => Impl.Void(withContext(p, ctx))
+      case _ => Impl.WithContextP(ctx, p)
+    }
 
   implicit val catsInstancesParser
       : FlatMap[Parser] with Defer[Parser] with MonoidK[Parser] with FunctorFilter[Parser] =
@@ -1972,10 +2002,12 @@ object Parser {
         case Map(p, _) => doesBacktrack(p)
         case SoftProd0(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
         case SoftProd(a, b) => doesBacktrackCheat(a) && doesBacktrack(b)
-        case WithContextP(_, p) => doesBacktrack(p)
         case WithContextP0(_, p) => doesBacktrack(p)
-        case OneOf(ps) => ps.forall(doesBacktrackCheat(_))
+        case WithContextP(_, p) => doesBacktrack(p)
         case OneOf0(ps) => ps.forall(doesBacktrackCheat(_))
+        case OneOf(ps) => ps.forall(doesBacktrackCheat(_))
+        case Void0(p) => doesBacktrack(p)
+        case Void(p) => doesBacktrack(p)
         case _ => false
       }
 
@@ -2112,22 +2144,41 @@ object Parser {
           // these are always unit
           someUnit.asInstanceOf[Option[A]]
         case Rep0(_, _, _) | Rep(_, _, _, _) | FlatMap0(_, _) | FlatMap(_, _) | TailRecM(_, _) |
-            TailRecM0(_, _) | Defer(_) | Defer0(_) | GetCaret | Index |
-            Length(_) | Fail() | FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
+            TailRecM0(_, _) | Defer(_) | Defer0(_) | GetCaret | Index | Length(_) | Fail() |
+            FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
               _
-            ) | OneOf(Nil) | OneOf0(Nil) | StringP0(_) | Select(_, _) | Select0(_, _) | StringIn(_) =>
+            ) | OneOf(Nil) | OneOf0(Nil) | StringP0(_) | Select(_, _) | Select0(_, _) | StringIn(
+              _
+            ) =>
           // these we don't know the value fundamentally or by construction
           None
       }
 
-    /*
-     * If we call void on this does it return the same thing?
-     */
-    def voidReturnsSame[A](p: Parser0[A]): Boolean =
-      p match{
-        case Fail() | FailWith(_) => true
-        case _ => hasKnownResult(p) == someUnit
+    /** return true if this is already non-allocating
+      *
+      * @param p
+      *   the Parser to check
+      * @return
+      *   true if this parser does not capture
+      */
+    def doesNotAllocate(p: Parser0[Any]): Boolean =
+      p match {
+        case StartParser | EndParser | Void(_) | Void0(_) | IgnoreCase(_) | Str(_) | Fail() |
+            FailWith(_) | Pure(()) | Not(_) | Peek(_) =>
+          true
+        case OneOf(ps) => ps.forall(doesNotAllocate(_))
+        case OneOf0(ps) => ps.forall(doesNotAllocate(_))
+        case WithContextP(_, p) => doesNotAllocate(p)
+        case WithContextP0(_, p) => doesNotAllocate(p)
+        case Backtrack(p) => doesNotAllocate(p)
+        case Backtrack0(p) => doesNotAllocate(p)
+        case Map(p, _) => doesNotAllocate(p)
+        case Map0(p, _) => doesNotAllocate(p)
+        case _ => false
       }
+
+    def isVoided(p: Parser0[Any]): Boolean =
+      doesNotAllocate(p) && (hasKnownResult(p) == someUnit)
 
     /** This removes any trailing map functions which can cause wasted allocations if we are later
       * going to void or return strings. This stops at StringP or VoidP since those are markers that
@@ -2138,9 +2189,18 @@ object Parser {
         case p1: Parser[Any] => unmap(p1)
         case GetCaret | Index | Pure(_) => Parser.unit
         case s if alwaysSucceeds0(s) => Parser.unit
-        case Map0(p, _) =>
-          // we discard any allocations done by fn
-          unmap0(p)
+        case Map0(Void0(v), _) =>
+          // this is common with as
+          v
+        case Map0(p, fn) =>
+          fn match {
+            case ConstFn(_) =>
+              // p must have already been unmapped
+              p
+            case _ =>
+              // we discard any allocations done by fn
+              unmap0(p)
+          }
         case Select0(p, fn) =>
           Select0(p, unmap0(fn))
         case StringP0(s) =>
@@ -2159,7 +2219,11 @@ object Parser {
           // unmap0 may simplify enough
           // to remove the backtrack wrapper
           Parser.backtrack0(unmap0(p))
-        case OneOf0(ps) => Parser.oneOf0(ps.map(unmap0))
+        case OneOf0(ps) =>
+          // Find the fixed point here
+          val next = Parser.oneOf0(ps.map(unmap0))
+          if (next == pa) next
+          else unmap0(next)
         case Prod0(p1, p2) =>
           unmap0(p1) match {
             case Prod0(p11, p12) =>
@@ -2217,9 +2281,16 @@ object Parser {
       */
     def unmap(pa: Parser[Any]): Parser[Any] =
       pa match {
-        case Map(p, _) =>
-          // we discard any allocations done by fn
-          unmap(p)
+        case Map(Void(v), _) =>
+          // this is common with as
+          v
+        case Map(p, fn) =>
+          fn match {
+            case ConstFn(_) => p
+            case _ =>
+              // we discard any allocations done by fn
+              unmap(p)
+          }
         case Select(p, fn) =>
           Select(p, unmap0(fn))
         case StringP(s) =>
@@ -2232,7 +2303,10 @@ object Parser {
           // unmap may simplify enough
           // to remove the backtrack wrapper
           Parser.backtrack(unmap(p))
-        case OneOf(ps) => Parser.oneOf(ps.map(unmap))
+        case OneOf(ps) =>
+          val next = Parser.oneOf(ps.map(unmap))
+          if (next == pa) pa
+          else unmap(next)
         case Prod(p1, p2) =>
           unmap0(p1) match {
             case Prod0(p11, p12) =>
@@ -2835,32 +2909,29 @@ object Parser {
       }
     }
 
-    def merge0[A](left: Parser0[A], right: Parser0[A]): Option[Parser0[A]] =
+    def allCharsIn(ci: CharIn): List[String] =
+      BitSetUtil
+        .union((ci.min, ci.bitSet) :: Nil)
+        .iterator
+        .map(_.toString)
+        .toList
+
+    def merge0[A](left: Parser0[A], right: Parser0[A]): Parser0[A] =
       (left, right) match {
         case (l1: Parser[A], r1: Parser[A]) => merge(l1, r1)
-        case (_, _) if eventuallySucceeds(left) => Some(left)
-        case (Fail(), _) => Some(right)
-        case (_, Fail()) => Some(left)
-        case (Void0(vl), Void0(vr)) =>
-          merge0(vl, vr).map(_.void)
-        case (Void0(vl), right) if hasKnownResult(right) == someUnit =>
-          merge0(vl, right).map(_.void)
-        case (Void(vl), right) if hasKnownResult(right) == someUnit =>
-          merge0(vl, right).map(_.void)
-        case (left, Void0(vr)) if hasKnownResult(left) == someUnit =>
-          merge0(left, vr).map(_.void)
-        case (left, Void(vr)) if hasKnownResult(left) == someUnit =>
-          merge0(left, vr).map(_.void)
+        case (_, _) if eventuallySucceeds(left) => left
+        case (Fail(), _) => right
+        case (_, Fail()) => left
         case (OneOf0(_), OneOf(rs)) =>
           merge0(left, OneOf0(rs))
-       case (OneOf(ls), OneOf0(_)) =>
+        case (OneOf(ls), OneOf0(_)) =>
           merge0(OneOf0(ls), right)
         case (OneOf0(ls), OneOf0(rights @ (h :: t))) =>
           merge0(ls.last, h) match {
-            case None =>
+            case OneOf(_) | OneOf0(_) =>
               // just concat
-              Some(OneOf0(ls ::: rights))
-            case Some(l1) =>
+              OneOf0(ls ::: rights)
+            case l1 =>
               val newLeft = OneOf0(ls.init :+ l1)
               t match {
                 case rlast :: Nil =>
@@ -2870,40 +2941,58 @@ object Parser {
               }
           }
         case (left, OneOf0(rs @ (h :: t))) =>
-          merge0(left, h)
-            .map { h1 => OneOf0(h1 :: t) }
-            .orElse(Some(OneOf0(left :: rs)))
+          merge0(left, h) match {
+            case OneOf(_) | OneOf0(_) =>
+              OneOf0(left :: rs)
+            case h1 =>
+              OneOf0(h1 :: t)
+          }
         case (left, OneOf(rs @ (h :: t))) =>
-          merge0(left, h)
-            .map {
-              case h: Parser[A] => OneOf(h :: t)
-              case h0 => OneOf0(h0 :: t)
-            }
-            .orElse(Some(OneOf0(left :: rs)))
+          merge0(left, h) match {
+            case OneOf(_) | OneOf0(_) =>
+              OneOf0(left :: rs)
+            case h1: Parser[A] =>
+              OneOf(h1 :: t)
+            case h1 =>
+              OneOf0(h1 :: t)
+          }
         case (OneOf0(ls), right) =>
-          merge0(ls.last, right)
-            .map { l1 => OneOf0(ls.init :+ l1) }
-            .orElse(Some(OneOf0(ls :+ right)))
+          merge0(ls.last, right) match {
+            case OneOf(_) | OneOf0(_) =>
+              OneOf0(ls :+ right)
+            case l1 =>
+              OneOf0(ls.init :+ l1)
+          }
         case (OneOf(ls), right) =>
-          merge0(ls.last, right)
-            .map {
-              case l: Parser[A] => OneOf(ls.init :+ l)
-              case l => OneOf0(ls.init :+ l)
-            }
-            .orElse(Some(OneOf0(ls :+ right)))
-        case _ => None
+          merge0(ls.last, right) match {
+            case OneOf(_) | OneOf0(_) =>
+              OneOf0(ls :+ right)
+            case l: Parser[A] => OneOf(ls.init :+ l)
+            case l => OneOf0(ls.init :+ l)
+          }
+        case (Void0(vl), Void0(vr)) =>
+          merge0(vl, vr).void
+        case (Void0(vl), right) if hasKnownResult(right) == someUnit =>
+          merge0(vl, right).void
+        case (Void(vl), right) if hasKnownResult(right) == someUnit =>
+          merge0(vl, right).void
+        case (left, Void0(vr)) if hasKnownResult(left) == someUnit =>
+          merge0(left, vr).void
+        case (left, Void(vr)) if hasKnownResult(left) == someUnit =>
+          merge0(left, vr).void
+        case _ => OneOf0(left :: right :: Nil)
       }
 
-    def merge[A](left: Parser[A], right: Parser[A]): Option[Parser[A]] =
-      (left, right) match {
-        case (Fail(), _) => Some(right)
-        case (_, Fail()) => Some(left)
+    def merge[A](left: Parser[A], right: Parser[A]): Parser[A] = {
+      val res = (left, right) match {
+        case (Fail(), _) => right
+        case (_, Fail()) => left
         case (OneOf(ls), OneOf(rights @ (h :: t))) =>
           merge(ls.last, h) match {
-            case None =>
+            case OneOf(_) =>
               // just concat
-              Some(OneOf(ls ::: rights))
-            case Some(l1) =>
+              OneOf(ls ::: rights)
+            case l1 =>
               val newLeft = OneOf(ls.init :+ l1)
               t match {
                 case rlast :: Nil =>
@@ -2913,66 +3002,87 @@ object Parser {
               }
           }
         case (left, OneOf(rs @ (h :: t))) =>
-          merge(left, h)
-            .map { h1 => OneOf(h1 :: t) }
-            .orElse(Some(OneOf(left :: rs)))
+          merge(left, h) match {
+            case OneOf(_) =>
+              OneOf(left :: rs)
+            case h1 =>
+              // maybe we can progess on t
+              if (t.lengthCompare(2) >= 0)
+                merge(h1, OneOf(t))
+              else
+                merge(h1, t.head)
+          }
         case (OneOf(ls), right) =>
-          merge(ls.last, right)
-            .map { l1 => OneOf(ls.init :+ l1) }
-            .orElse(Some(OneOf(ls :+ right)))
-        case (Void(vl), Void(vr)) =>
-          merge(vl, vr).map(_.void)
-        case (StringP(l1), StringP(r1)) =>
-          merge(l1, r1).map(_.string)
-        case (CharIn(_, _, _), AnyChar) => Some(AnyChar)
-        case (AnyChar, CharIn(_, _, _)) => Some(AnyChar)
+          merge(ls.last, right) match {
+            case OneOf(_) =>
+              OneOf(ls :+ right)
+            case l1 =>
+              val li = ls.init
+              if (li.lengthCompare(2) >= 0)
+                merge(OneOf(li), l1)
+              else
+                merge(li.head, l1)
+          }
+        case (CharIn(_, _, _), AnyChar) => AnyChar
+        case (AnyChar, CharIn(_, _, _) | Str(_) | StringIn(_)) => AnyChar
         case (CharIn(m1, b1, _), CharIn(m2, b2, _)) =>
-          Some(Parser.charIn(BitSetUtil.union((m1, b1) :: (m2, b2) :: Nil)))
+          Parser.charIn(BitSetUtil.union((m1, b1) :: (m2, b2) :: Nil))
+        case (Void(ci @ CharIn(_, _, _)), Str(_)) =>
+          Parser.oneOf(allCharsIn(ci).map(Str(_)) ::: (right :: Nil)).asInstanceOf[Parser[A]]
+        case (StringP(ci @ CharIn(_, _, _)), DefiniteString(_) | StringIn(_)) =>
+          // make sure we make progress...
+          val strs = StringIn(SortedSet(allCharsIn(ci): _*))
+          merge(strs.asInstanceOf[Parser[A]], right)
+        case (Str(l), Void(ci @ CharIn(_, _, _))) =>
+          Parser.oneOf(Str(l) :: allCharsIn(ci).map(Str(_))).asInstanceOf[Parser[A]]
+        case (DefiniteString(_) | StringIn(_), StringP(ci @ CharIn(_, _, _))) =>
+          // make sure we make progress...
+          val strs = StringIn(SortedSet(allCharsIn(ci): _*))
+          merge(left, strs.asInstanceOf[Parser[A]])
         case (Str(l), Str(r)) =>
           // if l is a prefix of r, it matches first
           // if not, then we can make a StringIn(_).void
-          if (r.startsWith(l)) Some(left)
-          else Some(StringIn(SortedSet(l, r)).void)
+          if (r.startsWith(l)) left
+          else Void(StringIn(SortedSet(l, r)))
         case (DefiniteString(l), DefiniteString(r)) =>
           // if l is a prefix of r, it matches first
           // if not, then we can make a StringIn(_).void
-          if (r.startsWith(l)) Some(left)
-          else
-            Some {
-              val res =
-                if (l.length == 1 && r.length == 1) {
-                  charIn(l.head :: r.head :: Nil).string
-                } else {
-                  StringIn(SortedSet(l, r))
-                }
+          if (r.startsWith(l)) left
+          else {
+            val res =
+              if (l.length == 1 && r.length == 1) {
+                charIn(l.head :: r.head :: Nil).string
+              } else {
+                StringIn(SortedSet(l, r))
+              }
 
-              res.asInstanceOf[Parser[A]]
-            }
+            res.asInstanceOf[Parser[A]]
+          }
         case (StringIn(ls), DefiniteString(s1)) =>
           if (ls.exists { l => s1.startsWith(l) && (l.length <= s1.length) }) {
             // if left didn't match, then s1 can't match
-            Some(left)
-          } else Some(StringIn(ls + s1))
+            left
+          } else StringIn(ls + s1)
         case (Void(StringIn(ls)), Str(s1)) =>
           if (ls.exists { l => s1.startsWith(l) && (l.length <= s1.length) }) {
             // if left didn't match, then s1 can't match
-            Some(left)
-          } else Some(Void(StringIn(ls + s1)))
+            left
+          } else Void(StringIn(ls + s1))
         case (DefiniteString(l), StringIn(rs)) =>
           // We know if we go to rs that l did
           // not match so nothing in rs can have l as a prefix
           val good = rs.filterNot(_.startsWith(l))
-          if (good.isEmpty) Some(left)
+          if (good.isEmpty) left
           else {
-            Some(StringIn(good + l))
+            StringIn(good + l)
           }
         case (Str(l), Void(StringIn(rs))) =>
           // We know if we go to rs that l did
           // not match so nothing in rs can have l as a prefix
           val good = rs.filterNot(_.startsWith(l))
-          if (good.isEmpty) Some(left)
+          if (good.isEmpty) left
           else {
-            Some(Void(StringIn(good + l)))
+            Void(StringIn(good + l))
           }
         case (StringIn(ls), StringIn(rs)) =>
           // any string in rs that doesn't have a substring in ls can be moved
@@ -2980,16 +3090,45 @@ object Parser {
           val canMatch = rs.filterNot { s =>
             ls.exists { l => s.startsWith(l) && (l.length <= s.length) }
           }
-          if (canMatch.isEmpty) Some(left)
+          if (canMatch.isEmpty) left
           else {
-            Some(StringIn(ls | canMatch))
+            StringIn(ls | canMatch)
           }
+        case (Void(StringIn(ls)), Void(ci @ CharIn(_, _, _))) =>
+          val rs = SortedSet(allCharsIn(ci): _*)
+          // any string in rs that doesn't have a substring in ls can be moved
+          // over, since substrings would match first in oneOf but not StringIn
+          val canMatch = rs.filterNot { s =>
+            ls.exists { l => s.startsWith(l) && (l.length <= s.length) }
+          }
+          if (canMatch.isEmpty) left
+          else {
+            Void(StringIn(ls | canMatch))
+          }
+        case (Void(ci @ CharIn(_, _, _)), Void(StringIn(rs))) =>
+          val ls = SortedSet(allCharsIn(ci): _*)
+          // any string in rs that doesn't have a substring in ls can be moved
+          // over, since substrings would match first in oneOf but not StringIn
+          val canMatch = rs.filterNot { s =>
+            ls.exists { l => s.startsWith(l) && (l.length <= s.length) }
+          }
+          if (canMatch.isEmpty) left
+          else {
+            Void(StringIn(ls | canMatch))
+          }
+        case (Void(vl), Void(vr)) =>
+          merge(vl, vr).void
+        case (StringP(l1), StringP(r1)) =>
+          merge(l1, r1).string
         case (Void(vl), right) if hasKnownResult(right) == someUnit =>
-          merge(vl, right).map(_.void)
+          merge(vl, right).void
         case (left, Void(vr)) if hasKnownResult(left) == someUnit =>
-          merge(left, vr).map(_.void)
-        case _ => None
+          merge(left, vr).void
+        case _ => OneOf(left :: right :: Nil)
       }
+      // println(s"merge($left, $right) == $res")
+      res.asInstanceOf[Parser[A]]
+    }
 
     case object AnyChar extends Parser[Char] {
       override def parseMut(state: State): Char = {
@@ -3049,7 +3188,10 @@ object Parser {
     case class Not(under: Parser0[Unit]) extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
         val offset = state.offset
+        val cap = state.capture
+        state.capture = false
         under.parseMut(state)
+        state.capture = cap
         if (state.error ne null) {
           // under failed, so we succeed
           state.error = null
@@ -3080,7 +3222,10 @@ object Parser {
     case class Peek(under: Parser0[Unit]) extends Parser0[Unit] {
       override def parseMut(state: State): Unit = {
         val offset = state.offset
+        val cap = state.capture
+        state.capture = false
         under.parseMut(state)
+        state.capture = cap
         if (state.error eq null) {
           // under passed, so we succeed
           state.offset = offset
