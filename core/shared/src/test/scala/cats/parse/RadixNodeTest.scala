@@ -173,7 +173,8 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
         radix.matchAt(targ, off) match {
           case x if x < 0 =>
             assertEquals(radix.matchAtOrNull(targ, off), null)
-          case len =>
+          case off1 =>
+            val len = off1 - off
             val left = radix.matchAtOrNull(targ, off)
             assert(off + len <= targ.length, s"len = $len, off = $off")
             assertEquals(left, targ.substring(off, off + len), s"len = $len, left = $left")

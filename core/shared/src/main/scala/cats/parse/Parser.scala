@@ -2941,10 +2941,17 @@ object Parser {
           state.error = null
         } else {
           // under succeeded but we expected failure here
-          val matchedStr = state.str.substring(offset, state.offset)
+          // record the current offset before it changes
+          // in a potential operation
+          val offsetErr = state.offset
           // we don't reset the offset, so if the underlying parser
           // advanced it will fail in a OneOf
-          state.error = Eval.later(Chain.one(Expectation.ExpectedFailureAt(offset, matchedStr)))
+          state.error = Eval.later {
+            // put as much as possible here, but cannot reference
+            // mutable vars
+            val matchedStr = state.str.substring(offset, offsetErr)
+            Chain.one(Expectation.ExpectedFailureAt(offset, matchedStr))
+          }
         }
 
         state.offset = offset
