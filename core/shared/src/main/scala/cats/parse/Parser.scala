@@ -1536,9 +1536,9 @@ object Parser {
   def charIn(cs: Iterable[Char]): Parser[Char] =
     cs match {
       case _ if cs.isEmpty => fail
-      case CharsRange(Char.MinValue, Char.MaxValue) =>
+      case Impl.CharsRange(Char.MinValue, Char.MaxValue) =>
         anyChar
-      case CharsRange(start, end) =>
+      case Impl.CharsRange(start, end) =>
         val bitSet = BitSetUtil.bitSetForRange(end.toInt - start.toInt + 1)
         Impl.CharIn(start.toInt, bitSet, NonEmptyList.one(start -> end))
       case _ =>
@@ -1926,11 +1926,6 @@ object Parser {
       }
 
     rangesFrom(charArray(0), charArray(0), 1)
-  }
-
-  private[parse] object CharsRange {
-    def unapply(range: NumericRange.Inclusive[Char]): Option[(Char, Char)] =
-      if (range.step == 1) Some(range.start -> range.end) else None
   }
 
   private object Impl {
@@ -2992,6 +2987,10 @@ object Parser {
         }
         a
       }
+    }
+    object CharsRange {
+      def unapply(range: NumericRange.Inclusive[Char]): Option[(Char, Char)] =
+        if (range.step == 1) Some(range.start -> range.end) else None
     }
   }
 }

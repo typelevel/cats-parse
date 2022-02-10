@@ -1193,6 +1193,10 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("charIn full range == anyChar") {
+    assertEquals(Parser.charIn(Char.MinValue to Char.MaxValue), Parser.anyChar)
+  }
+
   property("Parser.end gives the right error") {
     forAll { (str: String) =>
       Parser.end.parse(str) match {
