@@ -61,4 +61,10 @@ object BitSetUtil {
 
     bs.flatMap { case (m, bs) => toIter(m, bs) }.toSet
   }
+
+  def bitSetForRange(count: Int): BitSet = {
+    val bs = new BitSet(count)
+    bs.flip(0, count)
+    bs
+  }
 }
