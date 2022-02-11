@@ -981,6 +981,22 @@ object Parser {
     if (str.length == 0) unit
     else ignoreCase(str)
 
+  /** Convert a Map[Char, A] to Parser[A] first match a character, then map it to a value A
+    */
+  def fromCharMap[A](charMap: Map[Char, A]): Parser[A] =
+    charIn(charMap.keySet).map(charMap)
+
+  /** Convert a Map[String, A] to Parser[A] first match a character, then map it to a value A This
+    * throws if any of the keys are the empty string
+    */
+  def fromStringMap[A](stringMap: Map[String, A]): Parser[A] =
+    stringIn(stringMap.keySet).map(stringMap)
+
+  /** Convert a Map[String, A] to Parser[A] first match a character, then map it to a value A
+    */
+  def fromStringMap0[A](stringMap: Map[String, A]): Parser0[A] =
+    stringIn0(stringMap.keySet).map(stringMap)
+
   /** go through the list of parsers trying each as long as they are epsilon failures (don't
     * advance) see @backtrack if you want to do backtracking.
     *
