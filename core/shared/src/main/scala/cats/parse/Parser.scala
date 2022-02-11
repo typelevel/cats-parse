@@ -1807,7 +1807,7 @@ object Parser {
         // void cannot make a Parser0 a Parser
         // If b is (), such as foo.as(())
         // we can just return v
-        if (b.equals(())) voided.asInstanceOf[Parser0[B]]
+        if (Impl.isUnit(b)) voided.asInstanceOf[Parser0[B]]
         else if (Impl.alwaysSucceeds(voided)) pure(b)
         else Impl.Map0(voided, Impl.ConstFn(b))
     }
@@ -1818,7 +1818,7 @@ object Parser {
     val v = pa.void
     // If b is (), such as foo.as(())
     // we can just return v
-    if (b.equals(())) v.asInstanceOf[Parser[B]]
+    if (Impl.isUnit(b)) v.asInstanceOf[Parser[B]]
     else
       v match {
         case Impl.Void(ci @ Impl.SingleChar(c)) =>
@@ -1968,6 +1968,9 @@ object Parser {
     val nilError: Eval[Chain[Expectation]] = Eval.now(Chain.nil)
 
     val allChars = Char.MinValue to Char.MaxValue
+
+    def isUnit(a: Any): Boolean =
+      a.equals(())
 
     case class ConstFn[A](result: A) extends Function[Any, A] {
       def apply(any: Any) = result
@@ -2170,7 +2173,7 @@ object Parser {
       */
     def isVoided(p: Parser0[Any]): Boolean =
       p match {
-        case Pure(a) => a == ()
+        case Pure(a) => isUnit(a)
         case StartParser | EndParser | Void(_) | Void0(_) | IgnoreCase(_) | Str(_) | Fail() |
             FailWith(_) | Not(_) | Peek(_) =>
           true
