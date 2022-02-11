@@ -1669,7 +1669,7 @@ object Parser {
   def void0(pa: Parser0[Any]): Parser0[Unit] =
     pa match {
       case p1: Parser[_] => void(p1)
-      case s if Impl.alwaysSucceeds0(s) => unit
+      case s if Impl.alwaysSucceeds(s) => unit
       case v @ Impl.Void0(_) => v
       case _ =>
         val unmapped = Impl.unmap0(pa)
@@ -1743,7 +1743,7 @@ object Parser {
   def peek(pa: Parser0[Any]): Parser0[Unit] =
     pa match {
       case peek @ Impl.Peek(_) => peek
-      case s if Impl.alwaysSucceeds0(s) => unit
+      case s if Impl.alwaysSucceeds(s) => unit
       case notPeek =>
         // TODO: we can adjust Rep0/Rep to do minimal
         // work since we rewind after we are sure there is
@@ -1801,7 +1801,7 @@ object Parser {
         // If b is (), such as foo.as(())
         // we can just return v
         if (b.equals(())) voided.asInstanceOf[Parser0[B]]
-        else if (Impl.alwaysSucceeds0(voided)) pure(b)
+        else if (Impl.alwaysSucceeds(voided)) pure(b)
         else Impl.Map0(voided, Impl.ConstFn(b))
     }
 
@@ -1836,7 +1836,7 @@ object Parser {
   def withContext0[A](p0: Parser0[A], ctx: String): Parser0[A] =
     p0 match {
       case Impl.Void0(p) => Impl.Void0(withContext0(p, ctx)).asInstanceOf[Parser0[A]]
-      case _ if Impl.alwaysSucceeds0(p0) => p0
+      case _ if Impl.alwaysSucceeds(p0) => p0
       case _ => Impl.WithContextP0(ctx, p0)
     }
 
@@ -2047,13 +2047,13 @@ object Parser {
     // does this parser always succeed without consuming input
     // note: a parser1 does not always succeed
     // and by construction, a oneOf0 never always succeeds
-    final def alwaysSucceeds0(p: Parser0[Any]): Boolean =
+    final def alwaysSucceeds(p: Parser0[Any]): Boolean =
       p match {
         case Index | GetCaret | Pure(_) => true
-        case Map0(p, _) => alwaysSucceeds0(p)
-        case SoftProd0(a, b) => alwaysSucceeds0(a) && alwaysSucceeds0(b)
-        case Prod0(a, b) => alwaysSucceeds0(a) && alwaysSucceeds0(b)
-        case WithContextP0(_, p) => alwaysSucceeds0(p)
+        case Map0(p, _) => alwaysSucceeds(p)
+        case SoftProd0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case Prod0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
+        case WithContextP0(_, p) => alwaysSucceeds(p)
         // by construction we never build a Not(Fail()) since
         // it would just be the same as unit
         // case Not(Fail() | FailWith(_)) => true
@@ -2188,7 +2188,7 @@ object Parser {
       pa match {
         case p1: Parser[Any] => unmap(p1)
         case GetCaret | Index | Pure(_) => Parser.unit
-        case s if alwaysSucceeds0(s) => Parser.unit
+        case s if alwaysSucceeds(s) => Parser.unit
         case Map0(Void0(v), _) =>
           // this is common with as
           v

@@ -2350,7 +2350,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(p.as(1).as(1), p.as(1))
 
       val a = 42
-      val fn = { x: Int => x + 1 }
+      val fn = { (x: Int) => x + 1 }
       assertEquals(p.as(a).map(fn), p.as(fn(a)))
     }
     assertEquals(Parser.string("foo").void, Parser.string("foo"))
@@ -2707,9 +2707,35 @@ class ParserTest extends munit.ScalaCheckSuite {
       val s1 = s10.filter(_.length > 1)
       val s2 = s20.filterNot { s => (s.length < 2) || s1.exists(s.startsWith(_)) }
       assertEquals(Parser.stringIn(s1) | Parser.stringIn(s2), Parser.stringIn(s1 | s2))
+      assertEquals(
+        Parser.stringIn(s1).void | Parser.stringIn(s2).void,
+        Parser.stringIn(s1 | s2).void
+      )
     } &&
     forAll { (s1: Set[Char], s2: Set[Char]) =>
       assertEquals(Parser.charIn(s1) | Parser.charIn(s2), Parser.charIn(s1 | s2))
+      assertEquals(Parser.charIn(s1).void | Parser.charIn(s2).void, Parser.charIn(s1 | s2).void)
+    // assertEquals(Parser.charIn(s1).string | Parser.charIn(s2).string, Parser.charIn(s1 | s2).string)
+    } &&
+    forAll { (s1: String, s2: String) =>
+      if (!s2.startsWith(s1) && (s1.nonEmpty && s2.nonEmpty)) {
+        if ((s1.length > 1) || (s2.length > 1)) {
+          assertEquals(
+            Parser.stringIn(s1 :: s2 :: Nil).void,
+            Parser.string(s1) | Parser.string(s2)
+          )
+
+          assertEquals(
+            Parser.stringIn(s1 :: s2 :: Nil),
+            (Parser.string(s1) | Parser.string(s2)).string
+          )
+
+          assertEquals(
+            Parser.stringIn(s1 :: s2 :: Nil),
+            Parser.string(s1).string | Parser.string(s2).string
+          )
+        } else ()
+      } else ()
     }
   }
 
@@ -2747,7 +2773,11 @@ class ParserTest extends munit.ScalaCheckSuite {
         (Parser.ignoreCase("select").string, Parser.char('a').string, Parser.char('b').string) ::
         (Parser.anyChar.void, Parser.char('a'), Parser.string("foo")) ::
         (Parser.anyChar, Parser.string("foo"), Parser.stringIn("bar" :: "baz" :: Nil)) ::
-        // (Parser.stringIn("foo" :: "bar" :: Nil).void, Parser.anyChar.void, Parser.charIn('a' :: 'b' :: Nil)) ::
+        (
+          Parser.stringIn("foo" :: "bar" :: Nil).void,
+          Parser.anyChar.void,
+          Parser.charIn('a' :: 'b' :: Nil)
+        ) ::
         Nil
 
     regressions.foreach { case (a, b, c) => strict(a, b, c) }
