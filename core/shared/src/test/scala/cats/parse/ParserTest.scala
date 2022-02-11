@@ -2513,6 +2513,31 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  property("fromCharMap works as expected") {
+    forAll { (cm: Map[Char, Int], str: String) =>
+      val p = Parser.fromCharMap(cm)
+
+      assertEquals(p.parseAll(str), Parser.charIn(cm.keySet).parseAll(str).map(cm(_)))
+    }
+  }
+
+  property("fromStringMap works as expected") {
+    forAll { (cm0: Map[String, Int], str: String) =>
+      val cm = cm0.filterNot(_._1.isEmpty)
+      val p = Parser.fromStringMap(cm)
+
+      assertEquals(p.parseAll(str), Parser.stringIn(cm.keySet).parseAll(str).map(cm(_)))
+    }
+  }
+
+  property("fromStringMap0 works as expected") {
+    forAll { (cm: Map[String, Int], str: String) =>
+      val p = Parser.fromStringMap0(cm)
+
+      assertEquals(p.parseAll(str), Parser.stringIn0(cm.keySet).parseAll(str).map(cm(_)))
+    }
+  }
+
   property("a context0 added is always at the top") {
     forAll(ParserGen.gen0, Arbitrary.arbitrary[List[String]], Arbitrary.arbitrary[String]) {
       (genP, ctx, str) =>
