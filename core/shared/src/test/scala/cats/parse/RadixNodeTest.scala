@@ -22,7 +22,7 @@
 package cats.parse
 
 import org.scalacheck.{Gen, Prop}
-import org.scalacheck.Prop.{forAll, forAllNoShrink}
+import org.scalacheck.Prop.forAll
 
 class RadixNodeTest extends munit.ScalaCheckSuite {
   val tests: Int = if (BitSetUtil.isScalaJs) 50 else 20000
@@ -191,18 +191,6 @@ class RadixNodeTest extends munit.ScalaCheckSuite {
   property("RadixNode.allStrings roundTrips") {
     forAll { (ss: List[String]) =>
       assertEquals(RadixNode.fromStrings(ss).allStrings.sorted, ss.distinct.sorted)
-    }
-  }
-
-  property("RadixNode.matchesWithPrefix(p) matches allStrings.filter(_.startsWith(p))") {
-    forAll { (ss: List[String], head: String, tail: List[String]) =>
-      val rn = RadixNode.fromStrings(ss)
-      forAllNoShrink(Gen.oneOf(head :: tail ::: ss)) { prefix =>
-        assertEquals(
-          rn.matchesWithPrefix(prefix).sorted,
-          ss.filter(_.startsWith(prefix)).distinct.sorted
-        )
-      }
     }
   }
 }
