@@ -2197,18 +2197,9 @@ object Parser {
         case p1: Parser[Any] => unmap(p1)
         case GetCaret | Index | Pure(_) => Parser.unit
         case s if alwaysSucceeds(s) => Parser.unit
-        case Map0(Void0(v), _) =>
-          // this is common with as
-          v
-        case Map0(p, fn) =>
-          fn match {
-            case ConstFn(_) =>
-              // p must have already been unmapped
-              p
-            case _ =>
-              // we discard any allocations done by fn
-              unmap0(p)
-          }
+        case Map0(p, _) =>
+          // we discard any allocations done by fn
+          unmap0(p)
         case Select0(p, fn) =>
           Select0(p, unmap0(fn))
         case StringP0(s) =>
@@ -2230,7 +2221,7 @@ object Parser {
         case OneOf0(ps) =>
           // Find the fixed point here
           val next = Parser.oneOf0(ps.map(unmap0))
-          if (next == pa) next
+          if (next == pa) pa
           else unmap0(next)
         case Prod0(p1, p2) =>
           unmap0(p1) match {
@@ -2289,16 +2280,9 @@ object Parser {
       */
     def unmap(pa: Parser[Any]): Parser[Any] =
       pa match {
-        case Map(Void(v), _) =>
-          // this is common with as
-          v
-        case Map(p, fn) =>
-          fn match {
-            case ConstFn(_) => p
-            case _ =>
-              // we discard any allocations done by fn
-              unmap(p)
-          }
+        case Map(p, _) =>
+          // we discard any allocations done by fn
+          unmap(p)
         case Select(p, fn) =>
           Select(p, unmap0(fn))
         case StringP(s) =>
@@ -2574,17 +2558,14 @@ object Parser {
     }
 
     final def stringIn(radix: RadixNode, all: SortedSet[String], state: State): String = {
-      val str = state.str
       val startOffset = state.offset
-      val matched = radix.matchAtOrNull(str, startOffset)
+      val matched = radix.matchAtOrNull(state.str, startOffset)
 
       if (matched eq null) {
         state.error = Eval.later(Chain.one(Expectation.OneOfStr(startOffset, all.toList)))
-        state.offset = startOffset
         null
       } else {
-        val lastMatch = startOffset + matched.length
-        state.offset = lastMatch
+        state.offset = startOffset + matched.length
         matched
       }
     }
