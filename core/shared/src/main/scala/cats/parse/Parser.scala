@@ -2161,31 +2161,32 @@ object Parser {
           None
       }
 
-    /** return true if this is already non-allocating
+    /** return true if this is already the same a void
       *
       * @param p
       *   the Parser to check
       * @return
       *   true if this parser does not capture
       */
-    def doesNotAllocate(p: Parser0[Any]): Boolean =
-      p match {
-        case StartParser | EndParser | Void(_) | Void0(_) | IgnoreCase(_) | Str(_) | Fail() |
-            FailWith(_) | Pure(()) | Not(_) | Peek(_) =>
-          true
-        case OneOf(ps) => ps.forall(doesNotAllocate(_))
-        case OneOf0(ps) => ps.forall(doesNotAllocate(_))
-        case WithContextP(_, p) => doesNotAllocate(p)
-        case WithContextP0(_, p) => doesNotAllocate(p)
-        case Backtrack(p) => doesNotAllocate(p)
-        case Backtrack0(p) => doesNotAllocate(p)
-        case Map(p, _) => doesNotAllocate(p)
-        case Map0(p, _) => doesNotAllocate(p)
-        case _ => false
-      }
-
     def isVoided(p: Parser0[Any]): Boolean =
-      doesNotAllocate(p) && (hasKnownResult(p) == someUnit)
+      p match {
+        case Pure(a) => a == ()
+        case StartParser | EndParser | Void(_) | Void0(_) | IgnoreCase(_) | Str(_) | Fail() |
+            FailWith(_) | Not(_) | Peek(_) =>
+          true
+        case OneOf(ps) => ps.forall(isVoided(_))
+        case OneOf0(ps) => ps.forall(isVoided(_))
+        case WithContextP(_, p) => isVoided(p)
+        case WithContextP0(_, p) => isVoided(p)
+        case Backtrack(p) => isVoided(p)
+        case Backtrack0(p) => isVoided(p)
+        case Length(_) | StringP(_) | StringIn(_) | Prod(_, _) | SoftProd(_, _) | Map(_, _) |
+            Select(_, _) | FlatMap(_, _) | TailRecM(_, _) | Defer(_) | Rep(_, _, _, _) | AnyChar |
+            CharIn(_, _, _) | StringP0(_) | Index | GetCaret | Prod0(_, _) | SoftProd0(_, _) |
+            Map0(_, _) | Select0(_, _) | FlatMap0(_, _) | TailRecM0(_, _) | Defer0(_) |
+            Rep0(_, _, _) =>
+          false
+      }
 
     /** This removes any trailing map functions which can cause wasted allocations if we are later
       * going to void or return strings. This stops at StringP or VoidP since those are markers that
@@ -2979,13 +2980,13 @@ object Parser {
           }
         case (Void0(vl), Void0(vr)) =>
           merge0(vl, vr).void
-        case (Void0(vl), right) if hasKnownResult(right) == someUnit =>
+        case (Void0(vl), right) if isVoided(right) =>
           merge0(vl, right).void
-        case (Void(vl), right) if hasKnownResult(right) == someUnit =>
+        case (Void(vl), right) if isVoided(right) =>
           merge0(vl, right).void
-        case (left, Void0(vr)) if hasKnownResult(left) == someUnit =>
+        case (left, Void0(vr)) if isVoided(left) =>
           merge0(left, vr).void
-        case (left, Void(vr)) if hasKnownResult(left) == someUnit =>
+        case (left, Void(vr)) if isVoided(left) =>
           merge0(left, vr).void
         case _ => OneOf0(left :: right :: Nil)
       }
@@ -3127,9 +3128,9 @@ object Parser {
           merge(vl, vr).void
         case (StringP(l1), StringP(r1)) =>
           merge(l1, r1).string
-        case (Void(vl), right) if hasKnownResult(right) == someUnit =>
+        case (Void(vl), right) if isVoided(right) =>
           merge(vl, right).void
-        case (left, Void(vr)) if hasKnownResult(left) == someUnit =>
+        case (left, Void(vr)) if isVoided(left) =>
           merge(left, vr).void
         case _ => OneOf(left :: right :: Nil)
       }
