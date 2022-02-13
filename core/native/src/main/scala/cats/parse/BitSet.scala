@@ -21,30 +21,49 @@
 
 package cats.parse
 
-import org.scalacheck.Prop.forAll
+import scala.collection.mutable.BitSet
 
-class BitSetTest extends munit.ScalaCheckSuite {
-  test("isScalaJs/isScalaJvm/isScalaNative is consistent") {
-    assert(!(BitSetUtil.isScalaJs && BitSetUtil.isScalaJvm && BitSetUtil.isScalaNative))
-    assert(BitSetUtil.isScalaJs || BitSetUtil.isScalaJvm || BitSetUtil.isScalaNative)
-    assert(BitSetUtil.isScalaJs ^ BitSetUtil.isScalaJvm ^ BitSetUtil.isScalaNative)
+object BitSetUtil {
+  type Tpe = BitSet
+  @inline final val isScalaNative = true
+  @inline final val isScalaJs = false
+  @inline final val isScalaJvm = false
+
+  @inline final def isSet(b: BitSet, idx: Int): Boolean =
+    (idx >= 0) && b(idx)
+
+  def bitSetFor(charArray: Array[Char]): BitSet = {
+    val min = charArray(0).toInt
+    val bs = new BitSet(charArray(charArray.length - 1).toInt + 1 - min)
+    var idx = 0
+    while (idx < charArray.length) {
+      bs += charArray(idx).toInt - min
+      idx += 1
+    }
+
+    bs
   }
 
-  property("BitSetUtil union works") {
-    forAll { (cs: List[List[Char]]) =>
-      val arys = cs.iterator.filter(_.nonEmpty).map(_.toArray.sorted)
-      val bs = arys.map { ary => (ary(0).toInt, BitSetUtil.bitSetFor(ary)) }
-      val sortedFlat = BitSetUtil.union(bs)
-      assertEquals(sortedFlat.toSet, cs.flatten.toSet)
-    }
+  def isSingleton(t: Tpe): Boolean = t.size == 1
+
+  def union(bs: List[(Int, BitSet)]): Iterable[Char] =
+    union(bs.iterator)
+
+  // what are all the Chars in these bitsets
+  def union(bs: Iterator[(Int, BitSet)]): Iterable[Char] = {
+    def toIter(m: Int, bs: BitSet): Iterator[Char] =
+      bs.iterator.map { i => (i + m).toChar } ++ Iterator.single(m.toChar)
+
+    bs.flatMap { case (m, bs) => toIter(m, bs) }.toSet
   }
 
-  property("BitSet.isSingleton is correct") {
-    forAll { (c0: Char, cs: Set[Char]) =>
-      val set = cs + c0
-      val bs = BitSetUtil.bitSetFor(set.toArray.sorted)
-
-      assertEquals(BitSetUtil.isSingleton(bs), set.size == 1)
+  def bitSetForRange(count: Int): BitSet = {
+    val bs = new BitSet(count)
+    var cur = 0
+    while (cur < count) {
+      bs += cur
+      cur += 1
     }
+    bs
   }
 }

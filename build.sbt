@@ -77,7 +77,7 @@ lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
 
 lazy val root = project
   .in(file("."))
-  .aggregate(core.jvm, core.js, bench)
+  .aggregate(core.jvm, core.js, core.native, bench)
   .enablePlugins(NoPublishPlugin)
   .settings(scalaVersion := "2.13.8")
 
@@ -109,7 +109,7 @@ lazy val docs = project
   )
   .dependsOn(coreJVM, bench)
 
-lazy val core = crossProject(JSPlatform, JVMPlatform)
+lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .settings(
     name := "cats-parse",
@@ -156,6 +156,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
 
 lazy val coreJVM = core.jvm.settings(jvmVersionSettings)
 lazy val coreJS = core.js
+lazy val coreNative = core.native
 
 lazy val bench = project
   .enablePlugins(JmhPlugin, NoPublishPlugin)

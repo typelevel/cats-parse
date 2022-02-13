@@ -25,7 +25,7 @@ import java.util.BitSet
 
 object BitSetUtil {
   type Tpe = BitSet
-
+  @inline final val isScalaNative = false
   @inline final val isScalaJs = false
   @inline final val isScalaJvm = true
 

@@ -26,6 +26,7 @@ import scala.collection.mutable.BitSet
 object BitSetUtil {
   type Tpe = BitSet
 
+  @inline final val isScalaNative = false
   @inline final val isScalaJs = true
   @inline final val isScalaJvm = false
 
