@@ -2360,7 +2360,6 @@ class ParserTest extends munit.ScalaCheckSuite {
         Nil
 
     regressions.foreach { p =>
-      assertEquals(p.void.void, p.void)
       assertEquals(p.void.as(1), p.as(1))
       assertEquals(p.as(1).void, p.void)
       assertEquals(p.as(1).as(1), p.as(1))
@@ -2647,6 +2646,8 @@ class ParserTest extends munit.ScalaCheckSuite {
   property("P.void is idempotent") {
     val regressions =
       ((Parser.string("aa").map(_ => 1) | Parser.string("bb").map(_ => 2)).withContext("ctx")) ::
+        (Parser.defer(Parser.string("foo")).void.backtrack) ::
+        (Parser.defer(Parser.string("foo")).void.withContext("ctx").backtrack) ::
         Nil
 
     regressions.foreach { p =>
@@ -2731,6 +2732,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll { (s1: Set[Char], s2: Set[Char]) =>
       assertEquals(Parser.charIn(s1) | Parser.charIn(s2), Parser.charIn(s1 | s2))
       assertEquals(Parser.charIn(s1).void | Parser.charIn(s2).void, Parser.charIn(s1 | s2).void)
+    // TODO: make this law pass. Currently the left is StringIn, but the right is StringP(CharIn(_, _, _))
     // assertEquals(Parser.charIn(s1).string | Parser.charIn(s2).string, Parser.charIn(s1 | s2).string)
     } &&
     forAll { (s1: String, s2: String) =>

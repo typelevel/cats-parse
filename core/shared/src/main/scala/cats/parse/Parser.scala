@@ -2045,8 +2045,9 @@ object Parser {
     // does this parser return the string it matches
     def matchesString(p: Parser0[Any]): Boolean =
       p match {
-        case StringP0(_) | StringP(_) | StringIn(_) | Length(_) | Fail() | FailWith(_) => true
-        case DefiniteString(_) => true
+        case StringP0(_) | StringP(_) | StringIn(_) | Length(_) | Fail() | FailWith(_) |
+            DefiniteString(_) =>
+          true
         case OneOf(ss) => ss.forall(matchesString)
         case OneOf0(ss) => ss.forall(matchesString)
         case WithContextP(_, p) => matchesString(p)
@@ -2164,7 +2165,7 @@ object Parser {
           None
       }
 
-    /** return true if this is already the same a void
+    /** return true if this is already the same as void
       *
       * @param p
       *   the Parser to check
@@ -2975,8 +2976,8 @@ object Parser {
         case _ => OneOf0(left :: right :: Nil)
       }
 
-    def merge[A](left: Parser[A], right: Parser[A]): Parser[A] = {
-      val res = (left, right) match {
+    def merge[A](left: Parser[A], right: Parser[A]): Parser[A] =
+      (left, right) match {
         case (Fail(), _) => right
         case (_, Fail()) => left
         case (OneOf(ls), OneOf(rights @ (h :: t))) =>
@@ -3118,9 +3119,6 @@ object Parser {
           merge(left, vr).void
         case _ => OneOf(left :: right :: Nil)
       }
-      // println(s"merge($left, $right) == $res")
-      res.asInstanceOf[Parser[A]]
-    }
 
     case object AnyChar extends Parser[Char] {
       override def parseMut(state: State): Char = {
