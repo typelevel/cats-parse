@@ -21,49 +21,47 @@
 
 package cats.parse
 
-import scala.collection.mutable.BitSet
+import java.util.BitSet
 
 object BitSetUtil {
   type Tpe = BitSet
 
-  @inline final val isScalaJs = true
-  @inline final val isScalaJvm = false
-
   @inline final def isSet(b: BitSet, idx: Int): Boolean =
-    (idx >= 0) && b(idx)
+    // BitSet can't deal with negatives, so mask those out
+    b.get(idx & Int.MaxValue)
 
+  // we require a sorted, nonEmpty, charArray
   def bitSetFor(charArray: Array[Char]): BitSet = {
     val min = charArray(0).toInt
     val bs = new BitSet(charArray(charArray.length - 1).toInt + 1 - min)
     var idx = 0
     while (idx < charArray.length) {
-      bs += charArray(idx).toInt - min
+      bs.set(charArray(idx).toInt - min)
       idx += 1
     }
 
     bs
   }
 
-  def isSingleton(t: Tpe): Boolean = t.size == 1
+  def isSingleton(t: Tpe): Boolean = t.cardinality() == 1
 
+  // what are all the Chars in these bitsets
   def union(bs: List[(Int, BitSet)]): Iterable[Char] =
     union(bs.iterator)
 
-  // what are all the Chars in these bitsets
   def union(bs: Iterator[(Int, BitSet)]): Iterable[Char] = {
     def toIter(m: Int, bs: BitSet): Iterator[Char] =
-      bs.iterator.map { i => (i + m).toChar } ++ Iterator.single(m.toChar)
+      Iterator
+        .iterate(0) { m => bs.nextSetBit(m + 1) }
+        .takeWhile(_ >= 0)
+        .map { i => (m + i).toChar }
 
     bs.flatMap { case (m, bs) => toIter(m, bs) }.toSet
   }
 
   def bitSetForRange(count: Int): BitSet = {
     val bs = new BitSet(count)
-    var cur = 0
-    while (cur < count) {
-      bs += cur
-      cur += 1
-    }
+    bs.flip(0, count)
     bs
   }
 }

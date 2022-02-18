@@ -600,7 +600,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   import ParserGen.{arbParser0, arbParser, biasSmall}
 
-  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 2000
+  val tests: Int = 2000
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters
