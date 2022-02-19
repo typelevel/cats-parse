@@ -108,7 +108,9 @@ lazy val docs = project
       .withRepository(uri("https://github.com/typelevel/cats-parse"))
   )
   .dependsOn(coreJVM, bench)
-
+val testUtilsFileName = "TestUtils.scala"
+val testUtilsTemplate = (iteration: Int, iterationLarge: Int) =>
+  s"package cats.parse\nobject TestUtils { def iteration:Int = $iteration;def iterationLarge = $iterationLarge; }"
 lazy val core = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .settings(
@@ -149,9 +151,21 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       else Nil
     }
   )
+  .jvmSettings(
+    Test / sourceGenerators += Def.task {
+      val file = (Test / sourceManaged).value / testUtilsFileName
+      IO.write(file, testUtilsTemplate(2000, 20000))
+      Seq(file)
+    }.taskValue
+  )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
-    coverageEnabled := false
+    coverageEnabled := false,
+    Test / sourceGenerators += Def.task {
+      val file = (Test / sourceManaged).value / testUtilsFileName
+      IO.write(file, testUtilsTemplate(50, 50))
+      Seq(file)
+    }.taskValue
   )
 
 lazy val coreJVM = core.jvm.settings(jvmVersionSettings)

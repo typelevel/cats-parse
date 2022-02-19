@@ -25,7 +25,7 @@ import org.scalacheck.{Gen, Prop}
 import org.scalacheck.Prop.forAll
 
 class RadixNodeTest extends munit.ScalaCheckSuite {
-  val tests: Int = 20000
+  val tests: Int = TestUtils.iterationLarge
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters

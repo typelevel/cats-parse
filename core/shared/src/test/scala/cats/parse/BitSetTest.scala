@@ -24,7 +24,6 @@ package cats.parse
 import org.scalacheck.Prop.forAll
 
 class BitSetTest extends munit.ScalaCheckSuite {
-
   property("BitSetUtil union works") {
     forAll { (cs: List[List[Char]]) =>
       val arys = cs.iterator.filter(_.nonEmpty).map(_.toArray.sorted)
