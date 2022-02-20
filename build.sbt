@@ -135,18 +135,33 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
       if (isScala211) Set.empty else mimaPreviousArtifacts.value
     },
     mimaBinaryIssueFilters ++= {
+      /*
+       * It is okay to filter anything in Impl or RadixNode which are private
+       */
       if (tlIsScala3.value)
         List(
-          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error"),
-          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_="),
-          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.RadixNode.this"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Impl.mergeCharIn"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Impl.mergeStrIn"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.children"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.fsts"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.prefixes"),
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.children"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.word"),
-          ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode")
+          ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode"),
+          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_="),
+          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.RadixNode.this"),
+          ProblemFilters
+            .exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Impl#StringIn.parseMut"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Impl.stringIn"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error")
         )
-      else Nil
+      else
+        List(
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Impl.mergeCharIn"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Impl.mergeStrIn"),
+          ProblemFilters
+            .exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Impl#StringIn.parseMut"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Impl.stringIn")
+        )
     }
   )
   .jsSettings(
