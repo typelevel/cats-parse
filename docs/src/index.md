@@ -333,7 +333,7 @@ val searchWord = alpha.rep.string
 
 val fieldValue = alpha.rep.string ~ pchar(':')
 
-val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
+val p1 = fieldValue ?: (searchWord ~ sp.?).rep.string
 
 
 p1.parse("title:The Wind Has Risen")
@@ -345,7 +345,7 @@ p1.parse("The Wind Has Risen")
 This error happens because we can't really tell if we are parsing the `fieldValue` before we met a `:` char. We might do this with by writing two parsers, converting the first one's failure to epsilon failure by `backtrack` and then providing fallback parser by `|` operator (which allows the epsilon failures):
 
 ```scala mdoc
-val p2 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
+val p2 = fieldValue ?: (searchWord ~ sp.?).rep.string
 
 val p3 = (searchWord ~ sp.?).rep.string
 
@@ -360,7 +360,7 @@ But this problem might be resolved with `soft` method inside the first parser si
 ```scala mdoc
 val fieldValueSoft = alpha.rep.string.soft ~ pchar(':')
 
-val p4 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
+val p4 = fieldValueSoft ?: (searchWord ~ sp.?).rep.string
 
 p4.parse("title:The Wind Has Risen")
 // res2 = Right((,(Some((title,())),The Wind Has Risen)))

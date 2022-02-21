@@ -113,6 +113,13 @@ sealed abstract class Parser0[+A] { self: Product =>
     * method converts these failures into None values (and wraps other values in `Some(_)`).
     *
     * If the underlying parser failed with other errors, this parser will still fail.
+    *
+    * foo.? can hide error messages because it often succeeds, so only halting errors cause error
+    * messages.
+    *
+    * See also ?: on Parser
+    *
+    * see discussion in https://github.com/typelevel/cats-parse/issues/382
     */
   def ? : Parser0[Option[A]] =
     Parser.oneOf0(Parser.map0(this)(Some(_)) :: Parser.optTail)
@@ -650,6 +657,30 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
     */
   override def withContext(str: String): Parser[A] =
     Parser.withContext(this, str)
+
+  /** works like first.? ~ this but with better error reporting
+    *
+    * foo.? can hide error messages because it always succeeds, so no matter what there is no error
+    * message.
+    *
+    * see discussion in https://github.com/typelevel/cats-parse/issues/382
+    */
+  def ?:[B](first: Parser[B]): Parser[(Option[B], A)] =
+    (first ~ this).map { case (b, a) => (Some(b), a) } |
+      this.map { a => (None, a) }
+
+  /** works like (first.soft ~ this) | this
+    *
+    * Similar to first.? ~ this, but matches a bit more broadly and can give better error reporting
+    *
+    * foo.? can hide error messages because it always succeeds, so no matter what there is no error
+    * message.
+    *
+    * see discussion in https://github.com/typelevel/cats-parse/issues/382
+    */
+  def ?:[B](first: Parser.Soft[B]): Parser[(Option[B], A)] =
+    (first ~ this).map { case (b, a) => (Some(b), a) } |
+      this.map { a => (None, a) }
 }
 
 object Parser {

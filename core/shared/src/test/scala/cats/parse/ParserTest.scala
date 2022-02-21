@@ -2841,4 +2841,31 @@ class ParserTest extends munit.ScalaCheckSuite {
       law(a.fa, b.fa, c.fa, str)
     }
   }
+
+  property("?: matches (left ~ right) | right") {
+    forAll(ParserGen.gen, ParserGen.gen, arbitrary[String]) { (a, b, str) =>
+      val left: Parser[(Option[a.A], b.A)] =
+        ((a.fa ~ b.fa).map { case (a, b) => (Some(a), b) }) |
+          b.fa.map { case b => (None, b) }
+
+      val left0: Parser[(Option[a.A], b.A)] = a.fa.?.with1 ~ b.fa
+      val right: Parser[(Option[a.A], b.A)] = a.fa ?: b.fa
+
+      val rightP = right.parse(str)
+      assertEquals(left.parse(str), rightP)
+      // matches in all the same places as a.? ~ b
+      val left0P = left0.parse(str).toOption
+      assertEquals(left0P, rightP.toOption)
+
+      val lefts: Parser[(Option[a.A], b.A)] =
+        (a.fa.soft ~ b.fa).map { case (a, b) => (Some(a), b) } | b.fa.map { case b => (None, b) }
+
+      val rights: Parser[(Option[a.A], b.A)] = a.fa.soft ?: b.fa
+
+      val rightsP = rights.parse(str)
+      assertEquals(lefts.parse(str), rightsP)
+      // if a.? ~ b parses then a.soft ?: b must parse
+      assert((left0P.isDefined && rightsP.isRight) || left0P.isEmpty)
+    }
+  }
 }

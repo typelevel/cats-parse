@@ -51,7 +51,7 @@ object Numbers {
   /** A nonNegativeIntString possibly preceded by '-'
     */
   val signedIntString: Parser[String] =
-    (Parser.char('-').?.with1 ~ nonNegativeIntString).string
+    (Parser.char('-') ?: nonNegativeIntString).string
 
   /** map a signedIntString into a BigInt
     */
@@ -75,7 +75,7 @@ object Numbers {
      *     zero = %x30                ; 0
      */
     val frac: Parser[Any] = Parser.char('.') ~ digits
-    val exp: Parser[Unit] = (Parser.charIn("eE") ~ Parser.charIn("+-").? ~ digits).void
+    val exp: Parser[Unit] = (Parser.charIn("eE") ~ (Parser.charIn("+-") ?: digits)).void
 
     (signedIntString ~ frac.? ~ exp.?).string
   }
