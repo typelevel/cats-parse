@@ -618,14 +618,14 @@ class ParserTest extends munit.ScalaCheckSuite {
       .withMinSuccessfulTests(tests)
       .withMaxDiscardRatio(10)
 
-  //override val scalaCheckInitialSeed =
-    // past regressions that we can check periodically
-    // "bUQvEfxFZ73bxtVjauK8tJDrEKOFbxUfk6WrGiy3bkH="
-    // "PPsKExr4HRlyCXkMrC6Rki5u59V88vwSeVTiGWJFS3G="
-    // "Ova1uT18mkE4uTX4RdgQza6z70fxyv6micl4hIZvywP="
-    // "YcGRsiTHa791rV5CIL4wYhWDofanqbYbvO418dbZnOK="
-    // "6YoSspuNxqEoMosfi5J6wHgo4I4rD48Zg21XAnZtMcA="
-    // "r5r0ZxvvTt4dFXHGtn1BL4C05bo0sfk8XkFcVhpMlXH="
+  // override val scalaCheckInitialSeed =
+  // past regressions that we can check periodically
+  // "bUQvEfxFZ73bxtVjauK8tJDrEKOFbxUfk6WrGiy3bkH="
+  // "PPsKExr4HRlyCXkMrC6Rki5u59V88vwSeVTiGWJFS3G="
+  // "Ova1uT18mkE4uTX4RdgQza6z70fxyv6micl4hIZvywP="
+  // "YcGRsiTHa791rV5CIL4wYhWDofanqbYbvO418dbZnOK="
+  // "6YoSspuNxqEoMosfi5J6wHgo4I4rD48Zg21XAnZtMcA="
+  // "r5r0ZxvvTt4dFXHGtn1BL4C05bo0sfk8XkFcVhpMlXH="
 
   def parseTest[A: Eq](p: Parser0[A], str: String, a: A) =
     p.parse(str) match {
