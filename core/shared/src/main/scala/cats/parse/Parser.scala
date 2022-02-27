@@ -1344,6 +1344,14 @@ object Parser {
     first match {
       case p1: Parser[A] => product10(p1, second)
       case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
+      case Impl.OneOf0(items) =>
+        val lst = items.last
+        if (Impl.alwaysSucceeds(lst)) {
+          // we can only improve error reporting by lifting this product:
+          product01(oneOf0(items.init), second) | product01(lst, second)
+        } else Impl.Prod(first, second)
+      case Impl.Map0(f0, fn) =>
+        product01(f0, second).map(Impl.Map1Fn(fn))
       case _ => Impl.Prod(first, second)
     }
 
@@ -1394,6 +1402,16 @@ object Parser {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
       case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
+      /* The OneOf0 optimization isn't lawful for softProducts:
+        val p1 = Parser.length(1)
+        val p2 = Parser.length(2)
+
+        val p3 = p1.?.soft ~ p2
+        val p4 = (p1.soft ~ p2) | p2
+
+        p3.parse("ab") // this should fail because p1.? parses 1 character, then p2 cannot succeed
+        p4.parse("ab") // this succeeds because p1.soft ~ p2 fails but backtracks, then p2 succeeds
+       */
       case _ => Impl.SoftProd(first, second)
     }
 
@@ -1758,6 +1776,7 @@ object Parser {
   def not(pa: Parser0[Any]): Parser0[Unit] =
     void0(pa) match {
       case Impl.Fail() | Impl.FailWith(_) => unit
+      case u if Impl.alwaysSucceeds(u) => Impl.Fail()
       case notFail => Impl.Not(notFail)
     }
 
@@ -1997,10 +2016,23 @@ object Parser {
 
     case class ToTupleWith1[A, C](item1: A) extends Function1[C, (A, C)] {
       def apply(c: C) = (item1, c)
+      override def andThen[E](fn: ((A, C)) => E): C => E =
+        fn match {
+          case Map1Fn(fn) =>
+            // we know that E =:= (B, C) for some B
+            type B = Any
+            val fn1 = fn.asInstanceOf[A => B]
+            ToTupleWith1(fn1(item1)).asInstanceOf[C => E]
+          case _ => super.andThen(fn)
+        }
     }
 
     case class ToTupleWith2[B, C](item2: B) extends Function1[C, (C, B)] {
       def apply(c: C) = (c, item2)
+    }
+
+    case class Map1Fn[A, B, C](fn: A => B) extends Function1[(A, C), (B, C)] {
+      def apply(ac: (A, C)) = (fn(ac._1), ac._2)
     }
 
     // this is used to make def unmap0 a pure function wrt `def equals`
