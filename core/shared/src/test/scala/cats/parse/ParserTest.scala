@@ -2942,10 +2942,12 @@ class ParserTest extends munit.ScalaCheckSuite {
 
     assertEquals(err1.void, err2.void)
     assertEquals(
-      err2.left.get.expected,
-      NonEmptyList.of(
-        Parser.Expectation.InRange(0, 'a', 'a'),
-        Parser.Expectation.InRange(0, 'z', 'z')
+      err2.leftMap(_.expected),
+      Left(
+        NonEmptyList.of(
+          Parser.Expectation.InRange(0, 'a', 'a'),
+          Parser.Expectation.InRange(0, 'z', 'z')
+        )
       )
     )
   }
