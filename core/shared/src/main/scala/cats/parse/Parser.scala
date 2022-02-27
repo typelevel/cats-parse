@@ -78,34 +78,19 @@ sealed abstract class Parser0[+A] { self: Product =>
       )
   }
 
+  private[this] lazy val allParser = (this ~ Parser.end)
+
   /** Attempt to parse all of the input `str` into an `A` value.
     *
     * This method will return a failure unless all of `str` is consumed during parsing.
     *
     * `p.parseAll(s)` is equivalent to `(p <* Parser.end).parse(s).map(_._2)`.
     */
-  final def parseAll(str: String): Either[Parser.Error, A] = {
-    val state = new Parser.State(str)
-    val result = parseMut(state)
-    val err = state.error
-    val offset = state.offset
-    if (err eq null) {
-      if (offset == str.length) Right(result)
-      else
-        Left(
-          Parser.Error(
-            offset,
-            NonEmptyList(Parser.Expectation.EndOfString(offset, str.length), Nil)
-          )
-        )
-    } else
-      Left(
-        Parser.Error(
-          offset,
-          Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
-        )
-      )
-  }
+  final def parseAll(str: String): Either[Parser.Error, A] =
+    allParser.parse(str) match {
+      case Right(tup) => Right(tup._2._1)
+      case left @ Left(_) => left.rightCast
+    }
 
   /** Convert epsilon failures into None values.
     *
@@ -1086,11 +1071,7 @@ object Parser {
               case Impl.OneOf0(ps) => ps
               case one => one :: Nil
             }
-            flat match {
-              case Nil => Impl.Fail()
-              case one :: Nil => one
-              case many => Impl.OneOf0(many)
-            }
+            Impl.cheapOneOf0(flat)
           case h :: Nil => loop(Nil, h :: acc)
           case h1 :: (t1 @ (h2 :: tail2)) =>
             Impl.merge0(h1, h2) match {
@@ -1316,6 +1297,12 @@ object Parser {
     first match {
       case f1: Parser[A] => product10(f1, second)
       case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
+      case Impl.OneOf0(items) if Impl.alwaysSucceeds(items.last) =>
+        val lst = items.last
+        // we can only improve error reporting by lifting this product:
+        product0(Impl.cheapOneOf0(items.init), second) | product0(lst, second)
+      case Impl.Map0(f0, fn) =>
+        product0(f0, second).map(Impl.Map1Fn(fn))
       case _ =>
         second match {
           case s1: Parser[B] =>
@@ -1348,7 +1335,7 @@ object Parser {
         val lst = items.last
         if (Impl.alwaysSucceeds(lst)) {
           // we can only improve error reporting by lifting this product:
-          product01(oneOf0(items.init), second) | product01(lst, second)
+          product01(Impl.cheapOneOf0(items.init), second) | product01(lst, second)
         } else Impl.Prod(first, second)
       case Impl.Map0(f0, fn) =>
         product01(f0, second).map(Impl.Map1Fn(fn))
@@ -2044,6 +2031,15 @@ object Parser {
     case class UnmapDefer(fn: () => Parser[Any]) extends Function0[Parser[Any]] {
       def apply(): Parser[Any] = unmap(compute(fn))
     }
+
+    // only call this when removing items from the head of tail of the list
+    // removing from the middle may unlock merging that wasn't possible before
+    def cheapOneOf0[A](items: List[Parser0[A]]): Parser0[A] =
+      items match {
+        case Nil => Fail()
+        case pa :: Nil => pa
+        case many => OneOf0(many)
+      }
 
     final def doesBacktrackCheat(p: Parser0[Any]): Boolean =
       doesBacktrack(p)

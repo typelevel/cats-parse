@@ -976,8 +976,15 @@ class ParserTest extends munit.ScalaCheckSuite {
     (left, right) match {
       case (Right(a), Right(b)) => assertEquals(a, b)
       case (Left(ea), Left(eb)) =>
-        val aMap = ea.expected.toList.groupBy(_.offset)
-        val bMap = eb.expected.toList.groupBy(_.offset)
+        def makeMap(p: Parser.Error) =
+          ea.expected.toList
+            // Fails are kinds of empty elements of merges since
+            // they are removed by unions
+            .filterNot(_.isInstanceOf[Parser.Expectation.Fail])
+            .groupBy(_.offset)
+
+        val aMap = makeMap(ea)
+        val bMap = makeMap(eb)
 
         (aMap.keySet | bMap.keySet).foreach { offset =>
           (aMap.get(offset), bMap.get(offset)) match {
@@ -994,8 +1001,7 @@ class ParserTest extends munit.ScalaCheckSuite {
                 .flatten
                 .toSet
               val notStringOrCharA = lv.toList.filter {
-                case Parser.Expectation.Fail(_) | Parser.Expectation.InRange(_, _, _) |
-                    Parser.Expectation.OneOfStr(_, _) =>
+                case Parser.Expectation.InRange(_, _, _) | Parser.Expectation.OneOfStr(_, _) =>
                   false
                 case _ => true
               }.toSet
