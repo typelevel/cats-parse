@@ -2930,7 +2930,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
-  test("check the issue #382 example") {
+  test("check the issue #382 example: p1.? ~ p2 vs (p1 ~ p2) | p2") {
     val p1 = Parser.char('a')
     val p2 = Parser.char('z')
 
@@ -2947,6 +2947,28 @@ class ParserTest extends munit.ScalaCheckSuite {
         NonEmptyList.of(
           Parser.Expectation.InRange(0, 'a', 'a'),
           Parser.Expectation.InRange(0, 'z', 'z')
+        )
+      )
+    )
+  }
+
+  test("series of options: pa.? ~ pb.? ~ pc") {
+    val pa = Parser.char('a')
+    val pb = Parser.char('b')
+    val pc = Parser.char('c')
+
+    val left = pa.? ~ (pb.? ~ pc)
+    // (x.? ~ y.?) is (x + 1) * (y + 1) = xy + x + y + 1
+    //   => x(y + 1) + y + 1
+    val right = pa.? ~ pb.? ~ pc
+
+    val rr = right.parse("").void
+    assertEquals(left.parse("").void, rr)
+    assertEquals(
+      rr.leftMap(_.expected),
+      Left(
+        NonEmptyList.of(
+          Parser.Expectation.InRange(0, 'a', 'c')
         )
       )
     )

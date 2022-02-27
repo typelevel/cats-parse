@@ -1299,8 +1299,16 @@ object Parser {
       case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
       case Impl.OneOf0(items) if Impl.alwaysSucceeds(items.last) =>
         val lst = items.last
-        // we can only improve error reporting by lifting this product:
-        product0(Impl.cheapOneOf0(items.init), second) | product0(lst, second)
+        // we can only improve error reporting by lifting this product
+        // push down oneOf so we unify the uniion at the bottom
+        val right = second match {
+          case Impl.OneOf0(sitems) =>
+            Impl.OneOf0(sitems.map(product0(lst, _)))
+          case Impl.OneOf(sitems) =>
+            Impl.OneOf(sitems.map(product01(lst, _)))
+          case _ => product0(lst, second)
+        }
+        product0(Impl.cheapOneOf0(items.init), second) | right
       case Impl.Map0(f0, fn) =>
         product0(f0, second).map(Impl.Map1Fn(fn))
       case _ =>
@@ -1334,8 +1342,14 @@ object Parser {
       case Impl.OneOf0(items) =>
         val lst = items.last
         if (Impl.alwaysSucceeds(lst)) {
-          // we can only improve error reporting by lifting this product:
-          product01(Impl.cheapOneOf0(items.init), second) | product01(lst, second)
+          // we can only improve error reporting by lifting this product
+          // push down oneOf so we unify the uniion at the bottom
+          val right = second match {
+            case Impl.OneOf(sitems) =>
+              Impl.OneOf(sitems.map(product01(lst, _)))
+            case _ => product01(lst, second)
+          }
+          product01(Impl.cheapOneOf0(items.init), second) | right
         } else Impl.Prod(first, second)
       case Impl.Map0(f0, fn) =>
         product01(f0, second).map(Impl.Map1Fn(fn))
