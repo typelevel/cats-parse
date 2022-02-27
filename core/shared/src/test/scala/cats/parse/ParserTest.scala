@@ -977,7 +977,7 @@ class ParserTest extends munit.ScalaCheckSuite {
       case (Right(a), Right(b)) => assertEquals(a, b)
       case (Left(ea), Left(eb)) =>
         def makeMap(p: Parser.Error) =
-          ea.expected.toList
+          p.expected.toList
             // Fails are kinds of empty elements of merges since
             // they are removed by unions
             .filterNot(_.isInstanceOf[Parser.Expectation.Fail])
