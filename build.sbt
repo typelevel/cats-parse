@@ -1,7 +1,6 @@
 import com.typesafe.tools.mima.core._
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import Dependencies._
-
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
@@ -149,7 +148,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
           ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode")
         )
       else Nil
-    }
+    } ++ MimaExclusionRules.ParserImpl
   )
   .jvmSettings(
     Test / sourceGenerators += Def.task {
