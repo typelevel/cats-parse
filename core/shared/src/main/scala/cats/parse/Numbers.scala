@@ -30,11 +30,11 @@ object Numbers {
 
   /** zero or more digit chars
     */
-  val digits0: Parser0[String] = digit.rep0.string
+  val digits0: Parser0[String] = digit.repAs0
 
   /** one or more digit chars
     */
-  val digits: Parser[String] = digit.rep.string
+  val digits: Parser[String] = digit.repAs
 
   /** a single base 10 digit excluding 0
     */

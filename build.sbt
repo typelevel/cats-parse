@@ -136,26 +136,22 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       if (isScala211) Set.empty else mimaPreviousArtifacts.value
     },
     mimaBinaryIssueFilters ++= {
+      /*
+       * It is okay to filter anything in Impl or RadixNode which are private
+       */
       if (tlIsScala3.value)
         List(
-          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error"),
-          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_="),
-          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.RadixNode.this"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.children"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.fsts"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.prefixes"),
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.children"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.word"),
-          ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode")
+          ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode"),
+          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_="),
+          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.RadixNode.this"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error")
         )
       else Nil
     } ++ MimaExclusionRules.ParserImpl
-  )
-  .jvmSettings(
-    Test / sourceGenerators += Def.task {
-      val file = (Test / sourceManaged).value / testUtilsFileName
-      IO.write(file, testUtilsTemplate(2000, 20000))
-      Seq(file)
-    }.taskValue
   )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),

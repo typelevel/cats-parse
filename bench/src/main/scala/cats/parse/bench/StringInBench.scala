@@ -39,7 +39,9 @@ private[parse] class StringInBenchmarks {
 
   var radixNode: RadixNode = _
 
-  var stringIn: Parser[Unit] = _
+  var stringInV: Parser[Unit] = _
+
+  var stringInS: Parser[String] = _
 
   var oneOf: Parser[Unit] = _
 
@@ -60,13 +62,18 @@ private[parse] class StringInBenchmarks {
     }
 
     radixNode = RadixNode.fromStrings(stringsToMatch)
-    stringIn = Parser.stringIn(stringsToMatch).void
+    stringInS = Parser.stringIn(stringsToMatch)
+    stringInV = stringInS.void
     oneOf = Parser.oneOf(stringsToMatch.map(Parser.string(_)))
   }
 
   @Benchmark
-  def stringInParse(): Unit =
-    inputs.foreach(stringIn.parseAll(_))
+  def stringInVParse(): Unit =
+    inputs.foreach(stringInV.parseAll(_))
+
+  @Benchmark
+  def stringInSParse(): Unit =
+    inputs.foreach(stringInS.parseAll(_))
 
   @Benchmark
   def oneOfParse(): Unit =
