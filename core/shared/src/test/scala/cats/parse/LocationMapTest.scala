@@ -26,7 +26,7 @@ import Prop.forAll
 
 class LocationMapTest extends munit.ScalaCheckSuite {
 
-  val tests: Int = 20000
+  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 20000
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters

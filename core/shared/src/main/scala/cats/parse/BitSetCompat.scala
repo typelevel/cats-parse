@@ -22,12 +22,11 @@
 package cats.parse
 
 import java.util.BitSet
-object BitSetUtil {
+private[parse] abstract class BitSetUtilCompat(
+    @inline final val isScalaJs: Boolean,
+    @inline final val isScalaJvm: Boolean
+) {
   type Tpe = BitSet
-  @deprecated("", "0.3.7")
-  @inline final val isScalaJs = false
-  @deprecated("", "0.3.7")
-  @inline final val isScalaJvm = false
 
   @inline final def isSet(b: BitSet, idx: Int): Boolean =
     // BitSet can't deal with negatives, so mask those out
