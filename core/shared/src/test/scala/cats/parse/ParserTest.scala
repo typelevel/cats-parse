@@ -626,6 +626,7 @@ class ParserTest extends munit.ScalaCheckSuite {
   // "YcGRsiTHa791rV5CIL4wYhWDofanqbYbvO418dbZnOK="
   // "6YoSspuNxqEoMosfi5J6wHgo4I4rD48Zg21XAnZtMcA="
   // "r5r0ZxvvTt4dFXHGtn1BL4C05bo0sfk8XkFcVhpMlXH="
+  // "ZR3wyYYbvoeJ2-SQF9Kzu08i34qM2BRhCHUtjM7TImK="
 
   def parseTest[A: Eq](p: Parser0[A], str: String, a: A) =
     p.parse(str) match {
@@ -2927,6 +2928,15 @@ class ParserTest extends munit.ScalaCheckSuite {
       val right = (Parser.oneOf0(as).with1 ~ b) | (Parser.unit.with1 ~ b)
 
       assertLeftMoreError(right.parse(str), left.parse(str))
+    }
+  }
+
+  property("a.? ~ b is the same as (a.map(Some(_)) ~ b) | (pure(None).with1 ~ b)") {
+    forAll(ParserGen.gen, ParserGen.gen, arbitrary[String]) { (a, b, str) =>
+      val left = a.fa.? ~ b.fa
+      val right = (a.fa.map(Some(_)) ~ b.fa) | (Parser.pure(None).with1 ~ b.fa)
+
+      assertEquals(left.parse(str), right.parse(str))
     }
   }
 

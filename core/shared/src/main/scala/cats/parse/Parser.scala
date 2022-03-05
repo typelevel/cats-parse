@@ -993,56 +993,11 @@ object Parser {
     * Note: order matters here, since we don't backtrack by default.
     */
   def oneOf[A](parsers: List[Parser[A]]): Parser[A] = {
-    @tailrec
-    def loop(ps: List[Parser[A]], acc: List[Parser[A]]): Parser[A] =
-      ps match {
-        case Nil =>
-          /*
-           * we can still have inner oneof if the head items
-           * were not oneof and couldn't be merged
-           * but the last items did have oneof
-           */
-          val flat = acc.reverse.flatMap {
-            case Impl.OneOf(ps) => ps
-            case one => one :: Nil
-          }
-
-          flat match {
-            case Nil => Impl.Fail()
-            case one :: Nil => one
-            case many =>
-              many.traverse[Option, Parser[Any]] {
-                case Impl.StringP(p) => Some(p)
-                case _ => None
-              } match {
-                case Some(m0) =>
-                  Impl
-                    .StringP(Impl.OneOf(m0))
-                    .asInstanceOf[Parser[A]]
-                case None =>
-                  many.traverse[Option, Parser[Any]] {
-                    case Impl.Void(p) => Some(p)
-                    case _ => None
-                  } match {
-                    case Some(m0) =>
-                      Impl
-                        .Void(Impl.OneOf(m0))
-                        .asInstanceOf[Parser[A]]
-                    case None =>
-                      Impl.OneOf(many)
-                  }
-              }
-          }
-        case h :: Nil => loop(Nil, h :: acc)
-        case h1 :: (t1 @ (h2 :: tail2)) =>
-          Impl.merge(h1, h2) match {
-            case Impl.OneOf(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
-              loop(t1, h1 :: acc)
-            case h =>
-              loop(h :: tail2, acc)
-          }
-      }
-    loop(parsers, Nil)
+    val res = Impl.oneOfInternal(parsers)
+    Impl.hasKnownResult(res) match {
+      case Some(a) => res.as(a)
+      case None => res
+    }
   }
 
   /** go through the list of parsers trying each as long as they are epsilon failures (don't
@@ -1054,37 +1009,13 @@ object Parser {
     *
     * Note: order matters here, since we don't backtrack by default.
     */
-  def oneOf0[A](ps: List[Parser0[A]]): Parser0[A] =
-    if (ps.forall(_.isInstanceOf[Parser[_]])) oneOf(ps.asInstanceOf[List[Parser[A]]])
-    else {
-      @tailrec
-      def loop(ps: List[Parser0[A]], acc: List[Parser0[A]]): Parser0[A] =
-        ps match {
-          case Nil =>
-            /*
-             * we can still have inner oneof if the head items
-             * were not oneof and couldn't be merged
-             * but the last items did have oneof
-             */
-            val flat = acc.reverse.flatMap {
-              case Impl.OneOf(ps) => ps
-              case Impl.OneOf0(ps) => ps
-              case one => one :: Nil
-            }
-            Impl.cheapOneOf0(flat)
-          case h :: Nil => loop(Nil, h :: acc)
-          case h1 :: (t1 @ (h2 :: tail2)) =>
-            Impl.merge0(h1, h2) match {
-              case Impl.OneOf0(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
-                loop(t1, h1 :: acc)
-              case Impl.OneOf(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
-                loop(t1, h1 :: acc)
-              case h =>
-                loop(h :: tail2, acc)
-            }
-        }
-      loop(ps, Nil)
+  def oneOf0[A](ps: List[Parser0[A]]): Parser0[A] = {
+    val res = Impl.oneOf0Internal(ps)
+    Impl.hasKnownResult(res) match {
+      case Some(a) => res.as(a)
+      case None => res
     }
+  }
 
   /** Parse the longest matching string between alternatives. The order of the strings does not
     * matter.
@@ -2055,6 +1986,91 @@ object Parser {
         case many => OneOf0(many)
       }
 
+    def oneOfInternal[A](parsers: List[Parser[A]]): Parser[A] = {
+      @tailrec
+      def loop(ps: List[Parser[A]], acc: List[Parser[A]]): Parser[A] =
+        ps match {
+          case Nil =>
+            /*
+             * we can still have inner oneof if the head items
+             * were not oneof and couldn't be merged
+             * but the last items did have oneof
+             */
+            val flat = acc.reverse.flatMap {
+              case Impl.OneOf(ps) => ps
+              case one => one :: Nil
+            }
+
+            flat match {
+              case Nil => Impl.Fail()
+              case one :: Nil => one
+              case many =>
+                many.traverse[Option, Parser[Any]] {
+                  case Impl.StringP(p) => Some(p)
+                  case _ => None
+                } match {
+                  case Some(m0) =>
+                    Impl
+                      .StringP(Impl.OneOf(m0))
+                      .asInstanceOf[Parser[A]]
+                  case None =>
+                    many.traverse[Option, Parser[Any]] {
+                      case Impl.Void(p) => Some(p)
+                      case _ => None
+                    } match {
+                      case Some(m0) =>
+                        Impl
+                          .Void(Impl.OneOf(m0))
+                          .asInstanceOf[Parser[A]]
+                      case None =>
+                        Impl.OneOf(many)
+                    }
+                }
+            }
+          case h :: Nil => loop(Nil, h :: acc)
+          case h1 :: (t1 @ (h2 :: tail2)) =>
+            Impl.merge(h1, h2) match {
+              case Impl.OneOf(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
+                loop(t1, h1 :: acc)
+              case h =>
+                loop(h :: tail2, acc)
+            }
+        }
+      loop(parsers, Nil)
+    }
+
+    def oneOf0Internal[A](ps: List[Parser0[A]]): Parser0[A] =
+      if (ps.forall(_.isInstanceOf[Parser[_]])) oneOfInternal(ps.asInstanceOf[List[Parser[A]]])
+      else {
+        @tailrec
+        def loop(ps: List[Parser0[A]], acc: List[Parser0[A]]): Parser0[A] =
+          ps match {
+            case Nil =>
+              /*
+               * we can still have inner oneof if the head items
+               * were not oneof and couldn't be merged
+               * but the last items did have oneof
+               */
+              val flat = acc.reverse.flatMap {
+                case Impl.OneOf(ps) => ps
+                case Impl.OneOf0(ps) => ps
+                case one => one :: Nil
+              }
+              Impl.cheapOneOf0(flat)
+            case h :: Nil => loop(Nil, h :: acc)
+            case h1 :: (t1 @ (h2 :: tail2)) =>
+              Impl.merge0(h1, h2) match {
+                case Impl.OneOf0(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
+                  loop(t1, h1 :: acc)
+                case Impl.OneOf(a :: b :: Nil) if (a eq h1) && (b eq h2) =>
+                  loop(t1, h1 :: acc)
+                case h =>
+                  loop(h :: tail2, acc)
+              }
+          }
+        loop(ps, Nil)
+      }
+
     final def doesBacktrackCheat(p: Parser0[Any]): Boolean =
       doesBacktrack(p)
 
@@ -2282,7 +2298,7 @@ object Parser {
           Parser.backtrack0(unmap0(p))
         case OneOf0(ps) =>
           // Find the fixed point here
-          val next = Parser.oneOf0(ps.map(unmap0))
+          val next = oneOf0Internal(ps.map(unmap0))
           if (next == pa) pa
           else unmap0(next)
         case Prod0(p1, p2) =>
@@ -2358,7 +2374,7 @@ object Parser {
           // to remove the backtrack wrapper
           Parser.backtrack(unmap(p))
         case OneOf(ps) =>
-          val next = Parser.oneOf(ps.map(unmap))
+          val next = oneOfInternal(ps.map(unmap))
           if (next == pa) pa
           else unmap(next)
         case Prod(p1, p2) =>
