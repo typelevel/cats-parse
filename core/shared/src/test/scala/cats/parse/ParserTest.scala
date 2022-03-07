@@ -2962,7 +2962,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     )
   }
 
-  test("series of options: pa.? ~ pb.? ~ pc") {
+  test("example: series of options: pa.? ~ pb.? ~ pc") {
     val pa = Parser.char('a')
     val pb = Parser.char('b')
     val pc = Parser.char('c')
@@ -2982,5 +2982,35 @@ class ParserTest extends munit.ScalaCheckSuite {
         )
       )
     )
+
+    val ra = right.parse("a").void
+    assertEquals(left.parse("a").void, ra)
+    assertEquals(
+      ra.leftMap(_.expected),
+      Left(
+        NonEmptyList.of(
+          Parser.Expectation.InRange(1, 'b', 'c')
+        )
+      )
+    )
+  }
+
+  property("gen: series of options: pa.? ~ pb.? ~ pc == pa.? ~ (pb.? ~ pc)") {
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, arbitrary[String]) { (pa, pb, pc, str) =>
+      val left = (pa.fa.? ~ pb.fa.?) ~ pc.fa
+      val right = pa.fa.? ~ (pb.fa.? ~ pc.fa)
+
+      assertEquals(left.parse(str).void, right.parse(str).void)
+    }
+  }
+
+  property("gen: series of options: pa.? ~ pb.? ~ pc.? ~ pd == pa.? ~ (pb.? ~ (pc.? ~ pd)") {
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, ParserGen.gen, arbitrary[String]) {
+      (pa, pb, pc, pd, str) =>
+        val left = ((pa.fa.? ~ pb.fa.?) ~ pc.fa.?) ~ pd.fa
+        val right = pa.fa.? ~ (pb.fa.? ~ (pc.fa.? ~ pd.fa))
+
+        assertEquals(left.parse(str).void, right.parse(str).void)
+    }
   }
 }

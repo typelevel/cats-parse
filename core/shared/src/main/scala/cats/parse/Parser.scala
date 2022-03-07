@@ -1228,20 +1228,6 @@ object Parser {
     first match {
       case f1: Parser[A] => product10(f1, second)
       case Impl.Pure(a) => second.map(Impl.ToTupleWith1(a))
-      case Impl.OneOf0(items) if Impl.alwaysSucceeds(items.last) =>
-        val lst = items.last
-        // we can only improve error reporting by lifting this product
-        // push down oneOf so we unify the uniion at the bottom
-        val right = second match {
-          case Impl.OneOf0(sitems) =>
-            Impl.OneOf0(sitems.map(product0(lst, _)))
-          case Impl.OneOf(sitems) =>
-            Impl.OneOf(sitems.map(product01(lst, _)))
-          case _ => product0(lst, second)
-        }
-        product0(Impl.cheapOneOf0(items.init), second) | right
-      case Impl.Map0(f0, fn) =>
-        product0(f0, second).map(Impl.Map1Fn(fn))
       case _ =>
         second match {
           case s1: Parser[B] =>
@@ -1273,17 +1259,27 @@ object Parser {
       case Impl.OneOf0(items) =>
         val lst = items.last
         if (Impl.alwaysSucceeds(lst)) {
-          // we can only improve error reporting by lifting this product
-          // push down oneOf so we unify the uniion at the bottom
-          val right = second match {
-            case Impl.OneOf(sitems) =>
-              Impl.OneOf(sitems.map(product01(lst, _)))
-            case _ => product01(lst, second)
-          }
-          product01(Impl.cheapOneOf0(items.init), second) | right
+          // (a1 + a0) * b = a1 * b + a0 * b
+          // If we don't do this law, a trailing success, which
+          // is created by `.?` and common, will hide possible
+          // valid expectations from being shown
+          // by making this transformation, we don't incur
+          // added cost, but don't hide this message
+          // see issue #382
+          product01(Impl.cheapOneOf0(items.init), second) |
+            product01(lst, second)
         } else Impl.Prod(first, second)
       case Impl.Map0(f0, fn) =>
+        // Make sure Map doesn't hide the above optimization
         product01(f0, second).map(Impl.Map1Fn(fn))
+      case prod0: Impl.Prod0[a, b]
+          if prod0.second.isInstanceOf[Impl.OneOf0[_]] ||
+            prod0.second.isInstanceOf[Impl.Map0[_, _]] ||
+            prod0.second.isInstanceOf[Impl.Prod0[_, _]] =>
+        // Make sure Prod doesn't hide the above optimization
+        // ((a, b), c) == (a, (b, c)).map(Impl.RotateRight)
+        product01[a, (b, B)](prod0.first, product01(prod0.second, second))
+          .map(Impl.RotateRight[a, b, B]())
       case _ => Impl.Prod(first, second)
     }
 
@@ -1944,6 +1940,9 @@ object Parser {
 
       override def andThen[B](that: Function[A, B]): ConstFn[B] =
         ConstFn(that(result))
+
+      override def toString() =
+        s"ConstFn($result)"
     }
 
     case class ToTupleWith1[A, C](item1: A) extends Function1[C, (A, C)] {
@@ -1965,6 +1964,11 @@ object Parser {
 
     case class Map1Fn[A, B, C](fn: A => B) extends Function1[(A, C), (B, C)] {
       def apply(ac: (A, C)) = (fn(ac._1), ac._2)
+    }
+
+    // used to rewrite ((a, b), c) to (a, (b, c))
+    case class RotateRight[A, B, C]() extends Function1[(A, (B, C)), ((A, B), C)] {
+      def apply(abc: (A, (B, C))) = ((abc._1, abc._2._1), abc._2._2)
     }
 
     // this is used to make def unmap0 a pure function wrt `def equals`
