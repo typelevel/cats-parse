@@ -149,7 +149,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
           ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error")
         )
       else Nil
-    } ++ MimaExclusionRules.ParserImpl
+    } ++ MimaExclusionRules.parserImpl ++ MimaExclusionRules.bitSetUtil
   )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),

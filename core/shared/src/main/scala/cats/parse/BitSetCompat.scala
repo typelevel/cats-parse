@@ -23,6 +23,7 @@ package cats.parse
 
 import java.util.BitSet
 private[parse] abstract class BitSetUtilCompat(
+    // TODO: Remove isScalaJs/isScalaJvm in next minor version update. See https://github.com/typelevel/cats-parse/issues/391.
     @inline final val isScalaJs: Boolean,
     @inline final val isScalaJvm: Boolean
 ) {
