@@ -13,7 +13,8 @@ object MimaExclusionRules {
     "cats.parse.Parser#Impl#StringIn.parseMut",
     "cats.parse.Parser#Impl.stringIn",
     "cats.parse.Parser#Impl#CharIn.copy$default$2",
-    "cats.parse.Parser#Impl#CharIn.bitSet"
+    "cats.parse.Parser#Impl#CharIn.bitSet",
+    "cats.parse.Parser#Impl#CharIn._2"
   ).map(ProblemFilters.exclude[IncompatibleResultTypeProblem](_)) ++ Seq(
     "cats.parse.Parser#Impl.mergeCharIn",
     "cats.parse.Parser#Impl.mergeStrIn"
