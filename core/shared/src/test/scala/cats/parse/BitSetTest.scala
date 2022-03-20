@@ -24,10 +24,12 @@ package cats.parse
 import org.scalacheck.Prop.forAll
 
 class BitSetTest extends munit.ScalaCheckSuite {
-  test("isScalaJs/isScalaJvm/isScalaNative is consistent") {
-    assert(!(BitSetUtil.isScalaJs && BitSetUtil.isScalaJvm && BitSetUtil.isScalaNative))
-    assert(BitSetUtil.isScalaJs || BitSetUtil.isScalaJvm || BitSetUtil.isScalaNative)
-    assert(BitSetUtil.isScalaJs ^ BitSetUtil.isScalaJvm ^ BitSetUtil.isScalaNative)
+  // TODO: Remove isScalaJs/isScalaJvm in next minor version update. See https://github.com/typelevel/cats-parse/issues/391.
+  test("isScalaJs/isScalaJvm is consistent") {
+    // This will need to be updated if we ever add scala-native
+    assert(!(BitSetUtil.isScalaJs && BitSetUtil.isScalaJvm))
+    assert(BitSetUtil.isScalaJs || BitSetUtil.isScalaJvm)
+    assert(BitSetUtil.isScalaJs ^ BitSetUtil.isScalaJvm)
   }
 
   property("BitSetUtil union works") {

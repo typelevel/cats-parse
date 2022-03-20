@@ -1,7 +1,6 @@
 import com.typesafe.tools.mima.core._
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import Dependencies._
-
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
@@ -140,8 +139,6 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
        */
       if (tlIsScala3.value)
         List(
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Impl.mergeCharIn"),
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Impl.mergeStrIn"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.children"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.fsts"),
           ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.prefixes"),
@@ -149,20 +146,10 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
           ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode"),
           ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_="),
           ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.RadixNode.this"),
-          ProblemFilters
-            .exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Impl#StringIn.parseMut"),
-          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Impl.stringIn"),
           ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error")
         )
-      else
-        List(
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Impl.mergeCharIn"),
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Impl.mergeStrIn"),
-          ProblemFilters
-            .exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Impl#StringIn.parseMut"),
-          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Impl.stringIn")
-        )
-    }
+      else Nil
+    } ++ MimaExclusionRules.parserImpl ++ MimaExclusionRules.bitSetUtil
   )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
