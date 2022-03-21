@@ -114,15 +114,15 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
     name := "cats-parse",
     tlFatalWarningsInCi := !tlIsScala3.value,
     libraryDependencies ++= {
+      if (tlIsScala3.value) Nil else Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value)
+    },
+    libraryDependencies ++= {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       Seq(
         if (isScala211) cats211.value else cats.value,
         munit.value % Test,
         munitScalacheck.value % Test
       )
-    },
-    libraryDependencies ++= {
-      if (tlIsScala3.value) Nil else Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value)
     },
     scalacOptions ++= {
       val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
@@ -156,7 +156,8 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
     coverageEnabled := false
   )
   .nativeSettings(
-    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11"))
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
+    coverageEnabled := false
   )
 
 lazy val coreJVM = core.jvm.settings(jvmVersionSettings)
