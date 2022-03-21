@@ -155,6 +155,9 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
     coverageEnabled := false
   )
+  .nativeSettings(
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11"))
+  )
 
 lazy val coreJVM = core.jvm.settings(jvmVersionSettings)
 lazy val coreJS = core.js
