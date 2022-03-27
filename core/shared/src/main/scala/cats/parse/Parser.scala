@@ -78,19 +78,34 @@ sealed abstract class Parser0[+A] { self: Product =>
       )
   }
 
-  private[this] lazy val allParser = (this ~ Parser.end)
-
   /** Attempt to parse all of the input `str` into an `A` value.
     *
     * This method will return a failure unless all of `str` is consumed during parsing.
     *
     * `p.parseAll(s)` is equivalent to `(p <* Parser.end).parse(s).map(_._2)`.
     */
-  final def parseAll(str: String): Either[Parser.Error, A] =
-    allParser.parse(str) match {
-      case Right(tup) => Right(tup._2._1)
-      case left @ Left(_) => left.rightCast
-    }
+  final def parseAll(str: String): Either[Parser.Error, A] = {
+    val state = new Parser.State(str)
+    val result = parseMut(state)
+    val err = state.error
+    val offset = state.offset
+    if (err eq null) {
+      if (offset == str.length) Right(result)
+      else
+        Left(
+          Parser.Error(
+            offset,
+            NonEmptyList(Parser.Expectation.EndOfString(offset, str.length), Nil)
+          )
+        )
+    } else
+      Left(
+        Parser.Error(
+          offset,
+          Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
+        )
+      )
+  }
 
   /** Convert epsilon failures into None values.
     *
