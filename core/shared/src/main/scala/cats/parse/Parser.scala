@@ -1284,13 +1284,22 @@ object Parser {
           product01(Impl.cheapOneOf0(items.init), second) |
             product01(lst, second)
         } else Impl.Prod(first, second)
+      case Impl.Rep0(p, maxMinusOne, acc0) =>
+        // repAs0 ~ b == (repAs ~ b) | (pure(empty) ~ b)
+        val empty = acc0.newAppender().finish()
+        Impl.OneOf(
+          Impl.Prod(Impl.Rep(p, 1, maxMinusOne, acc0), second) ::
+            product01(pure(empty), second) ::
+            Nil
+        )
       case Impl.Map0(f0, fn) =>
         // Make sure Map doesn't hide the above optimization
         product01(f0, second).map(Impl.Map1Fn(fn))
       case prod0: Impl.Prod0[a, b]
           if prod0.second.isInstanceOf[Impl.OneOf0[_]] ||
             prod0.second.isInstanceOf[Impl.Map0[_, _]] ||
-            prod0.second.isInstanceOf[Impl.Prod0[_, _]] =>
+            prod0.second.isInstanceOf[Impl.Prod0[_, _]] ||
+            prod0.second.isInstanceOf[Impl.Rep0[_, _]] =>
         // Make sure Prod doesn't hide the above optimization
         // ((a, b), c) == (a, (b, c)).map(Impl.RotateRight)
         product01[a, (b, B)](prod0.first, product01(prod0.second, second))
