@@ -3012,4 +3012,13 @@ class ParserTest extends munit.ScalaCheckSuite {
         assertEquals(left.parse(str).void, right.parse(str).void)
     }
   }
+
+  property("a.rep0 ~ b is the same as (a.repAs ~ b) | (pure(Nil).with1 ~ b)") {
+    forAll(ParserGen.gen, ParserGen.gen, arbitrary[String]) { (a, b, str) =>
+      val left = a.fa.rep0 ~ b.fa
+      val right = (a.fa.repAs[List[a.A]] ~ b.fa) | (Parser.pure(List.empty[a.A]).with1 ~ b.fa)
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
 }
