@@ -1099,7 +1099,11 @@ object Parser {
     *   this can wind up parsing nothing
     */
   def repAs0[A, B](p1: Parser[A])(implicit acc: Accumulator0[A, B]): Parser0[B] =
-    Impl.Rep0(p1, Int.MaxValue, acc)
+    Impl.OneOf0(
+      Impl.Rep(p1, 1, Int.MaxValue, acc) ::
+        pure(acc.newAppender().finish()) ::
+        Nil
+    )
 
   /** Repeat the parser 0 or more times, but no more than `max`
     *
@@ -1114,12 +1118,17 @@ object Parser {
     */
   def repAs0[A, B](p1: Parser[A], max: Int)(implicit acc: Accumulator0[A, B]): Parser0[B] = {
     require(max >= 0, s"max should be >= 0, was $max")
+    val empty = acc.newAppender().finish()
     if (max == 0) {
       // exactly 0 times
-      pure(acc.newAppender().finish())
+      pure(empty)
     } else {
       // 0 or more times
-      Impl.Rep0(p1, max - 1, acc)
+      Impl.OneOf0(
+        Impl.Rep(p1, 1, max - 1, acc) ::
+          pure(empty) ::
+          Nil
+      )
     }
   }
 
@@ -1284,22 +1293,13 @@ object Parser {
           product01(Impl.cheapOneOf0(items.init), second) |
             product01(lst, second)
         } else Impl.Prod(first, second)
-      case Impl.Rep0(p, maxMinusOne, acc0) =>
-        // repAs0 ~ b == (repAs ~ b) | (pure(empty) ~ b)
-        val empty = acc0.newAppender().finish()
-        Impl.OneOf(
-          Impl.Prod(Impl.Rep(p, 1, maxMinusOne, acc0), second) ::
-            product01(pure(empty), second) ::
-            Nil
-        )
       case Impl.Map0(f0, fn) =>
         // Make sure Map doesn't hide the above optimization
         product01(f0, second).map(Impl.Map1Fn(fn))
       case prod0: Impl.Prod0[a, b]
           if prod0.second.isInstanceOf[Impl.OneOf0[_]] ||
             prod0.second.isInstanceOf[Impl.Map0[_, _]] ||
-            prod0.second.isInstanceOf[Impl.Prod0[_, _]] ||
-            prod0.second.isInstanceOf[Impl.Rep0[_, _]] =>
+            prod0.second.isInstanceOf[Impl.Prod0[_, _]] =>
         // Make sure Prod doesn't hide the above optimization
         // ((a, b), c) == (a, (b, c)).map(Impl.RotateRight)
         product01[a, (b, B)](prod0.first, product01(prod0.second, second))
@@ -1739,7 +1739,7 @@ object Parser {
       case peek @ Impl.Peek(_) => peek
       case s if Impl.alwaysSucceeds(s) => unit
       case notPeek =>
-        // TODO: we can adjust Rep0/Rep to do minimal
+        // TODO: we can adjust Rep to do minimal
         // work since we rewind after we are sure there is
         // a match
         Impl.Peek(void0(notPeek))
@@ -2256,9 +2256,9 @@ object Parser {
             ) =>
           // these are always unit
           someUnit.asInstanceOf[Option[A]]
-        case Rep0(_, _, _) | Rep(_, _, _, _) | FlatMap0(_, _) | FlatMap(_, _) | TailRecM(_, _) |
-            TailRecM0(_, _) | Defer(_) | Defer0(_) | GetCaret | Index | Length(_) | Fail() |
-            FailWith(_) | CharIn(_, _, _) | AnyChar | StringP(
+        case Rep(_, _, _, _) | FlatMap0(_, _) | FlatMap(_, _) | TailRecM(_, _) | TailRecM0(_, _) |
+            Defer(_) | Defer0(_) | GetCaret | Index | Length(_) | Fail() | FailWith(_) |
+            CharIn(_, _, _) | AnyChar | StringP(
               _
             ) | OneOf(Nil) | OneOf0(Nil) | StringP0(_) | Select(_, _) | Select0(_, _) | StringIn(
               _
@@ -2289,8 +2289,7 @@ object Parser {
         case Length(_) | StringP(_) | StringIn(_) | Prod(_, _) | SoftProd(_, _) | Map(_, _) |
             Select(_, _) | FlatMap(_, _) | TailRecM(_, _) | Defer(_) | Rep(_, _, _, _) | AnyChar |
             CharIn(_, _, _) | StringP0(_) | Index | GetCaret | Prod0(_, _) | SoftProd0(_, _) |
-            Map0(_, _) | Select0(_, _) | FlatMap0(_, _) | TailRecM0(_, _) | Defer0(_) |
-            Rep0(_, _, _) =>
+            Map0(_, _) | Select0(_, _) | FlatMap0(_, _) | TailRecM0(_, _) | Defer0(_) =>
           false
       }
 
@@ -2364,7 +2363,6 @@ object Parser {
             case UnmapDefer0(_) => pa // already unmapped
             case _ => Defer0(UnmapDefer0(fn))
           }
-        case Rep0(p, max, _) => Rep0(unmap(p), max, Accumulator0.unitAccumulator0)
         case WithContextP0(ctx, p0) => WithContextP0(ctx, unmap0(p0))
         case StartParser | EndParser | TailRecM0(_, _) | FlatMap0(_, _) =>
           // we can't transform this significantly
@@ -2957,22 +2955,6 @@ object Parser {
           // else we did a partial read then failed
           // but didn't read at least min items
           return ()
-        }
-      }
-    }
-
-    case class Rep0[A, B](p1: Parser[A], maxMinusOne: Int, acc: Accumulator0[A, B])
-        extends Parser0[B] {
-      private[this] val ignore: B = null.asInstanceOf[B]
-
-      override def parseMut(state: State): B = {
-        if (state.capture) {
-          val app = acc.newAppender()
-          if (repCapture(p1, 0, maxMinusOne, state, app)) app.finish()
-          else ignore
-        } else {
-          repNoCapture(p1, 0, maxMinusOne, state)
-          ignore
         }
       }
     }
