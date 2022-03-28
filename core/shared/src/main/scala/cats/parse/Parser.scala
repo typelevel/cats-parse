@@ -2002,7 +2002,17 @@ object Parser {
       items match {
         case Nil => Fail()
         case pa :: Nil => pa
-        case many => OneOf0(many)
+        case many =>
+          def to1(p: Parser0[A]): Option[Parser[A]] =
+            p match {
+              case p: Parser[A] => Some(p)
+              case _ => None
+            }
+
+          many.traverse(to1) match {
+            case Some(p1s) => OneOf(p1s)
+            case None => OneOf0(many)
+          }
       }
 
     def oneOfInternal[A](parsers: List[Parser[A]]): Parser[A] = {
