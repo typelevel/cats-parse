@@ -3270,12 +3270,10 @@ object Parser {
      * else fail
      */
     case class Not(under: Parser0[Unit]) extends Parser0[Unit] {
+      // under is the result of a void, so we don't need to void here
       override def parseMut(state: State): Unit = {
         val offset = state.offset
-        val cap = state.capture
-        state.capture = false
         under.parseMut(state)
-        state.capture = cap
         if (state.error ne null) {
           // under failed, so we succeed
           state.error = null
@@ -3304,12 +3302,10 @@ object Parser {
      * not advance
      */
     case class Peek(under: Parser0[Unit]) extends Parser0[Unit] {
+      // note: under is already voided, so we don't need to adjust capture
       override def parseMut(state: State): Unit = {
         val offset = state.offset
-        val cap = state.capture
-        state.capture = false
         under.parseMut(state)
-        state.capture = cap
         if (state.error eq null) {
           // under passed, so we succeed
           state.offset = offset
