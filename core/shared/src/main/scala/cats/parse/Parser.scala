@@ -1624,12 +1624,12 @@ object Parser {
     * strings, for instance.
     */
   def until0(p: Parser0[Any]): Parser0[String] =
-    (not(p).with1 ~ anyChar).rep0.string
+    repUntil0(anyChar, p).string
 
   /** parse one or more characters as long as they don't match p
     */
   def until(p: Parser0[Any]): Parser[String] =
-    (not(p).with1 ~ anyChar).rep.string
+    repUntil(anyChar, p).string
 
   /** parse zero or more times until Parser `end` succeeds.
     */
