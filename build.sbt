@@ -1,6 +1,11 @@
 import com.typesafe.tools.mima.core._
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import Dependencies._
+val scala211 = "2.11.12"
+val scala212 = "2.12.15"
+val scala213 = "2.13.8"
+val scala30 = "3.0.2"
+
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
@@ -10,7 +15,7 @@ ThisBuild / tlBaseVersion := "0.3"
 ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
-ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.15", "2.13.8")
+ThisBuild / crossScalaVersions := List(scala30, scala211, scala212, scala213)
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
 
 ThisBuild / githubWorkflowBuild := Seq(
@@ -28,7 +33,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "build-docs",
     name = "Build docs",
-    scalas = List("2.13.8"),
+    scalas = List(scala213),
     steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
       githubWorkflowJavaVersions.value.toList
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(WorkflowStep.Sbt(List("docs/mdoc")))
@@ -36,7 +41,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
-    scalas = List("2.13.8"),
+    scalas = List(scala213),
     steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
       githubWorkflowJavaVersions.value.toList
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
@@ -78,7 +83,7 @@ lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, core.native, bench)
   .enablePlugins(NoPublishPlugin)
-  .settings(scalaVersion := "2.13.8")
+  .settings(scalaVersion := scala213)
 
 lazy val docs = project
   .enablePlugins(
