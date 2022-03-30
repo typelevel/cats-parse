@@ -1,7 +1,11 @@
-import com.typesafe.tools.mima.core.ProblemFilters
-import com.typesafe.tools.mima.core.IncompatibleMethTypeProblem
-import com.typesafe.tools.mima.core.IncompatibleResultTypeProblem
-import com.typesafe.tools.mima.core.DirectMissingMethodProblem
+import com.typesafe.tools.mima.core.{
+  ProblemFilters,
+  IncompatibleMethTypeProblem,
+  IncompatibleResultTypeProblem,
+  DirectMissingMethodProblem,
+  MissingClassProblem
+}
+
 object MimaExclusionRules {
   val parserImpl = Seq(
     "cats.parse.Parser#Impl.mergeCharIn",
@@ -18,7 +22,11 @@ object MimaExclusionRules {
   ).map(ProblemFilters.exclude[IncompatibleResultTypeProblem](_)) ++ Seq(
     "cats.parse.Parser#Impl.mergeCharIn",
     "cats.parse.Parser#Impl.mergeStrIn"
-  ).map(ProblemFilters.exclude[DirectMissingMethodProblem](_))
+  ).map(ProblemFilters.exclude[DirectMissingMethodProblem](_)) ++ Seq(
+    "cats.parse.Parser$Impl$Rep0",
+    "cats.parse.Parser$Impl$Rep0$"
+  ).map(ProblemFilters.exclude[MissingClassProblem](_))
+
   // TODO: Remove these rules in future release.
   val bitSetUtil = Seq(
     "cats.parse.BitSetUtil.isSingleton",

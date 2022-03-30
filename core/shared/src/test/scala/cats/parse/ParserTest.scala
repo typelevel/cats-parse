@@ -624,6 +624,8 @@ class ParserTest extends munit.ScalaCheckSuite {
   // "Ova1uT18mkE4uTX4RdgQza6z70fxyv6micl4hIZvywP="
   // "YcGRsiTHa791rV5CIL4wYhWDofanqbYbvO418dbZnOK="
   // "6YoSspuNxqEoMosfi5J6wHgo4I4rD48Zg21XAnZtMcA="
+  // "r5r0ZxvvTt4dFXHGtn1BL4C05bo0sfk8XkFcVhpMlXH="
+  // "ZR3wyYYbvoeJ2-SQF9Kzu08i34qM2BRhCHUtjM7TImK="
 
   def parseTest[A: Eq](p: Parser0[A], str: String, a: A) =
     p.parse(str) match {
@@ -970,6 +972,70 @@ class ParserTest extends munit.ScalaCheckSuite {
     }
   }
 
+  def assertLeftMoreError[A](left: Either[Parser.Error, A], right: Either[Parser.Error, A]) =
+    (left, right) match {
+      case (Right(a), Right(b)) => assertEquals(a, b)
+      case (Left(ea), Left(eb)) =>
+        def makeMap(p: Parser.Error) =
+          p.expected.toList
+            // Fails are kinds of empty elements of merges since
+            // they are removed by unions
+            .filterNot(_.isInstanceOf[Parser.Expectation.Fail])
+            .groupBy(_.offset)
+
+        val aMap = makeMap(ea)
+        val bMap = makeMap(eb)
+
+        (aMap.keySet | bMap.keySet).foreach { offset =>
+          (aMap.get(offset), bMap.get(offset)) match {
+            case (Some(_), None) | (None, None) => () // left sees more
+            case (None, Some(err)) => fail(s"right at $offset failed with $err")
+            case (Some(lv), Some(rv)) =>
+              // the left set needs to be bigger
+              val charSetA = lv.toList
+                .collect { case Parser.Expectation.InRange(_, lower, upper) => (lower to upper) }
+                .flatten
+                .toSet
+              val stringSetA = lv.toList
+                .collect { case Parser.Expectation.OneOfStr(_, strs) => strs }
+                .flatten
+                .toSet
+              val notStringOrCharA = lv.toList.filter {
+                case Parser.Expectation.InRange(_, _, _) | Parser.Expectation.OneOfStr(_, _) =>
+                  false
+                case _ => true
+              }.toSet
+
+              val charSetB = rv.toList
+                .collect { case Parser.Expectation.InRange(_, lower, upper) => (lower to upper) }
+                .flatten
+                .toSet
+              val stringSetB = rv.toList
+                .collect { case Parser.Expectation.OneOfStr(_, strs) => strs }
+                .flatten
+                .toSet
+              val notStringOrCharB = rv.toList.filter {
+                case Parser.Expectation.Fail(_) | Parser.Expectation.InRange(_, _, _) |
+                    Parser.Expectation.OneOfStr(_, _) =>
+                  false
+                case _ => true
+              }.toSet
+
+              assert(charSetB.subsetOf(charSetA), s"charSetB = $charSetB charSetA = $charSetA")
+              assert(
+                stringSetB.subsetOf(stringSetA),
+                s"stringSetB = $stringSetB stringSetA = $stringSetA"
+              )
+              assert(
+                notStringOrCharB.subsetOf(notStringOrCharA),
+                s"notB = $notStringOrCharB notA = $notStringOrCharA"
+              )
+          }
+        }
+      case mismatch =>
+        fail(s"mismatch: $mismatch")
+    }
+
   property("a ~ b composes as expected") {
     forAll(ParserGen.gen0, ParserGen.gen0, genString) { (p1, p2, str) =>
       val composed = p1.fa ~ p2.fa
@@ -990,7 +1056,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
 
-      assertEquals(cres, sequence)
+      assertLeftMoreError(cres, sequence)
     }
   }
 
@@ -1015,7 +1081,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
 
-      assertEquals(cres, sequence)
+      assertLeftMoreError(cres, sequence)
     }
   }
 
@@ -1036,7 +1102,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
 
-      assertEquals(cres, sequence)
+      assertLeftMoreError(cres, sequence)
     }
   }
 
@@ -1060,7 +1126,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
 
-      assertEquals(cres, sequence)
+      assertLeftMoreError(cres, sequence)
     }
   }
 
@@ -1084,7 +1150,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
 
-      assertEquals(cres, sequence)
+      assertLeftMoreError(cres, sequence)
     }
   }
 
@@ -1108,7 +1174,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           (s2, a2) = pair2
         } yield (s2, (a1, a2))
 
-      assertEquals(cres, sequence)
+      assertLeftMoreError(cres, sequence)
     }
   }
 
@@ -1128,7 +1194,7 @@ class ParserTest extends munit.ScalaCheckSuite {
             padded.parse(str)
         }
 
-        assertEquals(indirect, directResult)
+        assertLeftMoreError(directResult, indirect)
       }
     }
   }
@@ -1174,7 +1240,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
         // make sure we have a Parser
         implicitly[flatMapped.type <:< Parser[Any]]
-        assertEquals(indirect, directResult)
+        assertLeftMoreError(directResult, indirect)
       }
     }
   }
@@ -1618,7 +1684,8 @@ class ParserTest extends munit.ScalaCheckSuite {
       val pa = genP1.fa.between(genP.fa, genQ.fa)
       val pb = genP.fa *> genP1.fa <* genQ.fa
 
-      assertEquals(pa.parse(str), pb.parse(str))
+      // between can be optimized at least as much as *> <*
+      assertLeftMoreError(pa.parse(str), pb.parse(str))
     }
   }
 
@@ -1690,7 +1757,8 @@ class ParserTest extends munit.ScalaCheckSuite {
       val pa = genP1.fa.with1.between(genP.fa, genQ.fa)
       val pb = genP.fa *> genP1.fa <* genQ.fa
 
-      assertEquals(pa.parse(str), pb.parse(str))
+      // between only has one map and can be optimized more
+      assertLeftMoreError(pa.parse(str), pb.parse(str))
     }
   }
 
@@ -1754,9 +1822,9 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll(ParserGen.gen0, ParserGen.gen0, genString) { (a, b, str) =>
       val left = a.fa.soft ~ b.fa
       val right = a.fa ~ b.fa
-      val leftRes = left.parse(str).leftMap(_.expected)
-      val rightRes = right.parse(str).leftMap(_.expected)
-      assertEquals(leftRes, rightRes)
+      val leftRes = left.parse(str)
+      val rightRes = right.parse(str)
+      assertEquals(leftRes.toOption, rightRes.toOption)
     }
   }
 
@@ -2210,10 +2278,22 @@ class ParserTest extends munit.ScalaCheckSuite {
   }
 
   property("select(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
-    forAll { (pa: Parser0[Int], pf: Parser0[Int => String], str: String) =>
+    val regressions: List[(Parser0[Int], Parser[Int => String], String)] =
+      (Parser.string("foo").?.as(1), Parser.char('a').as({ i: Int => i.toString }), "") ::
+        Nil
+
+    regressions.foreach { case (pa, pf, str) =>
       assertEquals(
         Parser.select0(pa.map(Left(_)))(pf).parse(str),
-        (pa, pf).mapN((a, f) => f(a)).parse(str)
+        (pa.with1 ~ pf).map { case (a, f) => f(a) }.parse(str)
+      )
+    }
+
+    forAll { (pa: Parser0[Int], pf: Parser0[Int => String], str: String) =>
+      assertLeftMoreError(
+        // we can optimize products at least as well as selects
+        (pa, pf).mapN((a, f) => f(a)).parse(str),
+        Parser.select0(pa.map(Left(_)))(pf).parse(str)
       )
     }
   }
@@ -2493,9 +2573,10 @@ class ParserTest extends munit.ScalaCheckSuite {
       val pb = b.fa
 
       val left = (pa.string ~ pb.string).map { case (a, b) => a + b }
+      // this can be better optimized than the above :(
       val right = (pa ~ pb).string
 
-      assertEquals(left.parse(toParse), right.parse(toParse))
+      assertLeftMoreError(right.parse(toParse), left.parse(toParse))
     }
   }
 
@@ -2507,7 +2588,11 @@ class ParserTest extends munit.ScalaCheckSuite {
       val left = (pa.string.soft ~ pb.string).map { case (a, b) => a + b }
       val right = (pa.soft ~ pb).string
 
-      assertEquals(left.parse(toParse), right.parse(toParse))
+      // right can be optimized more
+      assertLeftMoreError(
+        right.parse(toParse),
+        left.parse(toParse)
+      )
     }
   }
 
@@ -2833,6 +2918,107 @@ class ParserTest extends munit.ScalaCheckSuite {
     } &&
     forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, arbitrary[String]) { (a, b, c, str) =>
       law(a.fa, b.fa, c.fa, str)
+    }
+  }
+
+  property("oneOf0(as :+ unit) ~ b == (oneOf0(as).with1 ~ b) | (unit.with1 ~ b))") {
+    forAll { (as: List[Parser0[Unit]], b: Parser[Unit], str: String) =>
+      val left = Parser.oneOf0(as :+ Parser.unit).with1 ~ b
+      val right = (Parser.oneOf0(as).with1 ~ b) | (Parser.unit.with1 ~ b)
+
+      assertLeftMoreError(right.parse(str), left.parse(str))
+    }
+  }
+
+  property("a.? ~ b is the same as (a.map(Some(_)) ~ b) | (pure(None).with1 ~ b)") {
+    forAll(ParserGen.gen, ParserGen.gen, arbitrary[String]) { (a, b, str) =>
+      val left = a.fa.? ~ b.fa
+      val right = (a.fa.map(Some(_)) ~ b.fa) | (Parser.pure(None).with1 ~ b.fa)
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  test("check the issue #382 example: p1.? ~ p2 vs (p1 ~ p2) | p2") {
+    val p1 = Parser.char('a')
+    val p2 = Parser.char('z')
+
+    val p = p1.? ~ p2
+    val q = (p1 ~ p2) | p2
+
+    val err1 = p.parse("")
+    val err2 = q.parse("")
+
+    assertEquals(err1.void, err2.void)
+    assertEquals(
+      err2.leftMap(_.expected),
+      Left(
+        NonEmptyList.of(
+          Parser.Expectation.InRange(0, 'a', 'a'),
+          Parser.Expectation.InRange(0, 'z', 'z')
+        )
+      )
+    )
+  }
+
+  test("example: series of options: pa.? ~ pb.? ~ pc") {
+    val pa = Parser.char('a')
+    val pb = Parser.char('b')
+    val pc = Parser.char('c')
+
+    val left = pa.? ~ (pb.? ~ pc)
+    // (x.? ~ y.?) is (x + 1) * (y + 1) = xy + x + y + 1
+    //   => x(y + 1) + y + 1
+    val right = pa.? ~ pb.? ~ pc
+
+    val rr = right.parse("").void
+    assertEquals(left.parse("").void, rr)
+    assertEquals(
+      rr.leftMap(_.expected),
+      Left(
+        NonEmptyList.of(
+          Parser.Expectation.InRange(0, 'a', 'c')
+        )
+      )
+    )
+
+    val ra = right.parse("a").void
+    assertEquals(left.parse("a").void, ra)
+    assertEquals(
+      ra.leftMap(_.expected),
+      Left(
+        NonEmptyList.of(
+          Parser.Expectation.InRange(1, 'b', 'c')
+        )
+      )
+    )
+  }
+
+  property("gen: series of options: pa.? ~ pb.? ~ pc == pa.? ~ (pb.? ~ pc)") {
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, arbitrary[String]) { (pa, pb, pc, str) =>
+      val left = (pa.fa.? ~ pb.fa.?) ~ pc.fa
+      val right = pa.fa.? ~ (pb.fa.? ~ pc.fa)
+
+      assertEquals(left.parse(str).void, right.parse(str).void)
+    }
+  }
+
+  property("gen: series of options: pa.? ~ pb.? ~ pc.? ~ pd == pa.? ~ (pb.? ~ (pc.? ~ pd)") {
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, ParserGen.gen, arbitrary[String]) {
+      (pa, pb, pc, pd, str) =>
+        val left = ((pa.fa.? ~ pb.fa.?) ~ pc.fa.?) ~ pd.fa
+        val right = pa.fa.? ~ (pb.fa.? ~ (pc.fa.? ~ pd.fa))
+
+        assertEquals(left.parse(str).void, right.parse(str).void)
+    }
+  }
+
+  property("a.rep0 ~ b is the same as (a.repAs ~ b) | (pure(Nil).with1 ~ b)") {
+    forAll(ParserGen.gen, ParserGen.gen, arbitrary[String]) { (a, b, str) =>
+      val left = a.fa.rep0 ~ b.fa
+      val right = (a.fa.repAs[List[a.A]] ~ b.fa) | (Parser.pure(List.empty[a.A]).with1 ~ b.fa)
+
+      assertEquals(left.parse(str), right.parse(str))
     }
   }
 }
