@@ -28,7 +28,6 @@ class BitSetTest extends munit.ScalaCheckSuite {
   test("isScalaJs/isScalaJvm is consistent") {
     if (BitSetUtil.isScalaJs || BitSetUtil.isScalaJvm) {
       assert(!(BitSetUtil.isScalaJs && BitSetUtil.isScalaJvm))
-      assert(BitSetUtil.isScalaJs || BitSetUtil.isScalaJvm)
       assert(BitSetUtil.isScalaJs ^ BitSetUtil.isScalaJvm)
     }
   }
