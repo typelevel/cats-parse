@@ -750,10 +750,11 @@ object Parser {
         private val dq = "\""
         def show(expectation: Expectation): String = expectation match {
           case OneOfStr(_, strs: List[String]) => 
-            "one of: " + strs.map(s => dq + s + dq).mkString("[", ", ", "]")
+            "one of: " + strs.map(s => dq + s + dq).mkString("{", ", ", "}")
 
           case InRange(_, lower: Char, upper: Char) =>
-            s"in range: [$lower, $upper]"
+            if (lower != upper) s"in range: [$lower, $upper]"
+            else s"is: $lower"
 
           case StartOfString(_) =>
             "start of string"
@@ -868,7 +869,7 @@ object Parser {
       new Show[Error] {
         def show(error: Error): String = {
           val locationMap = new LocationMap(error.input)
-          val errorMsg = error.expected.map(_.show).toList.mkString("\n")
+          val errorMsg = error.expected.map(e => s"* ${e.show}").toList.mkString("\n")
 
           locationMap.toCaret(error.failedAtOffset).fold(errorMsg){ caret =>
             val lines = error.input.split('\n')
@@ -876,7 +877,7 @@ object Parser {
             val contextSize = 2
 
             val start = caret.line - contextSize
-            val end = caret.line + contextSize
+            val end = caret.line + 1 + contextSize
 
             val elipsis = "..."
 
