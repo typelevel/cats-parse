@@ -1,6 +1,5 @@
 package cats.parse
 
-
 import cats.implicits._
 
 import Parser._
@@ -8,21 +7,26 @@ import Numbers.digits
 
 class ErrorShowTest extends munit.ScalaCheckSuite {
 
-  def error(parser: Parser0[Any], input: String, expected: String)(implicit loc: munit.Location): Unit = {
+  def error(parser: Parser0[Any], input: String, expected: String)(implicit
+      loc: munit.Location
+  ): Unit = {
     test(input) {
-      parser.parseAll(input).fold(
-        e => assert(
-          e.show == expected,
-          s"""|obtained:
+      parser
+        .parseAll(input)
+        .fold(
+          e =>
+            assert(
+              e.show == expected,
+              s"""|obtained:
               |--------
               |${e.show}
               |--------
               |
               |expected:
               |$expected""".stripMargin
-        ),
-        _ => fail("should not parse")
-      )
+            ),
+          _ => fail("should not parse")
+        )
     }
   }
 
@@ -30,7 +34,6 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
   val nl = string("\n")
   val lx = string("l") ~ digits
   val lxOk = ((lx | ok) ~ nl)
-
 
   // # Expectations:
   // OneOfStr
@@ -52,7 +55,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |* is: c
        |* in range: [x, y]""".stripMargin
   )
-  
+
   // StartOfString
   error(
     ok ~ start,
@@ -87,7 +90,6 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     """|okidou
        |^
        |* failure at ok""".stripMargin
-
   )
 
   // Fail
@@ -117,7 +119,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |* ok, one of: {"ok"}
        |* lx, is: l""".stripMargin
   )
-  
+
   // Context
   error(
     lxOk.rep(9),
@@ -131,7 +133,6 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |l8
        |l9
        |""".stripMargin,
-
     """|...
        |l3
        |l4
@@ -144,13 +145,11 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |...""".stripMargin
   )
 
-
   error(
     lxOk.rep(3),
     """|l1
        |ko
        |l3""".stripMargin,
-
     """|l1
        |ko
        |^
@@ -163,7 +162,6 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     lxOk.rep(2),
     """|l1
        |ko""".stripMargin,
-
     """|l1
        |ko
        |^
@@ -175,7 +173,6 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     lxOk.rep(2),
     """|ko
        |l2""".stripMargin,
-
     """|ko
        |^
        |* one of: {"ok"}

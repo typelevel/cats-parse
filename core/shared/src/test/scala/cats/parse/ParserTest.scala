@@ -1330,7 +1330,9 @@ class ParserTest extends munit.ScalaCheckSuite {
         case Right((rest, _)) =>
           assertEquals(str, "")
           assertEquals(rest, "")
-        case Left(Parser.Error(str, 0, NonEmptyList(Parser.Expectation.EndOfString(off, len), Nil))) =>
+        case Left(
+              Parser.Error(str, 0, NonEmptyList(Parser.Expectation.EndOfString(off, len), Nil))
+            ) =>
           assertEquals(off, 0)
           assertEquals(len, str.length)
         case other =>

@@ -749,7 +749,7 @@ object Parser {
       new Show[Expectation] {
         private val dq = "\""
         def show(expectation: Expectation): String = expectation match {
-          case OneOfStr(_, strs: List[String]) => 
+          case OneOfStr(_, strs: List[String]) =>
             "one of: " + strs.map(s => dq + s + dq).mkString("{", ", ", "}")
 
           case InRange(_, lower: Char, upper: Char) =>
@@ -778,7 +778,6 @@ object Parser {
             s"$contextStr, ${show(expect)}"
         }
       }
-
 
     private def mergeInRange(irs: List[InRange]): List[InRange] = {
       @tailrec
@@ -871,7 +870,7 @@ object Parser {
           val locationMap = new LocationMap(error.input)
           val errorMsg = error.expected.map(e => s"* ${e.show}").toList.mkString("\n")
 
-          locationMap.toCaret(error.failedAtOffset).fold(errorMsg){ caret =>
+          locationMap.toCaret(error.failedAtOffset).fold(errorMsg) { caret =>
             val lines = error.input.split('\n')
 
             val contextSize = 2
@@ -885,14 +884,14 @@ object Parser {
               if (start <= 0) None
               else Some(elipsis)
 
-            val beforeContext: Option[String] = 
+            val beforeContext: Option[String] =
               Some(lines.slice(start, caret.line).mkString("\n")).filter(_.nonEmpty)
 
-            val line: Option[String] = 
+            val line: Option[String] =
               if (caret.line >= 0 && caret.line < lines.length) Some(lines(caret.line))
               else None
 
-            val afterContext: Option[String] = 
+            val afterContext: Option[String] =
               Some(lines.slice(caret.line + 1, end).mkString("\n")).filter(_.nonEmpty)
 
             val afterElipsis: Option[String] =
@@ -903,10 +902,10 @@ object Parser {
               beforeElipsis,
               beforeContext,
               line,
-              line.map{ _ => (1 to caret.col).map(_ => " ").mkString("") + "^"},
-              line.map{ _ => errorMsg },
+              line.map { _ => (1 to caret.col).map(_ => " ").mkString("") + "^" },
+              line.map { _ => errorMsg },
               afterContext,
-              afterElipsis,
+              afterElipsis
             ).flatten.mkString("\n")
           }
         }
