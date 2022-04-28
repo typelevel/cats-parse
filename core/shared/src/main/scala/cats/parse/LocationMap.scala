@@ -30,7 +30,7 @@ import java.util.Arrays
   */
 class LocationMap(val input: String) {
 
-  private[this] val lines: Array[String] =
+  private[parse] val lines: Array[String] =
     input.split("\n", -1)
 
   private[this] val endsWithNewLine: Boolean =

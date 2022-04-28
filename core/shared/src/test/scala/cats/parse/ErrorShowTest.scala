@@ -1,6 +1,8 @@
 package cats.parse
 
-import cats.implicits._
+import cats.implicits.toShow
+
+import org.scalacheck.Prop.forAll
 
 import Parser._
 import Numbers.digits
@@ -14,17 +16,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
       parser
         .parseAll(input)
         .fold(
-          e =>
-            assert(
-              e.show == expected,
-              s"""|obtained:
-              |--------
-              |${e.show}
-              |--------
-              |
-              |expected:
-              |$expected""".stripMargin
-            ),
+          e => assertEquals(e.show, expected),
           _ => fail("should not parse")
         )
     }
@@ -76,11 +68,11 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
 
   // Length
   error(
-    ok | length(2),
-    "aaaaaaaaaaaaaaaaaaa",
-    """|aaaaaaaaaaaaaaaaaaa
-       |  ^
-       |* end of string, length = 19""".stripMargin
+    length(2),
+    "a",
+    """|a
+       |^
+       |* length: expected = 2, actual = 1""".stripMargin
   ) // this does repport the correct error IMO
 
   // ExpectedFailureAt
@@ -179,4 +171,16 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |* is: l
        |l2""".stripMargin
   )
+
+  property("error show does not crash") {
+    import cats.implicits._
+    import ParserGen.{arbParser0, arbParser, arbString}
+
+    forAll { (p: Parser[Any], in: String) =>
+      p.parseAll(in) match {
+        case Right(_) => ()
+        case Left(err) => assert(err.show ne null)
+      }
+    }
+  }
 }
