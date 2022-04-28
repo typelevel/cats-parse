@@ -758,7 +758,7 @@ class ParserTest extends munit.ScalaCheckSuite {
               assertEquals(s.take(len), first)
               assertEquals(s.drop(len), rest)
             } else fail(s"expected to not parse: $rest, $first")
-          case Left(Parser.Error(0, NonEmptyList(Parser.Expectation.Length(off, l, a), Nil))) =>
+          case Left(Parser.Error(s, 0, NonEmptyList(Parser.Expectation.Length(off, l, a), Nil))) =>
             assertEquals(off, 0)
             assertEquals(l, len)
             assertEquals(a, s.length)
@@ -862,9 +862,9 @@ class ParserTest extends munit.ScalaCheckSuite {
                   case _ => true
                 }) match {
                   case None =>
-                    Parser.Error(0, NonEmptyList(Parser.Expectation.Fail(0), Nil))
+                    Parser.Error(str, 0, NonEmptyList(Parser.Expectation.Fail(0), Nil))
                   case Some(nel) =>
-                    Parser.Error(err1.failedAtOffset, Parser.Expectation.unify(nel))
+                    Parser.Error(str, err1.failedAtOffset, Parser.Expectation.unify(nel))
                 }
               } else err1
             }
@@ -1120,7 +1120,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           sfix = " " * off + s1
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
-            case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
+            case Parser.Error(sfix, fidx, errs) if (fidx == off) => Parser.Error(sfix, 0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -1144,7 +1144,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           sfix = " " * off + s1
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
-            case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
+            case Parser.Error(sfix, fidx, errs) if (fidx == off) => Parser.Error(sfix, 0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -1168,7 +1168,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           sfix = " " * off + s1
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
-            case Parser.Error(fidx, errs) if (fidx == off) => Parser.Error(0, errs)
+            case Parser.Error(sfix, fidx, errs) if (fidx == off) => Parser.Error(sfix, 0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -1247,7 +1247,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   test("range messages seem to work") {
     val pa = Parser.charIn('0' to '9')
-    assertEquals(pa.parse("z").toString, "Left(Error(0,NonEmptyList(InRange(0,0,9))))")
+    assertEquals(pa.parse("z").toString, "Left(Error(z,0,NonEmptyList(InRange(0,0,9))))")
   }
 
   test("partial parse fails in rep0") {
@@ -1330,7 +1330,7 @@ class ParserTest extends munit.ScalaCheckSuite {
         case Right((rest, _)) =>
           assertEquals(str, "")
           assertEquals(rest, "")
-        case Left(Parser.Error(0, NonEmptyList(Parser.Expectation.EndOfString(off, len), Nil))) =>
+        case Left(Parser.Error(str, 0, NonEmptyList(Parser.Expectation.EndOfString(off, len), Nil))) =>
           assertEquals(off, 0)
           assertEquals(len, str.length)
         case other =>
@@ -2067,7 +2067,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll { (str: String, mes: String) =>
       assertEquals(
         Parser.failWith(mes).parse(str),
-        Left(Parser.Error(0, NonEmptyList.of(Parser.Expectation.FailWith(0, mes))))
+        Left(Parser.Error(str, 0, NonEmptyList.of(Parser.Expectation.FailWith(0, mes))))
       )
     }
   }

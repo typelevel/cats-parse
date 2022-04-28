@@ -21,7 +21,7 @@
 
 package cats.parse
 
-import cats.{Eval, FunctorFilter, Monad, Defer, Alternative, FlatMap, Now, MonoidK, Order}
+import cats.{Eval, FunctorFilter, Monad, Defer, Alternative, FlatMap, Now, MonoidK, Order, Show}
 import cats.data.{AndThen, Chain, NonEmptyList}
 
 import cats.implicits._
@@ -72,6 +72,7 @@ sealed abstract class Parser0[+A] { self: Product =>
     else
       Left(
         Parser.Error(
+          str,
           offset,
           Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
         )
@@ -94,6 +95,7 @@ sealed abstract class Parser0[+A] { self: Product =>
       else
         Left(
           Parser.Error(
+            str,
             offset,
             NonEmptyList(Parser.Expectation.EndOfString(offset, str.length), Nil)
           )
@@ -101,6 +103,7 @@ sealed abstract class Parser0[+A] { self: Product =>
     } else
       Left(
         Parser.Error(
+          str,
           offset,
           Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
         )
@@ -742,6 +745,40 @@ object Parser {
         }
       }
 
+    implicit val catsShowExpectation: Show[Expectation] =
+      new Show[Expectation] {
+        private val dq = "\""
+        def show(expectation: Expectation): String = expectation match {
+          case OneOfStr(_, strs: List[String]) => 
+            "one of: " + strs.map(s => dq + s + dq).mkString("[", ", ", "]")
+
+          case InRange(_, lower: Char, upper: Char) =>
+            s"in range: [$lower, $upper]"
+
+          case StartOfString(_) =>
+            "start of string"
+
+          case EndOfString(_, length) =>
+            s"end of string, length = $length"
+
+          case Length(_, expected, actual) =>
+            s"length: expected = $expected, actual = $actual"
+
+          case ExpectedFailureAt(_, matched) =>
+            s"failure at $matched"
+
+          case Fail(_) =>
+            "fail"
+
+          case FailWith(_, message) =>
+            s"fail: $message"
+
+          case WithContext(contextStr: String, expect: Expectation) =>
+            s"$contextStr, ${show(expect)}"
+        }
+      }
+
+
     private def mergeInRange(irs: List[InRange]): List[InRange] = {
       @tailrec
       def merge(rs: List[InRange], aux: Chain[InRange] = Chain.empty): Chain[InRange] =
@@ -821,9 +858,58 @@ object Parser {
 
   /** Represents where a failure occurred and all the expectations that were broken
     */
-  final case class Error(failedAtOffset: Int, expected: NonEmptyList[Expectation]) {
+  final case class Error(input: String, failedAtOffset: Int, expected: NonEmptyList[Expectation]) {
     def offsets: NonEmptyList[Int] =
       expected.map(_.offset).distinct
+  }
+
+  object Error {
+    implicit val catsShowError: Show[Error] =
+      new Show[Error] {
+        def show(error: Error): String = {
+          val locationMap = new LocationMap(error.input)
+          val errorMsg = error.expected.map(_.show).toList.mkString("\n")
+
+          locationMap.toCaret(error.failedAtOffset).fold(errorMsg){ caret =>
+            val lines = error.input.split('\n')
+
+            val contextSize = 2
+
+            val start = caret.line - contextSize
+            val end = caret.line + contextSize
+
+            val elipsis = "..."
+
+            val beforeElipsis: Option[String] =
+              if (start <= 0) None
+              else Some(elipsis)
+
+            val beforeContext: Option[String] = 
+              Some(lines.slice(start, caret.line).mkString("\n")).filter(_.nonEmpty)
+
+            val line: Option[String] = 
+              if (caret.line >= 0 && caret.line < lines.length) Some(lines(caret.line))
+              else None
+
+            val afterContext: Option[String] = 
+              Some(lines.slice(caret.line + 1, end).mkString("\n")).filter(_.nonEmpty)
+
+            val afterElipsis: Option[String] =
+              if (end >= lines.length - 1) None
+              else Some(elipsis)
+
+            List(
+              beforeElipsis,
+              beforeContext,
+              line,
+              line.map{ _ => (1 to caret.col).map(_ => " ").mkString("") + "^"},
+              line.map{ _ => errorMsg },
+              afterContext,
+              afterElipsis,
+            ).flatten.mkString("\n")
+          }
+        }
+      }
   }
 
   /** Enables syntax to access product01, product and flatMap01 This helps us build Parser instances
