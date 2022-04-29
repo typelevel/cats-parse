@@ -864,9 +864,9 @@ class ParserTest extends munit.ScalaCheckSuite {
                   case _ => true
                 }) match {
                   case None =>
-                    Parser.ErrorWithInput(str, 0, NonEmptyList(Parser.Expectation.Fail(0), Nil))
+                    Parser.Error(str, 0, NonEmptyList(Parser.Expectation.Fail(0), Nil))
                   case Some(nel) =>
-                    Parser.ErrorWithInput(str, err1.failedAtOffset, Parser.Expectation.unify(nel))
+                    Parser.Error(str, err1.failedAtOffset, Parser.Expectation.unify(nel))
                 }
               } else err1
             }
@@ -1123,7 +1123,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser.ErrorWithInput(sfix, fidx, errs) if (fidx == off) =>
-              Parser.ErrorWithInput(sfix, 0, errs)
+              Parser.Error(sfix, 0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -1148,7 +1148,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser.ErrorWithInput(sfix, fidx, errs) if (fidx == off) =>
-              Parser.ErrorWithInput(sfix, 0, errs)
+              Parser.Error(sfix, 0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -1173,7 +1173,7 @@ class ParserTest extends munit.ScalaCheckSuite {
           p3 = (Parser.length0(off) ~ p2.fa).map(_._2)
           pair2 <- (p3.parse(sfix).leftMap {
             case Parser.ErrorWithInput(sfix, fidx, errs) if (fidx == off) =>
-              Parser.ErrorWithInput(sfix, 0, errs)
+              Parser.Error(sfix, 0, errs)
             case notEps2 => notEps2
           })
           (s2, a2) = pair2
@@ -2078,7 +2078,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll { (str: String, mes: String) =>
       assertEquals(
         Parser.failWith(mes).parse(str),
-        Left(Parser.ErrorWithInput(str, 0, NonEmptyList.of(Parser.Expectation.FailWith(0, mes))))
+        Left(Parser.Error(str, 0, NonEmptyList.of(Parser.Expectation.FailWith(0, mes))))
       )
     }
   }

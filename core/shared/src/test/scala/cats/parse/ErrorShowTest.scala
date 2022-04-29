@@ -174,9 +174,9 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
 
   property("error show does not crash") {
     import cats.implicits._
-    import ParserGen.{arbParser0, arbParser, arbString}
+    import ParserGen.{arbParser, arbString}
 
-    forAll { (p: Parser[Any], in: String) =>
+    forAll { (p: Parser[Unit], in: String) =>
       p.parseAll(in) match {
         case Right(_) => ()
         case Left(err) => assert(err.show ne null)

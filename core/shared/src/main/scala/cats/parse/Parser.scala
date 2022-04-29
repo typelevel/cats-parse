@@ -63,7 +63,7 @@ sealed abstract class Parser0[+A] { self: Product =>
     *
     * To require the entire input to be consumed, see `parseAll`.
     */
-  final def parse(str: String): Either[Parser.ErrorWithInput, (String, A)] = {
+  final def parse(str: String): Either[Parser.Error, (String, A)] = {
     val state = new Parser.State(str)
     val result = parseMut(state)
     val err = state.error
@@ -71,7 +71,7 @@ sealed abstract class Parser0[+A] { self: Product =>
     if (err eq null) Right((str.substring(offset), result))
     else
       Left(
-        Parser.ErrorWithInput(
+        Parser.Error(
           str,
           offset,
           Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
@@ -85,7 +85,7 @@ sealed abstract class Parser0[+A] { self: Product =>
     *
     * `p.parseAll(s)` is equivalent to `(p <* Parser.end).parse(s).map(_._2)`.
     */
-  final def parseAll(str: String): Either[Parser.ErrorWithInput, A] = {
+  final def parseAll(str: String): Either[Parser.Error, A] = {
     val state = new Parser.State(str)
     val result = parseMut(state)
     val err = state.error
@@ -94,7 +94,7 @@ sealed abstract class Parser0[+A] { self: Product =>
       if (offset == str.length) Right(result)
       else
         Left(
-          Parser.ErrorWithInput(
+          Parser.Error(
             str,
             offset,
             NonEmptyList(Parser.Expectation.EndOfString(offset, str.length), Nil)
@@ -102,7 +102,7 @@ sealed abstract class Parser0[+A] { self: Product =>
         )
     } else
       Left(
-        Parser.ErrorWithInput(
+        Parser.Error(
           str,
           offset,
           Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
@@ -858,15 +858,13 @@ object Parser {
 
   /** Represents where a failure occurred and all the expectations that were broken
     */
-  final class ErrorWithInput(
-      val input: String,
-      override val failedAtOffset: Int,
-      override val expected: NonEmptyList[Expectation]
-  ) extends Error(failedAtOffset, expected) {}
-
-  class Error(val failedAtOffset: Int, val expected: NonEmptyList[Expectation])
+  class Error(val input: Option[String], val failedAtOffset: Int, val expected: NonEmptyList[Expectation])
       extends Product
       with Serializable {
+
+    def this(failedAtOffset: Int, expected: NonEmptyList[Expectation]) =
+      this(None, failedAtOffset, expected)
+
     def offsets: NonEmptyList[Int] =
       expected.map(_.offset).distinct
 
@@ -887,7 +885,7 @@ object Parser {
     }
 
     override def productIterator: scala.collection.Iterator[Any] =
-      List(
+      List[Any](
         failedAtOffset,
         expected
       ).iterator
@@ -898,6 +896,7 @@ object Parser {
       import scala.runtime.Statics
       var i = -889275714
       i = Statics.mix(i, productPrefix.hashCode())
+      i = Statics.mix(i, Statics.anyHash(input))
       i = Statics.mix(i, failedAtOffset)
       i = Statics.mix(i, Statics.anyHash(expected))
       Statics.finalizeHash(i, 2)
@@ -906,6 +905,7 @@ object Parser {
     override def equals(x$1: Any): Boolean = {
       if (x$1.isInstanceOf[Error]) {
         val other = x$1.asInstanceOf[Error]
+        other.input == input &&
         other.failedAtOffset == failedAtOffset &&
         other.expected == expected
 
@@ -913,61 +913,72 @@ object Parser {
     }
   }
 
-  object Error extends Serializable {
-    def apply(failedAtOffset: Int, expected: NonEmptyList[Expectation]): Error =
-      new Error(failedAtOffset, expected)
-
-    def unapply(error: Error): Option[(Int, NonEmptyList[Expectation])] =
-      Some((error.failedAtOffset, error.expected))
+  object ErrorWithInput {
+    def unapply(error: Error): Option[(String, Int, NonEmptyList[Expectation])] =
+      error.input.map(input =>
+        (input, error.failedAtOffset, error.expected)
+      )
   }
 
-  object ErrorWithInput {
+  object Error extends Serializable {
+    def apply(failedAtOffset: Int, expected: NonEmptyList[Expectation]): Error =
+      new Error(None, failedAtOffset, expected)
 
-    implicit val catsShowError: Show[ErrorWithInput] =
-      new Show[ErrorWithInput] {
-        def show(errorWithInput: ErrorWithInput): String = {
+    def apply(input: String, failedAtOffset: Int, expected: NonEmptyList[Expectation]): Error =
+      new Error(Some(input), failedAtOffset, expected)
 
-          val locationMap = new LocationMap(errorWithInput.input)
-          def errorMsg = errorWithInput.expected.map(e => s"* ${e.show}").toList.mkString("\n")
+    def unapply(error: Error): Some[(Int, NonEmptyList[Expectation])] =
+      Some((error.failedAtOffset, error.expected))
 
-          locationMap.toCaret(errorWithInput.failedAtOffset) match {
-            case None => errorMsg
-            case Some(caret) => {
-              val lines = locationMap.lines
+    implicit val catsShowError: Show[Error] =
+      new Show[Error] {
+        def show(error: Error): String = {
+          error.input match {
+            case Some(input) => {
+              val locationMap = new LocationMap(input)
+              def errorMsg = error.expected.map(e => s"* ${e.show}").toList.mkString("\n")
 
-              val contextSize = 2
+              locationMap.toCaret(error.failedAtOffset) match {
+                case None => errorMsg
+                case Some(caret) => {
+                  val lines = locationMap.lines
 
-              val start = caret.line - contextSize
-              val end = caret.line + 1 + contextSize
+                  val contextSize = 2
 
-              val elipsis = "..."
+                  val start = caret.line - contextSize
+                  val end = caret.line + 1 + contextSize
 
-              val beforeElipsis =
-                if (start <= 0) None
-                else Some(elipsis)
+                  val elipsis = "..."
 
-              val beforeContext =
-                Some(lines.slice(start, caret.line).mkString("\n")).filter(_.nonEmpty)
+                  val beforeElipsis =
+                    if (start <= 0) None
+                    else Some(elipsis)
 
-              val line = lines(caret.line)
+                  val beforeContext =
+                    Some(lines.slice(start, caret.line).mkString("\n")).filter(_.nonEmpty)
 
-              val afterContext: Option[String] =
-                Some(lines.slice(caret.line + 1, end).mkString("\n")).filter(_.nonEmpty)
+                  val line = lines(caret.line)
 
-              val afterElipsis: Option[String] =
-                if (end >= lines.length - 1) None
-                else Some(elipsis)
+                  val afterContext: Option[String] =
+                    Some(lines.slice(caret.line + 1, end).mkString("\n")).filter(_.nonEmpty)
 
-              List(
-                beforeElipsis,
-                beforeContext,
-                Some(line),
-                Some((1 to caret.col).map(_ => " ").mkString("") + "^"),
-                Some(errorMsg),
-                afterContext,
-                afterElipsis
-              ).flatten.mkString("\n")
+                  val afterElipsis: Option[String] =
+                    if (end >= lines.length - 1) None
+                    else Some(elipsis)
+
+                  List(
+                    beforeElipsis,
+                    beforeContext,
+                    Some(line),
+                    Some((1 to caret.col).map(_ => " ").mkString("") + "^"),
+                    Some(errorMsg),
+                    afterContext,
+                    afterElipsis
+                  ).flatten.mkString("\n")
+                }
+              }
             }
+            case None => "no input"
           }
         }
       }
