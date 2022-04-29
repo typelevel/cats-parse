@@ -858,8 +858,11 @@ object Parser {
 
   /** Represents where a failure occurred and all the expectations that were broken
     */
-  class Error(val input: Option[String], val failedAtOffset: Int, val expected: NonEmptyList[Expectation])
-      extends Product
+  class Error(
+      val input: Option[String],
+      val failedAtOffset: Int,
+      val expected: NonEmptyList[Expectation]
+  ) extends Product
       with Serializable {
 
     def this(failedAtOffset: Int, expected: NonEmptyList[Expectation]) =
@@ -915,9 +918,7 @@ object Parser {
 
   object ErrorWithInput {
     def unapply(error: Error): Option[(String, Int, NonEmptyList[Expectation])] =
-      error.input.map(input =>
-        (input, error.failedAtOffset, error.expected)
-      )
+      error.input.map(input => (input, error.failedAtOffset, error.expected))
   }
 
   object Error extends Serializable {

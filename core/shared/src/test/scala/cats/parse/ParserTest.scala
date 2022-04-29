@@ -2290,7 +2290,7 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("select(pa.map(Left(_)))(pf) == (pa, pf).mapN((a, fn) => fn(a))") {
     val regressions: List[(Parser0[Int], Parser[Int => String], String)] =
-      (Parser.string("foo").?.as(1), Parser.char('a').as({ i: Int => i.toString }), "") ::
+      (Parser.string("foo").?.as(1), Parser.char('a').as({ (i: Int) => i.toString }), "") ::
         Nil
 
     regressions.foreach { case (pa, pf, str) =>
