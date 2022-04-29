@@ -43,9 +43,9 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     "ko",
     """|ko
        |^
-       |* is: a
-       |* is: c
-       |* in range: [x, y]""".stripMargin
+       |* is: 'a'
+       |* is: 'c'
+       |* in range: ['x', 'y']""".stripMargin
   )
 
   // StartOfString
@@ -86,11 +86,11 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
 
   // Fail
   error(
-    ok ~ failWith("ko"),
+    Fail,
     "ok",
     """|ok
-       |  ^
-       |* fail: ko""".stripMargin
+       |^
+       |* fail""".stripMargin
   )
 
   // FailWith
@@ -109,7 +109,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     """|ko
        |^
        |* ok, one of: {"ok"}
-       |* lx, is: l""".stripMargin
+       |* lx, is: 'l'""".stripMargin
   )
 
   // Context
@@ -131,7 +131,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |ko
        |^
        |* one of: {"ok"}
-       |* is: l
+       |* is: 'l'
        |l6
        |l7
        |...""".stripMargin
@@ -146,7 +146,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |ko
        |^
        |* one of: {"ok"}
-       |* is: l
+       |* is: 'l'
        |l3""".stripMargin
   )
 
@@ -158,7 +158,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |ko
        |^
        |* one of: {"ok"}
-       |* is: l""".stripMargin
+       |* is: 'l'""".stripMargin
   )
 
   error(
@@ -168,7 +168,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     """|ko
        |^
        |* one of: {"ok"}
-       |* is: l
+       |* is: 'l'
        |l2""".stripMargin
   )
 

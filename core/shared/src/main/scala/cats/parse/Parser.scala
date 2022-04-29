@@ -753,8 +753,8 @@ object Parser {
             "one of: " + strs.map(s => dq + s + dq).mkString("{", ", ", "}")
 
           case InRange(_, lower: Char, upper: Char) =>
-            if (lower != upper) s"in range: [$lower, $upper]"
-            else s"is: $lower"
+            if (lower != upper) s"in range: ['$lower', '$upper']"
+            else s"is: '$lower'"
 
           case StartOfString(_) =>
             "start of string"
