@@ -162,6 +162,10 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   )
   .nativeSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
+    mimaPreviousArtifacts := {
+      val isScala212 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 12))
+      if (isScala212) Set.empty else mimaPreviousArtifacts.value
+    },
     coverageEnabled := false
   )
 
