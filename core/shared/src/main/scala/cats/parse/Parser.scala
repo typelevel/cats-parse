@@ -750,7 +750,17 @@ object Parser {
         private val dq = "\""
         def show(expectation: Expectation): String = expectation match {
           case OneOfStr(_, strs: List[String]) =>
-            "must match one of the strings: " + strs.map(s => dq + s + dq).mkString("{", ", ", "}")
+            if (strs.lengthCompare(1) > 0) {
+              "must match one of the strings: " + strs.iterator
+                .map(s => dq + s + dq)
+                .mkString("{", ", ", "}")
+            } else {
+              if (strs.nonEmpty) {
+                "must match string: " + dq + strs.head + dq
+              } else {
+                "??? bug with Expectation.OneOfStr"
+              }
+            }
 
           case InRange(_, lower: Char, upper: Char) =>
             if (lower != upper) s"must be a char within the range of: ['$lower', '$upper']"
@@ -942,9 +952,9 @@ object Parser {
           val nl = "\n"
 
           def errorMsg = {
-            val expectations = error.expected.map(e => s"* ${e.show}").toList.mkString(nl)
+            val expectations = error.expected.toList.iterator.map(e => s"* ${e.show}").mkString(nl)
 
-            s"""|expectation${if (error.expected.length > 1) "s" else ""}:
+            s"""|expectation${if (error.expected.tail.nonEmpty) "s" else ""}:
                 |$expectations""".stripMargin
           }
 

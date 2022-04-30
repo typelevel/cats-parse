@@ -117,7 +117,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     """|ko
        |^
        |expectations:
-       |* context: using ok, must match one of the strings: {"ok"}
+       |* context: using ok, must match string: "ok"
        |* context: using lx, must be char: 'l'""".stripMargin
   )
 
@@ -140,7 +140,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |ko
        |^
        |expectations:
-       |* must match one of the strings: {"ok"}
+       |* must match string: "ok"
        |* must be char: 'l'
        |l6
        |l7
@@ -156,7 +156,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |ko
        |^
        |expectations:
-       |* must match one of the strings: {"ok"}
+       |* must match string: "ok"
        |* must be char: 'l'
        |l3""".stripMargin
   )
@@ -169,7 +169,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |ko
        |^
        |expectations:
-       |* must match one of the strings: {"ok"}
+       |* must match string: "ok"
        |* must be char: 'l'""".stripMargin
   )
 
@@ -180,7 +180,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     """|ko
        |^
        |expectations:
-       |* must match one of the strings: {"ok"}
+       |* must match string: "ok"
        |* must be char: 'l'
        |l2""".stripMargin
   )
@@ -193,7 +193,7 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
           val expected =
             """|at offset 0
                |expectation:
-               |* must match one of the strings: {"ok"}""".stripMargin
+               |* must match string: "ok"""".stripMargin
           assertEquals(Error(e.failedAtOffset, e.expected).show, expected)
         },
         _ => fail("should not parse")
