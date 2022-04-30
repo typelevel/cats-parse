@@ -34,7 +34,8 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     "ko",
     s"""|ko
         |^
-        |* one of: {"bar", "baz", "foo"}""".stripMargin
+        |expectation:
+        |* must match one of the strings: {"bar", "baz", "foo"}""".stripMargin
   )
 
   // InRange
@@ -43,9 +44,10 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     "ko",
     """|ko
        |^
-       |* is: 'a'
-       |* is: 'c'
-       |* in range: ['x', 'y']""".stripMargin
+       |expectations:
+       |* must be char: 'a'
+       |* must be char: 'c'
+       |* must be a char within the range of: ['x', 'y']""".stripMargin
   )
 
   // StartOfString
@@ -54,16 +56,18 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     "ok",
     """|ok
        |  ^
-       |* start of string""".stripMargin
+       |expectation:
+       |* must start the string""".stripMargin
   )
 
   // EndOfString
   error(
-    lx.repExactlyAs[Int](2),
-    "l1l2l3".stripMargin,
-    """|l1l2l3
-       |    ^
-       |* end of string, length = 6""".stripMargin
+    ok,
+    "okmore".stripMargin,
+    """|okmore
+       |  ^
+       |expectation:
+       |* must end the string""".stripMargin
   )
 
   // Length
@@ -72,8 +76,9 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     "a",
     """|a
        |^
-       |* length: expected = 2, actual = 1""".stripMargin
-  ) // this does repport the correct error IMO
+       |expectation:
+       |* must have a length of 2 but got a length of 1""".stripMargin
+  )
 
   // ExpectedFailureAt
   error(
@@ -81,7 +86,8 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     "okidou",
     """|okidou
        |^
-       |* failure at ok""".stripMargin
+       |expectation:
+       |* must fail but matched with ok""".stripMargin
   )
 
   // Fail
@@ -90,7 +96,8 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     "ok",
     """|ok
        |^
-       |* fail""".stripMargin
+       |expectation:
+       |* must fail""".stripMargin
   )
 
   // FailWith
@@ -99,17 +106,19 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     "ok",
     """|ok
        |^
-       |* fail: error msg""".stripMargin
+       |expectation:
+       |* must fail: error msg""".stripMargin
   )
 
   // WithContext
   error(
-    withContext0(ok, "ok") | withContext0(lx, "lx"),
+    withContext0(ok, "using ok") | withContext0(lx, "using lx"),
     "ko",
     """|ko
        |^
-       |* ok, one of: {"ok"}
-       |* lx, is: 'l'""".stripMargin
+       |expectations:
+       |* context: using ok, must match one of the strings: {"ok"}
+       |* context: using lx, must be char: 'l'""".stripMargin
   )
 
   // Context
@@ -130,8 +139,9 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |l4
        |ko
        |^
-       |* one of: {"ok"}
-       |* is: 'l'
+       |expectations:
+       |* must match one of the strings: {"ok"}
+       |* must be char: 'l'
        |l6
        |l7
        |...""".stripMargin
@@ -145,8 +155,9 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     """|l1
        |ko
        |^
-       |* one of: {"ok"}
-       |* is: 'l'
+       |expectations:
+       |* must match one of the strings: {"ok"}
+       |* must be char: 'l'
        |l3""".stripMargin
   )
 
@@ -157,8 +168,9 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     """|l1
        |ko
        |^
-       |* one of: {"ok"}
-       |* is: 'l'""".stripMargin
+       |expectations:
+       |* must match one of the strings: {"ok"}
+       |* must be char: 'l'""".stripMargin
   )
 
   error(
@@ -167,10 +179,26 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
        |l2""".stripMargin,
     """|ko
        |^
-       |* one of: {"ok"}
-       |* is: 'l'
+       |expectations:
+       |* must match one of the strings: {"ok"}
+       |* must be char: 'l'
        |l2""".stripMargin
   )
+
+  test("without input") {
+    ok
+      .parseAll("ko")
+      .fold(
+        e => {
+          val expected =
+            """|at offset 0
+               |expectation:
+               |* must match one of the strings: {"ok"}""".stripMargin
+          assertEquals(Error(e.failedAtOffset, e.expected).show, expected)
+        },
+        _ => fail("should not parse")
+      )
+  }
 
   property("error show does not crash") {
     import cats.implicits._

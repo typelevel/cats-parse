@@ -750,32 +750,32 @@ object Parser {
         private val dq = "\""
         def show(expectation: Expectation): String = expectation match {
           case OneOfStr(_, strs: List[String]) =>
-            "one of: " + strs.map(s => dq + s + dq).mkString("{", ", ", "}")
+            "must match one of the strings: " + strs.map(s => dq + s + dq).mkString("{", ", ", "}")
 
           case InRange(_, lower: Char, upper: Char) =>
-            if (lower != upper) s"in range: ['$lower', '$upper']"
-            else s"is: '$lower'"
+            if (lower != upper) s"must be a char within the range of: ['$lower', '$upper']"
+            else s"must be char: '$lower'"
 
           case StartOfString(_) =>
-            "start of string"
+            "must start the string"
 
-          case EndOfString(_, length) =>
-            s"end of string, length = $length"
+          case EndOfString(_, _) =>
+            s"must end the string"
 
           case Length(_, expected, actual) =>
-            s"length: expected = $expected, actual = $actual"
+            s"must have a length of $expected but got a length of $actual"
 
           case ExpectedFailureAt(_, matched) =>
-            s"failure at $matched"
+            s"must fail but matched with $matched"
 
           case Fail(_) =>
-            "fail"
+            "must fail"
 
           case FailWith(_, message) =>
-            s"fail: $message"
+            s"must fail: $message"
 
           case WithContext(contextStr: String, expect: Expectation) =>
-            s"$contextStr, ${show(expect)}"
+            s"context: $contextStr, ${show(expect)}"
         }
       }
 
@@ -865,6 +865,9 @@ object Parser {
   ) extends Product
       with Serializable {
 
+    def _1: Int = failedAtOffset
+    def _2: NonEmptyList[Expectation] = expected
+
     def this(failedAtOffset: Int, expected: NonEmptyList[Expectation]) =
       this(None, failedAtOffset, expected)
 
@@ -921,23 +924,33 @@ object Parser {
       error.input.map(input => (input, error.failedAtOffset, error.expected))
   }
 
-  object Error extends Serializable {
+  object Error
+      extends scala.runtime.AbstractFunction2[Int, NonEmptyList[Expectation], Error]
+      with Serializable {
     def apply(failedAtOffset: Int, expected: NonEmptyList[Expectation]): Error =
       new Error(None, failedAtOffset, expected)
 
     def apply(input: String, failedAtOffset: Int, expected: NonEmptyList[Expectation]): Error =
       new Error(Some(input), failedAtOffset, expected)
 
-    def unapply(error: Error): Some[(Int, NonEmptyList[Expectation])] =
+    def unapply(error: Error): Option[(Int, NonEmptyList[Expectation])] =
       Some((error.failedAtOffset, error.expected))
 
     implicit val catsShowError: Show[Error] =
       new Show[Error] {
         def show(error: Error): String = {
+          val nl = "\n"
+
+          def errorMsg = {
+            val expectations = error.expected.map(e => s"* ${e.show}").toList.mkString(nl)
+
+            s"""|expectation${if (error.expected.length > 1) "s" else ""}:
+                |$expectations""".stripMargin
+          }
+
           error.input match {
             case Some(input) => {
               val locationMap = new LocationMap(input)
-              def errorMsg = error.expected.map(e => s"* ${e.show}").toList.mkString("\n")
 
               locationMap.toCaret(error.failedAtOffset) match {
                 case None => errorMsg
@@ -956,12 +969,12 @@ object Parser {
                     else Some(elipsis)
 
                   val beforeContext =
-                    Some(lines.slice(start, caret.line).mkString("\n")).filter(_.nonEmpty)
+                    Some(lines.slice(start, caret.line).mkString(nl)).filter(_.nonEmpty)
 
                   val line = lines(caret.line)
 
                   val afterContext: Option[String] =
-                    Some(lines.slice(caret.line + 1, end).mkString("\n")).filter(_.nonEmpty)
+                    Some(lines.slice(caret.line + 1, end).mkString(nl)).filter(_.nonEmpty)
 
                   val afterElipsis: Option[String] =
                     if (end >= lines.length - 1) None
@@ -975,11 +988,14 @@ object Parser {
                     Some(errorMsg),
                     afterContext,
                     afterElipsis
-                  ).flatten.mkString("\n")
+                  ).flatten.mkString(nl)
                 }
               }
             }
-            case None => "no input"
+            case None => {
+              s"""|at offset ${error.failedAtOffset}
+                  |$errorMsg""".stripMargin
+            }
           }
         }
       }

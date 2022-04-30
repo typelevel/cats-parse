@@ -149,6 +149,14 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
           ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error")
         )
       else Nil
+    } ++ {
+      if (tlIsScala3.value)
+        List(
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Error.fromProduct"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Error.unapply"),
+          ProblemFilters.exclude[MissingTypesProblem]("cats.parse.Parser$Error$")
+        )
+      else Nil
     } ++ MimaExclusionRules.parserImpl ++ MimaExclusionRules.bitSetUtil
   )
   .jsSettings(
