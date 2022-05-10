@@ -277,7 +277,7 @@ p.parse(" 1")
 `Parser.Error` contains two parameters:
 
 ```scala
-final case class Error(failedAtOffset: Int, expected: NonEmptyList[Expectation])
+final case class Error(input: String, failedAtOffset: Int, expected: NonEmptyList[Expectation])
 
 case class InRange(offset: Int, lower: Char, upper: Char) extends Expectation
 ```

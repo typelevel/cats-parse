@@ -146,7 +146,10 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
           ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode"),
           ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_="),
           ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.RadixNode.this"),
-          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error")
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Error.fromProduct"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Error.unapply"),
+          ProblemFilters.exclude[MissingTypesProblem]("cats.parse.Parser$Error$")
         )
       else Nil
     } ++ MimaExclusionRules.parserImpl ++ MimaExclusionRules.bitSetUtil
