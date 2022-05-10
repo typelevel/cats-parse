@@ -149,7 +149,7 @@ typelevel/cats-parse
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.3.7-6-e31eb11*
+<i class="md-icon" title="Version">label_outline</i> 0.3.7-7-74f08bf*
 </label>
 </li>
 </ul>
@@ -200,7 +200,7 @@ libraryDependencies += &quot;org.typelevel&quot; %%% &quot;cats-parse&quot; % &q
 <p>The library provides a set of simple parsers which might be combined to create any parsing logic. The simplest parser is <code>Parser.anyChar</code> which is successful where there is one char at the input. It has type <code>Parser[Char]</code> which means it returns one parsed char.</p>
 <p>To provide any input to parser one need to use <code>parse</code> method.</p>
 <p>```scala import cats.parse.Parser</p>
-<p>val p: Parser[Char] = Parser.anyChar // p: Parser[Char] = AnyChar</p>p.parse(&ldquo;t&rdquo;) // res1: Either[Parser.Error, (String, Char)] = Right(value = (&quot;&ldquo;, &lsquo;t&rsquo;)) // res0: Either[Error, Tuple2[String, Char]] = Right((,t)) p.parse(&rdquo;&quot;) // res2: Either[Parser.Error, (String, Char)] = Left( // value = Error( // failedAtOffset = 0, // expected = NonEmptyList( // head = InRange(offset = 0, lower = &lsquo;\u0000&rsquo;, upper = &rsquo;
+<p>val p: Parser[Char] = Parser.anyChar // p: Parser[Char] = AnyChar</p>p.parse(&ldquo;t&rdquo;) // res1: Either[Parser.Error, (String, Char)] = Right(value = (&quot;&ldquo;, &lsquo;t&rsquo;)) // res0: Either[Error, Tuple2[String, Char]] = Right((,t)) p.parse(&rdquo;&quot;) // res2: Either[Parser.Error, (String, Char)] = Left( // value = Error( // = 0, // = NonEmptyList( // head = InRange(offset = 0, lower = &lsquo;\u0000&rsquo;, upper = &rsquo;
 </div>
 <div>
 <a href="https://github.com/typelevel/cats-parse/tree/master/docs/target/mdoc/index.md" title="Edit this page" class="md-source-file md-edit">
@@ -209,7 +209,7 @@ Edit this page
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.3.7-6-e31eb11*
+0.3.7-7-74f08bf*
 </span>
 </div>
 </article>
