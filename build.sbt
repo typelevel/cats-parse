@@ -10,7 +10,7 @@ ThisBuild / tlBaseVersion := "0.3"
 ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
-ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.15", "2.13.8")
+ThisBuild / crossScalaVersions := List("3.1.2", "2.11.12", "2.12.15", "2.13.8")
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
 
 ThisBuild / githubWorkflowBuild := Seq(
@@ -74,6 +74,15 @@ lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
   case _ => Def.settings()
 }
 
+lazy val publishSettings = Def.settings {
+  scalaOutputVersion := {
+    CrossVersion.partialVersion((scalaVersion).value) match {
+      case Some((3, _)) => "3.0.2"
+      case _ => scalaVersion.value
+    }
+  }
+}
+
 lazy val root = project
   .in(file("."))
   .aggregate(core.jvm, core.js, bench)
@@ -110,6 +119,7 @@ lazy val docs = project
 
 lazy val core = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
+  .settings(publishSettings)
   .settings(
     name := "cats-parse",
     tlFatalWarningsInCi := !tlIsScala3.value,
