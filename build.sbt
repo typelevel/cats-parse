@@ -10,7 +10,7 @@ ThisBuild / tlBaseVersion := "0.3"
 ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
-ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.15", "2.13.8")
+ThisBuild / crossScalaVersions := List("3.1.2", "2.11.12", "2.12.15", "2.13.8")
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
 
 ThisBuild / githubWorkflowBuild := Seq(
