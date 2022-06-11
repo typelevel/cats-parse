@@ -1,8 +1,7 @@
 import com.typesafe.tools.mima.core._
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import Dependencies._
 val scala211 = "2.11.12"
-val scala212 = "2.12.15"
+val scala212 = "2.12.16"
 val scala213 = "2.13.8"
 val scala31 = "3.1.2"
 
@@ -16,28 +15,11 @@ ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
 ThisBuild / crossScalaVersions := List(scala31, scala211, scala212, scala213)
-ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
 
-ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Run(
-    List(
-      """sbt ++${{ matrix.scala }} fmtCheck \
-        |    "++${{ matrix.scala }} test" \
-        |    "++${{ matrix.scala }} doc" \
-        |    "++${{ matrix.scala }} mimaReportBinaryIssues"""".stripMargin
-    )
-  )
-)
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
+ThisBuild / tlSkipIrrelevantScalas := true
 
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
-  WorkflowJob(
-    id = "build-docs",
-    name = "Build docs",
-    scalas = List(scala213),
-    steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
-      githubWorkflowJavaVersions.value.toList
-    ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(WorkflowStep.Sbt(List("docs/mdoc")))
-  ),
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
@@ -51,67 +33,16 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   )
 )
 
-ThisBuild / githubWorkflowPublish ++= Seq(
-  WorkflowStep.Sbt(List("docs/makeSite")),
-  WorkflowStep.Use(
-    UseRef.Public("JamesIves", "github-pages-deploy-action", "3.7.1"),
-    params = Map(
-      "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
-      "BRANCH" -> "gh-pages",
-      "FOLDER" -> "docs/target/site"
-    )
-  )
-)
+ThisBuild / licenses := List(License.MIT)
 
-ThisBuild / licenses := List(("MIT", url("http://opensource.org/licenses/MIT")))
+lazy val root = tlCrossRootProject.aggregate(core, bench)
 
-lazy val jvmVersionSettings = VersionNumber(sys.props("java.version")) match {
-  case v if v.matchesSemVer(SemanticSelector(">1.8")) =>
-    Def.settings(
-      scalacOptions ++= {
-        val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
-        if (isScala211) List("-target:jvm-1.8") else List("-release", "8")
-      },
-      // Suppresses problems with Scaladoc @throws links
-      Compile / doc / scalacOptions ++= Seq("-no-link-warnings"),
-      javacOptions ++= Seq("--release", "8")
-    )
-  case _ => Def.settings()
+lazy val docs =
+  project.in(file("site")).enablePlugins(TypelevelSitePlugin).dependsOn(core.jvm, bench)
+
+lazy val isScala211 = Def.setting {
+  scalaBinaryVersion.value == "2.11"
 }
-
-lazy val root = project
-  .in(file("."))
-  .aggregate(core.jvm, core.js, core.native, bench)
-  .enablePlugins(NoPublishPlugin)
-  .settings(scalaVersion := scala213)
-
-lazy val docs = project
-  .enablePlugins(
-    ParadoxSitePlugin,
-    ParadoxMaterialThemePlugin,
-    MdocPlugin,
-    NoPublishPlugin,
-    GhpagesPlugin
-  )
-  .settings(jvmVersionSettings)
-  .settings(
-    name := "paradox-docs",
-    libraryDependencies += jawnAst,
-    Compile / paradoxProperties ++= Map(
-      "empty" -> "",
-      "version" -> version.value
-    ),
-    git.remoteRepo := "git@github.com:typelevel/cats-parse.git",
-    mdocIn := (Compile / baseDirectory).value / "src",
-    Compile / paradox / sourceDirectory := mdocOut.value,
-    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value,
-    Compile / paradoxMaterialTheme := ParadoxMaterialTheme()
-      .withColor("red", "orange")
-      .withFont("Ubuntu", "Ubuntu Mono")
-      .withCopyright("Copyright (c) 2020 Typelevel")
-      .withRepository(uri("https://github.com/typelevel/cats-parse"))
-  )
-  .dependsOn(coreJVM, bench)
 
 lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .crossType(CrossType.Full)
@@ -130,13 +61,11 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
       )
     },
     scalacOptions ++= {
-      val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
       // this code seems to trigger a bug in 2.11 pattern analysis
-      if (isScala211) List("-Xno-patmat-analysis") else Nil
+      if (isScala211.value) List("-Xno-patmat-analysis") else Nil
     },
     mimaPreviousArtifacts := {
-      val isScala211 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 11))
-      if (isScala211) Set.empty else mimaPreviousArtifacts.value
+      if (isScala211.value) Set.empty else mimaPreviousArtifacts.value
     },
     mimaBinaryIssueFilters ++= {
       /*
@@ -144,14 +73,11 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
        */
       if (tlIsScala3.value)
         List(
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.children"),
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.fsts"),
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.prefixes"),
-          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.RadixNode.word"),
-          ProblemFilters.exclude[FinalClassProblem]("cats.parse.RadixNode"),
-          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.Parser#State.error_="),
-          ProblemFilters.exclude[IncompatibleMethTypeProblem]("cats.parse.RadixNode.this"),
-          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#State.error")
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Error.fromProduct"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Error.unapply"),
+          ProblemFilters.exclude[MissingTypesProblem]("cats.parse.Parser$Error$"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Error.unapply"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Error.fromProduct")
         )
       else Nil
     } ++ MimaExclusionRules.parserImpl ++ MimaExclusionRules.bitSetUtil
@@ -161,17 +87,21 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
     coverageEnabled := false
   )
   .nativeSettings(
+    resolvers ++= Seq(
+      "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+      "Sonatype OSS Snapshots s01" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
+    ),
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
-    mimaPreviousArtifacts := {
-      val isScala212 = CrossVersion.partialVersion(scalaVersion.value).contains((2, 12))
-      if (isScala212) Set.empty else mimaPreviousArtifacts.value
+    mimaPreviousArtifacts := Set.empty,
+    libraryDependencies := {
+      if (scalaVersion.value.startsWith("3.1")) {
+        libraryDependencies.value.filterNot(_ == Dependencies.cats) ++ Seq(
+          Dependencies.catsSnapshot.value
+        )
+      } else { libraryDependencies.value }
     },
     coverageEnabled := false
   )
-
-lazy val coreJVM = core.jvm.settings(jvmVersionSettings)
-lazy val coreJS = core.js
-lazy val coreNative = core.native
 
 lazy val bench = project
   .enablePlugins(JmhPlugin, NoPublishPlugin)
@@ -191,4 +121,4 @@ lazy val bench = project
       ),
     githubWorkflowArtifactUpload := false
   )
-  .dependsOn(coreJVM)
+  .dependsOn(core.jvm)

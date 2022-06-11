@@ -21,7 +21,7 @@
 
 package cats.parse
 
-import cats.{Eval, FunctorFilter, Monad, Defer, Alternative, FlatMap, Now, MonoidK, Order}
+import cats.{Eval, FunctorFilter, Monad, Defer, Alternative, FlatMap, Now, MonoidK, Order, Show}
 import cats.data.{AndThen, Chain, NonEmptyList}
 
 import cats.implicits._
@@ -72,6 +72,7 @@ sealed abstract class Parser0[+A] { self: Product =>
     else
       Left(
         Parser.Error(
+          str,
           offset,
           Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
         )
@@ -94,6 +95,7 @@ sealed abstract class Parser0[+A] { self: Product =>
       else
         Left(
           Parser.Error(
+            str,
             offset,
             NonEmptyList(Parser.Expectation.EndOfString(offset, str.length), Nil)
           )
@@ -101,6 +103,7 @@ sealed abstract class Parser0[+A] { self: Product =>
     } else
       Left(
         Parser.Error(
+          str,
           offset,
           Parser.Expectation.unify(NonEmptyList.fromListUnsafe(err.value.toList))
         )
@@ -742,6 +745,50 @@ object Parser {
         }
       }
 
+    implicit val catsShowExpectation: Show[Expectation] =
+      new Show[Expectation] {
+        private val dq = "\""
+        def show(expectation: Expectation): String = expectation match {
+          case OneOfStr(_, strs: List[String]) =>
+            if (strs.lengthCompare(1) > 0) {
+              "must match one of the strings: " + strs.iterator
+                .map(s => dq + s + dq)
+                .mkString("{", ", ", "}")
+            } else {
+              if (strs.nonEmpty) {
+                "must match string: " + dq + strs.head + dq
+              } else {
+                "??? bug with Expectation.OneOfStr"
+              }
+            }
+
+          case InRange(_, lower: Char, upper: Char) =>
+            if (lower != upper) s"must be a char within the range of: ['$lower', '$upper']"
+            else s"must be char: '$lower'"
+
+          case StartOfString(_) =>
+            "must start the string"
+
+          case EndOfString(_, _) =>
+            s"must end the string"
+
+          case Length(_, expected, actual) =>
+            s"must have a length of $expected but got a length of $actual"
+
+          case ExpectedFailureAt(_, matched) =>
+            s"must fail but matched with $matched"
+
+          case Fail(_) =>
+            "must fail"
+
+          case FailWith(_, message) =>
+            s"must fail: $message"
+
+          case WithContext(contextStr: String, expect: Expectation) =>
+            s"context: $contextStr, ${show(expect)}"
+        }
+      }
+
     private def mergeInRange(irs: List[InRange]): List[InRange] = {
       @tailrec
       def merge(rs: List[InRange], aux: Chain[InRange] = Chain.empty): Chain[InRange] =
@@ -821,9 +868,147 @@ object Parser {
 
   /** Represents where a failure occurred and all the expectations that were broken
     */
-  final case class Error(failedAtOffset: Int, expected: NonEmptyList[Expectation]) {
+  class Error(
+      val input: Option[String],
+      val failedAtOffset: Int,
+      val expected: NonEmptyList[Expectation]
+  ) extends Product
+      with Serializable {
+
+    def _1: Int = failedAtOffset
+    def _2: NonEmptyList[Expectation] = expected
+
+    def this(failedAtOffset: Int, expected: NonEmptyList[Expectation]) =
+      this(None, failedAtOffset, expected)
+
     def offsets: NonEmptyList[Int] =
       expected.map(_.offset).distinct
+
+    def copy(
+        failedAtOffset: Int = this.failedAtOffset,
+        expected: NonEmptyList[Expectation] = this.expected
+    ): Error =
+      new Error(failedAtOffset, expected)
+
+    override def productPrefix: String = "Error"
+    def productArity: Int = 2
+    def productElement(x$1: Int): Any = {
+      x$1 match {
+        case 0 => failedAtOffset
+        case 1 => expected
+        case _ => throw new java.lang.IndexOutOfBoundsException(x$1.toString)
+      }
+    }
+
+    override def productIterator: scala.collection.Iterator[Any] =
+      List[Any](
+        failedAtOffset,
+        expected
+      ).iterator
+
+    def canEqual(x$1: scala.Any): Boolean = x$1.isInstanceOf[Error]
+
+    override def hashCode(): scala.Int = {
+      import scala.runtime.Statics
+      var i = -889275714
+      i = Statics.mix(i, productPrefix.hashCode())
+      i = Statics.mix(i, Statics.anyHash(input))
+      i = Statics.mix(i, failedAtOffset)
+      i = Statics.mix(i, Statics.anyHash(expected))
+      Statics.finalizeHash(i, 2)
+    }
+    override def toString(): String = s"Error($failedAtOffset, $expected)"
+    override def equals(x$1: Any): Boolean = {
+      if (x$1.isInstanceOf[Error]) {
+        val other = x$1.asInstanceOf[Error]
+        other.input == input &&
+        other.failedAtOffset == failedAtOffset &&
+        other.expected == expected
+
+      } else false
+    }
+  }
+
+  object ErrorWithInput {
+    def unapply(error: Error): Option[(String, Int, NonEmptyList[Expectation])] =
+      error.input.map(input => (input, error.failedAtOffset, error.expected))
+  }
+
+  object Error
+      extends scala.runtime.AbstractFunction2[Int, NonEmptyList[Expectation], Error]
+      with Serializable {
+    def apply(failedAtOffset: Int, expected: NonEmptyList[Expectation]): Error =
+      new Error(None, failedAtOffset, expected)
+
+    def apply(input: String, failedAtOffset: Int, expected: NonEmptyList[Expectation]): Error =
+      new Error(Some(input), failedAtOffset, expected)
+
+    def unapply(error: Error): Option[(Int, NonEmptyList[Expectation])] =
+      Some((error.failedAtOffset, error.expected))
+
+    implicit val catsShowError: Show[Error] =
+      new Show[Error] {
+        def show(error: Error): String = {
+          val nl = "\n"
+
+          def errorMsg = {
+            val expectations = error.expected.toList.iterator.map(e => s"* ${e.show}").mkString(nl)
+
+            s"""|expectation${if (error.expected.tail.nonEmpty) "s" else ""}:
+                |$expectations""".stripMargin
+          }
+
+          error.input match {
+            case Some(input) => {
+              val locationMap = new LocationMap(input)
+
+              locationMap.toCaret(error.failedAtOffset) match {
+                case None => errorMsg
+                case Some(caret) => {
+                  val lines = locationMap.lines
+
+                  val contextSize = 2
+
+                  val start = caret.line - contextSize
+                  val end = caret.line + 1 + contextSize
+
+                  val elipsis = "..."
+
+                  val beforeElipsis =
+                    if (start <= 0) None
+                    else Some(elipsis)
+
+                  val beforeContext =
+                    Some(lines.slice(start, caret.line).mkString(nl)).filter(_.nonEmpty)
+
+                  val line = lines(caret.line)
+
+                  val afterContext: Option[String] =
+                    Some(lines.slice(caret.line + 1, end).mkString(nl)).filter(_.nonEmpty)
+
+                  val afterElipsis: Option[String] =
+                    if (end >= lines.length - 1) None
+                    else Some(elipsis)
+
+                  List(
+                    beforeElipsis,
+                    beforeContext,
+                    Some(line),
+                    Some((1 to caret.col).map(_ => " ").mkString("") + "^"),
+                    Some(errorMsg),
+                    afterContext,
+                    afterElipsis
+                  ).flatten.mkString(nl)
+                }
+              }
+            }
+            case None => {
+              s"""|at offset ${error.failedAtOffset}
+                  |$errorMsg""".stripMargin
+            }
+          }
+        }
+      }
   }
 
   /** Enables syntax to access product01, product and flatMap01 This helps us build Parser instances

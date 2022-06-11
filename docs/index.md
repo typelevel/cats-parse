@@ -4,17 +4,17 @@
 
 A parsing library for the cats ecosystem.
 
-To use in sbt add, the following to your `libraryDependencies`: 
+To use in sbt add, the following to your `libraryDependencies`:
 
 ```scala
 // use this snippet for the JVM
-libraryDependencies += "org.typelevel" %% "cats-parse" % "0.3.6"
+libraryDependencies += "org.typelevel" %% "cats-parse" % "0.3.7"
 
 // use this snippet for JS, or cross-building
-libraryDependencies += "org.typelevel" %%% "cats-parse" % "0.3.6"
+libraryDependencies += "org.typelevel" %%% "cats-parse" % "0.3.7"
 ```
 
-The [API docs](https://oss.sonatype.org/service/local/repositories/releases/archive/org/typelevel/cats-parse_2.13/0.3.6/cats-parse_2.13-0.3.6-javadoc.jar/!/cats/parse/index.html) are published.
+The [API docs](https://javadoc.io/doc/org.typelevel/cats-parse_2.13/0.3.7/cats/parse/index.html) are published.
 
 Why another parsing library? See this [blog post detailing the
 design](https://posco.medium.com/designing-a-parsing-library-in-scala-d5076de52536). To reiterate,
@@ -57,7 +57,7 @@ The output of the parser might be processed with `map` method:
 ```scala mdoc:reset
 import cats.parse.Parser
 
-case class CharWrapper(value: Char) 
+case class CharWrapper(value: Char)
 
 val p: Parser[CharWrapper] = Parser.anyChar.map(char => CharWrapper(char))
 
@@ -90,7 +90,6 @@ p5.parse("1")
 // res1: Either[Error, Tuple2[String, Unit]] = Right((,()))
 ```
 
-
 ## Combining parsers
 
 The parsers might be combined through operators:
@@ -101,7 +100,7 @@ The parsers might be combined through operators:
 - `between` - identical to `border1 *> parsingResult <* border2`;
 - `|`, `orElse`. Parser will be successful if any of sides is successful.
 
-For this example we'll be using `cats.parse.Rfc5234` package which contains such parsers as `alpha` (Latin alphabet) and `sp` (whitespace). 
+For this example we'll be using `cats.parse.Rfc5234` package which contains such parsers as `alpha` (Latin alphabet) and `sp` (whitespace).
 
 ```scala mdoc:reset
 import cats.parse.Rfc5234.{sp, alpha, digit}
@@ -161,7 +160,7 @@ p3.parse(" ")
 
 ## Repeating parsers
 
-Sometimes we need something to repeat zero or more types. The cats-parse have `rep` and `rep0` methods for repeating values. `rep` means that the parser must be successful *at least one time*. `rep0` means that the parser output might be empty.
+Sometimes we need something to repeat zero or more types. The cats-parse have `rep` and `rep0` methods for repeating values. `rep` means that the parser must be successful _at least one time_. `rep0` means that the parser output might be empty.
 
 ```scala mdoc:reset
 import cats.data.NonEmptyList
@@ -196,7 +195,6 @@ val p3: Parser[String] = alpha.repAs[String]
 
 All three parsers will be identical in parsing results, but `p2` and `p3` are using built-in methods which will not create intermediate list. `rep` + `map` creates intermediate list which is mapped to string in this example.
 
-
 ## Parsers with empty output
 
 Some parsers never return a value. They have a type `Parser0`. One might get this type of parser when using `rep0` or `.?` methods.
@@ -219,7 +217,7 @@ val p = (sp.? *> alpha.rep <* sp.?).rep.string
 
 We will get an error `value rep is not a member of cats.parse.Parser0`. This happens since we have the left-side parser as optional in `sp.? *> alpha.rep <* sp.?` clause. This clause has a type `Parser0` which can't be repeated.
 
-But this parser can't be empty because of `alpha.rep` parser, and we know it. For these types of parsers we need to use `with1` wrapper method on the *left side* of the clause:
+But this parser can't be empty because of `alpha.rep` parser, and we know it. For these types of parsers we need to use `with1` wrapper method on the _left side_ of the clause:
 
 ```scala mdoc:reset
 import cats.parse.Rfc5234.{alpha, sp}
@@ -240,8 +238,9 @@ If we have multiple `Parser0` parsers before the `Parser` - we'd need to use par
 ## Error handling
 
 Parser might be interrupted by parsing error. There are two kinds of errors:
- - an error that has consumed 0 characters (**epsilon failure**);
- - an error that has consumed 1 or more characters (**arresting failure**) (sometimes called halting failure).
+
+- an error that has consumed 0 characters (**epsilon failure**);
+- an error that has consumed 1 or more characters (**arresting failure**) (sometimes called halting failure).
 
 ```scala mdoc:reset
 import cats.parse.Rfc5234.{alpha, sp}
@@ -263,7 +262,7 @@ We need to make this difference because the first type of error allows us to say
 
 ### Backtrack
 
-Backtrack allows us to convert an *arresting failure* to *epsilon failure*. It also rewinds the input to the offset to that used before parsing began. The resulting parser might still be combined with others. Let's look at the example:
+Backtrack allows us to convert an _arresting failure_ to _epsilon failure_. It also rewinds the input to the offset to that used before parsing began. The resulting parser might still be combined with others. Let's look at the example:
 
 ```scala mdoc:reset
 import cats.parse.Rfc5234.{digit, sp}
@@ -277,7 +276,7 @@ p.parse(" 1")
 `Parser.Error` contains two parameters:
 
 ```scala
-final case class Error(failedAtOffset: Int, expected: NonEmptyList[Expectation])
+final case class Error(input: String, failedAtOffset: Int, expected: NonEmptyList[Expectation])
 
 case class InRange(offset: Int, lower: Char, upper: Char) extends Expectation
 ```
@@ -298,7 +297,7 @@ p1.backtrack.orElse(p2).parse(" 1")
 // res1: Either[Error, Tuple2[String, Char]] = Right((,1))
 ```
 
-Notice that `(p1.backtrack | p2)` clause is another parser by itself since we're still combining parsers by using `orElse`. 
+Notice that `(p1.backtrack | p2)` clause is another parser by itself since we're still combining parsers by using `orElse`.
 
 But we've already used `orElse` in example before without any `backtrack` operator, and it worked just fine. Why do we need `backtrack` now? Let's look at this example:
 
@@ -316,13 +315,13 @@ val p3 = digit
 // res2 = Right((,1))
 ```
 
-The first parser combination is interrupted by *arresting failures* and the second parsing combination will only suffer from *epsilon failures*. The second parser works because `orElse` and `|` operators actually allows recovering from epsilon failures, but not from arresting failures.
+The first parser combination is interrupted by _arresting failures_ and the second parsing combination will only suffer from _epsilon failures_. The second parser works because `orElse` and `|` operators actually allows recovering from epsilon failures, but not from arresting failures.
 
-So the `backtrack` helps us where the *left side* returns arresting failure.
+So the `backtrack` helps us where the _left side_ returns arresting failure.
 
 ### Soft
 
-This method might look similar to `backtrack`, but it allows us to *proceed* the parsing when the *right side* is returning an epsilon failure. It is really useful for ambiguous parsers when we can't really tell what exactly we are parsing before the end. Let's say we want to parse some input to the search engine which contains fields. This might look like "field:search_query". Let's try to write a parser for this:
+This method might look similar to `backtrack`, but it allows us to _proceed_ the parsing when the _right side_ is returning an epsilon failure. It is really useful for ambiguous parsers when we can't really tell what exactly we are parsing before the end. Let's say we want to parse some input to the search engine which contains fields. This might look like "field:search_query". Let's try to write a parser for this:
 
 ```scala mdoc:reset
 import cats.parse.Rfc5234.{alpha, sp}
@@ -368,8 +367,7 @@ p4.parse("The Wind Has Risen")
 // res3 = Right((,(None,The Wind Has Risen)))
 ```
 
-So when the *right side* returns an epsilon failure the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
-
+So when the _right side_ returns an epsilon failure the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
 
 # JSON parser example
 
@@ -463,6 +461,7 @@ Keep in mind that parser performance depends both on the parsing library but als
 is written, but these results suggest that this library is already quite competitive.
 
 # Migrating from Fastparse
+
 You should find all the Fastparse methods you are used to. If not, feel free to open an issue.
 There are a few things to keep in mind:
 
