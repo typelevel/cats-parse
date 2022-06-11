@@ -1,4 +1,9 @@
+import com.typesafe.tools.mima.core._
 import Dependencies._
+addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
+addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
+
+tlReplaceCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
 
 ThisBuild / tlBaseVersion := "0.3"
 ThisBuild / startYear := Some(2021)
@@ -55,7 +60,20 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     mimaPreviousArtifacts := {
       if (isScala211.value) Set.empty else mimaPreviousArtifacts.value
     },
-    mimaBinaryIssueFilters ++= MimaExclusionRules.parserImpl ++ MimaExclusionRules.bitSetUtil
+    mimaBinaryIssueFilters ++= {
+      /*
+       * It is okay to filter anything in Impl or RadixNode which are private
+       */
+      if (tlIsScala3.value)
+        List(
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Error.fromProduct"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Error.unapply"),
+          ProblemFilters.exclude[MissingTypesProblem]("cats.parse.Parser$Error$"),
+          ProblemFilters.exclude[IncompatibleResultTypeProblem]("cats.parse.Parser#Error.unapply"),
+          ProblemFilters.exclude[DirectMissingMethodProblem]("cats.parse.Parser#Error.fromProduct")
+        )
+      else Nil
+    } ++ MimaExclusionRules.parserImpl ++ MimaExclusionRules.bitSetUtil
   )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
