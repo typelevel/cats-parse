@@ -275,7 +275,6 @@ jobs:
 
   publish-site:
     name: Publish site
-    needs: [publish]
     if: github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
