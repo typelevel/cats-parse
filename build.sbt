@@ -6,6 +6,7 @@ ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
 ThisBuild / crossScalaVersions := List("3.0.2", "2.11.12", "2.12.16", "2.13.8")
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
+ThisBuild / tlSkipIrrelevantScalas := true
 
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
