@@ -92,7 +92,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
       "Sonatype OSS Snapshots s01" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
     ),
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
-    mimaPreviousArtifacts := Set.empty,
+    tlVersionIntroduced := List("2.12", "2.13", "3").map(_ -> "0.3.8").toMap,
     libraryDependencies := {
       if (scalaVersion.value.startsWith("3.1")) {
         libraryDependencies.value.filterNot(_ == Dependencies.cats) ++ Seq(
