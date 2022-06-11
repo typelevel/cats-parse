@@ -43,18 +43,28 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
       WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate")),
       WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
     )
-  )
-)
-
-ThisBuild / githubWorkflowPublish ++= Seq(
-  WorkflowStep.Sbt(List("docs/makeSite")),
-  WorkflowStep.Use(
-    UseRef.Public("JamesIves", "github-pages-deploy-action", "3.7.1"),
-    params = Map(
-      "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
-      "BRANCH" -> "gh-pages",
-      "FOLDER" -> "docs/target/site"
-    )
+  ),
+  WorkflowJob(
+    id = "publish-site",
+    name = "Publish site",
+    cond = {
+      val predicate = RefPredicate.StartsWith(Ref.Tag("v"))
+      val publicationCond = GenerativePlugin.compileBranchPredicate("github.ref", predicate)
+      Some(s"github.event_name != 'pull_request' && $publicationCond")
+    },
+    scalas = List("2.13.8"),
+    steps = WorkflowStep.Checkout ::
+      WorkflowStep.SetupJava(List(JavaSpec.temurin("11"))) ++
+      githubWorkflowGeneratedCacheSteps.value :+
+      WorkflowStep.Sbt(List("docs/makeSite")) :+
+      WorkflowStep.Use(
+        UseRef.Public("JamesIves", "github-pages-deploy-action", "3.7.1"),
+        params = Map(
+          "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
+          "BRANCH" -> "gh-pages",
+          "FOLDER" -> "docs/target/site"
+        )
+      )
   )
 )
 
