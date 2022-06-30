@@ -19,6 +19,12 @@ ThisBuild / crossScalaVersions := List(scala3, scala211, scala212, scala213)
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
 ThisBuild / tlSkipIrrelevantScalas := true
 
+ThisBuild / githubWorkflowBuildMatrixExclusions ++=
+  Seq(
+    MatrixExclude(Map("project" -> "rootJS", "scala" -> scala211)),
+    MatrixExclude(Map("project" -> "rootNative", "scala" -> scala211))
+  )
+
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "coverage",
