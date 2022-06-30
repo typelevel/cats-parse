@@ -25,7 +25,7 @@ import org.scalacheck.{Gen, Prop}
 import org.scalacheck.Prop.forAll
 
 class RadixNodeTest extends munit.ScalaCheckSuite {
-  val tests: Int = if (BitSetUtil.isScalaJs) 50 else 20000
+  val tests: Int = if (BitSetUtil.isScalaJvm) 20000 else 50
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters
