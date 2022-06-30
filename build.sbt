@@ -33,7 +33,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
       githubWorkflowJavaVersions.value.toList
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
-      WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate")),
+      WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageAggregate")),
       WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
     )
   )
