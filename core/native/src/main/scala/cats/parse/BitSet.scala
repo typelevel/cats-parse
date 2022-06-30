@@ -21,32 +21,4 @@
 
 package cats.parse
 
-import org.scalacheck.Prop.forAll
-
-class BitSetTest extends munit.ScalaCheckSuite {
-  // TODO: Remove isScalaJs/isScalaJvm in next minor version update. See https://github.com/typelevel/cats-parse/issues/391.
-  test("isScalaJs/isScalaJvm is consistent") {
-    if (BitSetUtil.isScalaJs || BitSetUtil.isScalaJvm) {
-      assert(!(BitSetUtil.isScalaJs && BitSetUtil.isScalaJvm))
-      assert(BitSetUtil.isScalaJs ^ BitSetUtil.isScalaJvm)
-    }
-  }
-
-  property("BitSetUtil union works") {
-    forAll { (cs: List[List[Char]]) =>
-      val arys = cs.iterator.filter(_.nonEmpty).map(_.toArray.sorted)
-      val bs = arys.map { ary => (ary(0).toInt, BitSetUtil.bitSetFor(ary)) }
-      val sortedFlat = BitSetUtil.union(bs)
-      assertEquals(sortedFlat.toSet, cs.flatten.toSet)
-    }
-  }
-
-  property("BitSet.isSingleton is correct") {
-    forAll { (c0: Char, cs: Set[Char]) =>
-      val set = cs + c0
-      val bs = BitSetUtil.bitSetFor(set.toArray.sorted)
-
-      assertEquals(BitSetUtil.isSingleton(bs), set.size == 1)
-    }
-  }
-}
+object BitSetUtil extends BitSetUtilCompat(false, false)

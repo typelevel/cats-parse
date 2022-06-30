@@ -1,5 +1,10 @@
 import com.typesafe.tools.mima.core._
 import Dependencies._
+val scala211 = "2.11.12"
+val scala212 = "2.12.16"
+val scala213 = "2.13.8"
+val scala3 = "3.1.3"
+
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
@@ -9,7 +14,8 @@ ThisBuild / tlBaseVersion := "0.3"
 ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
-ThisBuild / crossScalaVersions := List("3.1.3", "2.11.12", "2.12.16", "2.13.8")
+ThisBuild / crossScalaVersions := List(scala3, scala211, scala212, scala213)
+
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
 ThisBuild / tlSkipIrrelevantScalas := true
 
@@ -17,7 +23,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
-    scalas = List("2.13.8"),
+    scalas = List(scala213),
     steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
       githubWorkflowJavaVersions.value.toList
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
@@ -38,7 +44,7 @@ lazy val isScala211 = Def.setting {
   scalaBinaryVersion.value == "2.11"
 }
 
-lazy val core = crossProject(JSPlatform, JVMPlatform)
+lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .settings(
     name := "cats-parse",
@@ -77,6 +83,11 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
+    coverageEnabled := false
+  )
+  .nativeSettings(
+    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
+    tlVersionIntroduced := List("2.12", "2.13", "3").map(_ -> "0.3.8").toMap,
     coverageEnabled := false
   )
 
