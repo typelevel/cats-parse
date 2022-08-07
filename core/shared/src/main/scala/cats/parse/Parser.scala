@@ -1922,8 +1922,10 @@ object Parser {
   def withString0[A](pa: Parser0[A]): Parser0[(A, String)] =
     pa match {
       case p1: Parser[A] => withString(p1)
+      case as if Impl.alwaysSucceeds(as) =>
+        as.map(Impl.ToTupleWith2[String, A](""))
       case not1 if Impl.matchesString(not1) =>
-        Impl.Map0(not1, Impl.FanOut[A]()).asInstanceOf[Parser0[(A, String)]]
+        not1.map(Impl.FanOut[A]()).asInstanceOf[Parser0[(A, String)]]
       case not1 => Impl.WithStringP0(not1)
     }
 
@@ -1934,7 +1936,7 @@ object Parser {
       case f @ Impl.Fail() => f.widen
       case f @ Impl.FailWith(_) => f.widen
       case notFail if Impl.matchesString(notFail) =>
-        Impl.Map(notFail, Impl.FanOut[A]()).asInstanceOf[Parser[(A, String)]]
+        notFail.map(Impl.FanOut[A]()).asInstanceOf[Parser[(A, String)]]
       case notFail => Impl.WithStringP(notFail)
     }
 
@@ -2397,6 +2399,7 @@ object Parser {
         case SoftProd0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case WithContextP0(_, p) => alwaysSucceeds(p)
+        case WithStringP0(parser) => alwaysSucceeds(parser)
         // by construction we never build a Not(Fail()) since
         // it would just be the same as unit
         // case Not(Fail() | FailWith(_)) => true
