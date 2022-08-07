@@ -3032,4 +3032,26 @@ class ParserTest extends munit.ScalaCheckSuite {
       assertEquals(left.parse(str), right.parse(str))
     }
   }
+
+  property("a.withString0 is the same as index ~ a ~ index + substring") {
+    forAll(ParserGen.gen0, arbitrary[String]) { (a, str) =>
+      val left = a.fa.withString
+      val right = (Parser.index ~ a.fa ~ Parser.index).map { case ((start, a), end) =>
+        (a, str.substring(start, end))
+      }
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("a.withString is the same as index ~ a ~ index + substring") {
+    forAll(ParserGen.gen, arbitrary[String]) { (a, str) =>
+      val left = a.fa.withString
+      val right = (Parser.index ~ a.fa ~ Parser.index).map { case ((start, a), end) =>
+        (a, str.substring(start, end))
+      }
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
 }
