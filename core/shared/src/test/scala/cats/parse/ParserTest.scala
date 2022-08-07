@@ -170,6 +170,16 @@ object ParserGen {
   def string(g: GenT[Parser]): GenT[Parser] =
     GenT(Parser.string(g.fa))
 
+  def withString0(g: GenT[Parser0]): GenT[Parser0] = {
+    implicit val cga = g.cogen
+    GenT(Parser.withString0(g.fa))
+  }
+
+  def withString(g: GenT[Parser]): GenT[Parser] = {
+    implicit val cga = g.cogen
+    GenT(Parser.withString(g.fa))
+  }
+
   def backtrack0(g: GenT[Parser0]): GenT[Parser0] =
     GenT(g.fa.backtrack)(g.cogen)
 
@@ -536,6 +546,7 @@ object ParserGen {
       (1, failWith),
       (1, rec.map(void0(_))),
       (1, rec.map(string0(_))),
+      (1, rec.map(withString0(_))),
       (1, stringIn0),
       (1, rec.map(backtrack0(_))),
       (1, rec.map(defer0(_))),
@@ -566,6 +577,7 @@ object ParserGen {
       (1, Gen.choose(Char.MinValue, Char.MaxValue).map { c => GenT(Parser.char(c)) }),
       (2, rec.map(void(_))),
       (2, rec.map(string(_))),
+      (1, rec.map(withString(_))),
       (2, rec.map(backtrack(_))),
       (1, rec.map(defer(_))),
       (1, rec.flatMap(genRep(_))),
