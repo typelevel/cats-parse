@@ -22,8 +22,16 @@
 package cats.parse
 
 import org.scalacheck.Prop.forAll
+import org.typelevel.jawn.ast.{JNum, JParser}
 
 class NumbersTest extends munit.ScalaCheckSuite {
+  val tests: Int = if (BitSetUtil.isScalaJvm) 20000 else 50
+
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters
+      .withMinSuccessfulTests(tests)
+      .withMaxDiscardRatio(10)
+
   property("bigInt round trips") {
     forAll { (bi: BigInt) =>
       assertEquals(Numbers.bigInt.parseAll(bi.toString), Right(bi))
@@ -70,5 +78,35 @@ class NumbersTest extends munit.ScalaCheckSuite {
           assertEquals(BigDecimal(a).toString, a)
       }
     }
+  }
+
+  def jawnLaw(a: String) = {
+    // 2.11 doesn't have toOption
+    val jn = Numbers.jsonNumber.parseAll(a) match {
+      case Left(_) => None
+      case Right(a) => Some(a)
+    }
+    val jawn = JParser.parseFromString(a).toOption.collect { case jn: JNum => jn }
+
+    assertEquals(jn.isDefined, jawn.isDefined)
+
+    if (jn.isDefined) {
+      assertEquals(jn.get, a)
+      assertEquals(BigDecimal(a), jawn.get.asBigDecimal)
+    }
+  }
+  property("jsonNumber parses if and only if Jawn would parse it as a number") {
+    forAll { (a: String) => jawnLaw(a) }
+  }
+
+  property("jsonNumber parses if and only if Jawn would parse it as a number (valid Double)") {
+    forAll { (a: Double) =>
+      if (a.isNaN || a.isInfinite) ()
+      else jawnLaw(a.toString)
+    }
+  }
+
+  property("jsonNumber parses if and only if Jawn would parse it as a number (valid BigDecimal)") {
+    forAll { (a: BigDecimal) => jawnLaw(a.toString) }
   }
 }

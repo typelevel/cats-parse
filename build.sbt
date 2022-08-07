@@ -59,7 +59,8 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
       Seq(
         if (isScala211.value) cats211.value else cats.value,
         munit.value % Test,
-        munitScalacheck.value % Test
+        munitScalacheck.value % Test,
+        (if (isScala211.value) jawnAst211.value else jawnAst.value) % Test
       )
     },
     libraryDependencies ++= {
@@ -109,7 +110,7 @@ lazy val bench = project
       Seq(
         fastParse,
         parsley,
-        jawnAst,
+        jawnAst.value,
         parboiled,
         attoCore
       ),
