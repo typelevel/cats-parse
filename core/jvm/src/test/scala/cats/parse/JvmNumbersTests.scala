@@ -22,60 +22,50 @@
 package cats.parse
 
 import org.scalacheck.Prop.forAll
+import org.typelevel.jawn.ast.{JNum, JParser}
 
-class NumbersTest extends munit.ScalaCheckSuite {
-  val tests: Int = if (BitSetUtil.isScalaJvm) 20000 else 50
+/** Jawn doesn't publish artifacts for all the versions we support we use jawn to test JSON parsing
+  * methods
+  */
+class JvmNumbersTest extends munit.ScalaCheckSuite {
+  val tests: Int = 20000
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters
       .withMinSuccessfulTests(tests)
       .withMaxDiscardRatio(10)
 
-  property("bigInt round trips") {
-    forAll { (bi: BigInt) =>
-      assertEquals(Numbers.bigInt.parseAll(bi.toString), Right(bi))
+  def jawnLaw(a: String) = {
+    // 2.11 doesn't have toOption
+    val jn = Numbers.jsonNumber.parseAll(a) match {
+      case Left(_) => None
+      case Right(a) => Some(a)
+    }
+    val jawn = JParser.parseFromString(a).toOption.collect { case jn: JNum => jn }
+
+    assertEquals(jn.isDefined, jawn.isDefined)
+
+    if (jn.isDefined) {
+      assertEquals(jn.get, a)
+      assertEquals(BigDecimal(a), jawn.get.asBigDecimal)
     }
   }
-
-  property("jsonNumber parses Int") {
-    forAll { (a: Int) =>
-      assertEquals(Numbers.jsonNumber.void.parseAll(a.toString), Right(()))
-    }
+  property("jsonNumber parses if and only if Jawn would parse it as a number") {
+    forAll { (a: String) => jawnLaw(a) }
   }
 
-  property("jsonNumber parses Long") {
-    forAll { (a: Long) =>
-      assertEquals(Numbers.jsonNumber.void.parseAll(a.toString), Right(()))
-    }
-  }
-
-  property("jsonNumber parses Float") {
-    forAll { (a: Float) =>
-      if (a.isNaN || a.isInfinite) ()
-      else assertEquals(Numbers.jsonNumber.void.parseAll(a.toString), Right(()))
-    }
-  }
-
-  property("jsonNumber parses Double") {
+  property("jsonNumber parses if and only if Jawn would parse it as a number (valid Double)") {
     forAll { (a: Double) =>
       if (a.isNaN || a.isInfinite) ()
-      else assertEquals(Numbers.jsonNumber.void.parseAll(a.toString), Right(()))
+      else jawnLaw(a.toString)
     }
   }
 
-  property("jsonNumber parses BigDecimal") {
-    forAll { (a: BigDecimal) =>
-      assertEquals(Numbers.jsonNumber.void.parseAll(a.toString), Right(()))
-    }
+  property("jsonNumber parses if and only if Jawn would parse it as a number (valid BigDecimal)") {
+    forAll { (a: BigDecimal) => jawnLaw(a.toString) }
   }
 
-  property("If jsonNumber parses, then BigDecimal would parse") {
-    forAll { (a: String) =>
-      Numbers.jsonNumber.void.parseAll(a) match {
-        case Left(_) => ()
-        case Right(_) =>
-          assertEquals(BigDecimal(a).toString, a)
-      }
-    }
+  property("jsonNumber parses if and only if Jawn would parse it as a number (valid Int)") {
+    forAll { (a: Int) => jawnLaw(a.toString) }
   }
 }
