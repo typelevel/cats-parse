@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Typelevel
+ * Copyright (c) 2021 Typelevel
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -23,6 +23,7 @@ package cats.parse
 
 import org.scalacheck.Prop.forAll
 import org.typelevel.jawn.ast.{JString, JParser}
+import scala.util.{Success, Failure}
 
 /** Jawn doesn't publish artifacts for all the versions we support we use jawn to test JSON parsing
   * methods
@@ -51,10 +52,16 @@ class JvmStringsTest extends munit.ScalaCheckSuite {
   }
 
   property("jsonString parses in exactly the same cases as Jawn") {
-    forAll { (a: String) =>
-      val json = "\"" + Strings.jsonEscape(a) + "\""
-      val resJawn = JParser.parseFromString(json).isSuccess
-      val resThis = Strings.jsonString.parseAll(json).isRight
+    forAll { (raw: String) =>
+      val resJawn = JParser
+        .parseFromString(raw)
+        .flatMap {
+          case JString(str) => Success(true)
+          case _ => Failure(new Exception("expected String"))
+        }
+        .isSuccess
+
+      val resThis = Strings.jsonString.parseAll(raw).isRight
       assertEquals(resJawn, resThis)
     }
   }
