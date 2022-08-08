@@ -87,6 +87,11 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
       else Nil
     } ++ MimaExclusionRules.parserImpl ++ MimaExclusionRules.bitSetUtil
   )
+  .jvmSettings(
+    // We test against jawn on JVM for some json parsers
+    libraryDependencies +=
+      (if (isScala211.value) jawnAst211.value else jawnAst.value) % Test
+  )
   .jsSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
     coverageEnabled := false
@@ -109,7 +114,7 @@ lazy val bench = project
       Seq(
         fastParse,
         parsley,
-        jawnAst,
+        jawnAst.value,
         parboiled,
         attoCore
       ),
