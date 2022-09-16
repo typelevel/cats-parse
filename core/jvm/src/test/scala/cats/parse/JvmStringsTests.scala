@@ -40,14 +40,14 @@ class JvmStringsTest extends munit.ScalaCheckSuite {
 
   property("JString(str).render parses") {
     forAll { (a: String) =>
-      val res = Strings.jsonString.parseAll(JString(a).render())
+      val res = strings.Json.delimited.parser.parseAll(JString(a).render())
       assertEquals(res, Right(a))
     }
   }
 
   property("Strings.jsonEscape(str) parses in Jawn") {
     forAll { (a: String) =>
-      val json = "\"" + Strings.jsonEscape(a) + "\""
+      val json = strings.Json.delimited.encode(a)
       val res = JParser.parseFromString(json).get
       assertEquals(res, JString(a))
     }
@@ -55,7 +55,7 @@ class JvmStringsTest extends munit.ScalaCheckSuite {
 
   property("jsonString parses in exactly the same cases as Jawn") {
     val genBase = Gen.oneOf(Arbitrary.arbitrary[String], Gen.identifier)
-    val maybeEscaped = Gen.oneOf(genBase, genBase.map { str => s"\"${Strings.jsonEscape(str)}\"" })
+    val maybeEscaped = Gen.oneOf(genBase, genBase.map(strings.Json.delimited.encode(_)))
 
     forAll(maybeEscaped) { (raw: String) =>
       val resJawn = JParser
@@ -64,7 +64,7 @@ class JvmStringsTest extends munit.ScalaCheckSuite {
         case _ => None
       }
 
-      val resThis = Strings.jsonString.parseAll(raw) match {
+      val resThis = strings.Json.delimited.parser.parseAll(raw) match {
         case Right(r) => Some(r)
         case Left(_) => None
       }

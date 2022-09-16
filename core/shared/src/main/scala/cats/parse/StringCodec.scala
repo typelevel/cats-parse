@@ -21,25 +21,7 @@
 
 package cats.parse
 
-import org.scalacheck.Prop.forAll
-
-class StringsTest extends munit.ScalaCheckSuite {
-  val tests: Int = if (BitSetUtil.isScalaJvm) 20000 else 50
-
-  override def scalaCheckTestParameters =
-    super.scalaCheckTestParameters
-      .withMinSuccessfulTests(tests)
-      .withMaxDiscardRatio(10)
-
-  def law[A](sc: StringCodec[Parser0, A], item: A) = {
-    val str = sc.encode(item)
-    assertEquals(sc.parser.parseAll(str), Right(item))
-  }
-
-  property("json strings round trip") {
-    forAll { (str: String) =>
-      law(strings.Json.delimited, str)
-      law(strings.Json.undelimited, str)
-    }
-  }
+trait StringCodec[+P[_] <: Parser0[_], A] {
+  def parser: P[A]
+  def encode(e: A): String
 }

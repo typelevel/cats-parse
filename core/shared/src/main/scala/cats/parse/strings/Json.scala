@@ -19,21 +19,29 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package cats.parse
+package cats.parse.strings
+
+import cats.parse.{Parser, Parser0, StringCodec}
 
 /** Parsers for common string literals
   */
-object Strings {
+object Json {
 
   /** Parses a quoted json string */
-  def jsonString: Parser[String] = Impl.JsonStringUtil.escapedString
+  val delimited: StringCodec[Parser, String] =
+    new StringCodec[Parser, String] {
+      private[this] val quote = "\""
+      def parser = Impl.JsonStringUtil.escapedString
+      def encode(str: String): String =
+        s"$quote${Impl.JsonStringUtil.escape(str)}$quote"
+    }
 
-  /** Parser a json string without quotes */
-  def jsonUndelimedString: Parser0[String] =
-    Impl.JsonStringUtil.undelimitedString1.orElse(Parser.pure(""))
-
-  /** Escapes a string such that it would parse as itself with jsonUndelimitedString */
-  def jsonEscape(str: String): String = Impl.JsonStringUtil.escape(str)
+  val undelimited: StringCodec[Parser0, String] =
+    new StringCodec[Parser0, String] {
+      def parser = Impl.JsonStringUtil.undelimitedString1.orElse(Parser.pure(""))
+      def encode(str: String): String =
+        Impl.JsonStringUtil.escape(str)
+    }
 
   private[this] object Impl {
     import cats.parse.{Parser => P}
