@@ -65,7 +65,7 @@ object Strings {
         def parseIntStr(p: P[String]): P[Char] =
           p.map(Integer.parseInt(_, 16).toChar)
 
-        val escapes = P.charIn(decodeTable.keys.toSeq).map(decodeTable(_))
+        val escapes = P.fromCharMap(decodeTable)
 
         val hex4 = P.charIn(('0' to '9') ++ ('a' to 'f') ++ ('A' to 'F')).repExactlyAs[String](4)
         val u4 = P.char('u') *> parseIntStr(hex4)
@@ -83,8 +83,19 @@ object Strings {
       val undelimitedString1: P[String] =
         notEscape.orElse(escapedToken).repAs
 
-      val escapedString: P[String] =
-        P.char('\"') *> undelimitedString1.orElse(P.pure("")) <* P.char('\"')
+      val escapedString: P[String] = {
+        // .string is much faster than repAs since it can just do
+        // an array copy vs building a string with a StringBuilder and Chars
+        // but we can only copy if there are no escape values since copying
+        // does not decode
+        // but since escape strings are rare, this bet is generally worth it.
+        val cheapAndCommon = notEscape.rep0.string
+
+        P.char('\"') *> (
+          (cheapAndCommon <* P.char('\"')).backtrack |
+            (undelimitedString1.orElse(P.pure("")) <* P.char('\"'))
+        )
+      }
 
       def escape(str: String): String = {
         val lowest = 0x20.toChar

@@ -22,8 +22,10 @@
 package cats.parse
 
 import org.scalacheck.Prop.forAll
+import org.scalacheck.Gen
 import org.typelevel.jawn.ast.{JString, JParser}
-import scala.util.{Success, Failure}
+import scala.util.Success
+import org.scalacheck.Arbitrary
 
 /** Jawn doesn't publish artifacts for all the versions we support we use jawn to test JSON parsing
   * methods
@@ -52,16 +54,20 @@ class JvmStringsTest extends munit.ScalaCheckSuite {
   }
 
   property("jsonString parses in exactly the same cases as Jawn") {
-    forAll { (raw: String) =>
-      val resJawn = JParser
-        .parseFromString(raw)
-        .flatMap {
-          case JString(str) => Success(true)
-          case _ => Failure(new Exception("expected String"))
-        }
-        .isSuccess
+    val genBase = Gen.oneOf(Arbitrary.arbitrary[String], Gen.identifier)
+    val maybeEscaped = Gen.oneOf(genBase, genBase.map { str => s"\"${Strings.jsonEscape(str)}\"" })
 
-      val resThis = Strings.jsonString.parseAll(raw).isRight
+    forAll(maybeEscaped) { (raw: String) =>
+      val resJawn = JParser
+        .parseFromString(raw) match {
+        case Success(JString(str)) => Some(str)
+        case _ => None
+      }
+
+      val resThis = Strings.jsonString.parseAll(raw) match {
+        case Right(r) => Some(r)
+        case Left(_) => None
+      }
       assertEquals(resJawn, resThis)
     }
   }
