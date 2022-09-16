@@ -154,6 +154,11 @@ sealed abstract class Parser0[+A] { self: Product =>
   def string: Parser0[String] =
     Parser.string0(this)
 
+  /** Return the value and the input string matched
+    */
+  def withString: Parser0[(A, String)] =
+    Parser.withString0(this)
+
   /** If this parser fails to match, rewind the offset to the starting point before moving on to
     * other parser.
     *
@@ -379,6 +384,11 @@ sealed abstract class Parser[+A] extends Parser0[A] { self: Product =>
     */
   override def string: Parser[String] =
     Parser.string(this)
+
+  /** Return the value and the input string matched
+    */
+  override def withString: Parser[(A, String)] =
+    Parser.withString(this)
 
   /** This method overrides `Parser0#backtrack` to refine the return type.
     */
@@ -1907,6 +1917,29 @@ object Parser {
         }
     }
 
+  /** Return the value and the input string matched
+    */
+  def withString0[A](pa: Parser0[A]): Parser0[(A, String)] =
+    pa match {
+      case p1: Parser[A] => withString(p1)
+      case as if Impl.alwaysSucceeds(as) =>
+        as.map(Impl.ToTupleWith2[String, A](""))
+      case not1 if Impl.matchesString(not1) =>
+        not1.map(Impl.FanOut[A]()).asInstanceOf[Parser0[(A, String)]]
+      case not1 => Impl.WithStringP0(not1)
+    }
+
+  /** Return the value and the input string matched
+    */
+  def withString[A](pa: Parser[A]): Parser[(A, String)] =
+    pa match {
+      case f @ Impl.Fail() => f.widen
+      case f @ Impl.FailWith(_) => f.widen
+      case notFail if Impl.matchesString(notFail) =>
+        notFail.map(Impl.FanOut[A]()).asInstanceOf[Parser[(A, String)]]
+      case notFail => Impl.WithStringP(notFail)
+    }
+
   /** returns a parser that succeeds if the current parser fails. Note, this parser backtracks
     * (never returns an arresting failure)
     */
@@ -2167,6 +2200,10 @@ object Parser {
         }
     }
 
+    case class FanOut[A]() extends Function1[A, (A, A)] {
+      def apply(a: A) = (a, a)
+    }
+
     case class ToTupleWith2[B, C](item2: B) extends Function1[C, (C, B)] {
       def apply(c: C) = (c, item2)
     }
@@ -2362,6 +2399,7 @@ object Parser {
         case SoftProd0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case Prod0(a, b) => alwaysSucceeds(a) && alwaysSucceeds(b)
         case WithContextP0(_, p) => alwaysSucceeds(p)
+        case WithStringP0(parser) => alwaysSucceeds(parser)
         // by construction we never build a Not(Fail()) since
         // it would just be the same as unit
         // case Not(Fail() | FailWith(_)) => true
@@ -2457,7 +2495,7 @@ object Parser {
               _
             ) | OneOf(Nil) | OneOf0(Nil) | StringP0(_) | Select(_, _) | Select0(_, _) | StringIn(
               _
-            ) =>
+            ) | WithStringP(_) | WithStringP0(_) =>
           // these we don't know the value fundamentally or by construction
           None
       }
@@ -2484,7 +2522,9 @@ object Parser {
         case Length(_) | StringP(_) | StringIn(_) | Prod(_, _) | SoftProd(_, _) | Map(_, _) |
             Select(_, _) | FlatMap(_, _) | TailRecM(_, _) | Defer(_) | Rep(_, _, _, _) | AnyChar |
             CharIn(_, _, _) | StringP0(_) | Index | GetCaret | Prod0(_, _) | SoftProd0(_, _) |
-            Map0(_, _) | Select0(_, _) | FlatMap0(_, _) | TailRecM0(_, _) | Defer0(_) =>
+            Map0(_, _) | Select0(_, _) | FlatMap0(_, _) | TailRecM0(_, _) | Defer0(_) | WithStringP(
+              _
+            ) | WithStringP0(_) =>
           false
       }
 
@@ -2505,6 +2545,7 @@ object Parser {
         case StringP0(s) =>
           // StringP is added privately, and only after unmap0
           s
+        case WithStringP0(s) => unmap0(s)
         case Void0(v) =>
           // Void is added privately, and only after unmap0
           v
@@ -2587,6 +2628,7 @@ object Parser {
         case StringP(s) =>
           // StringP is added privately, and only after unmap
           s
+        case WithStringP(s) => unmap(s)
         case Void(v) =>
           // Void is added privately, and only after unmap
           v
@@ -2713,6 +2755,23 @@ object Parser {
     case class StringP[A](parser: Parser[A]) extends Parser[String] {
       override def parseMut(state: State): String =
         Impl.string0(parser, state)
+    }
+
+    def withString0[A](pa: Parser0[A], state: State): (A, String) = {
+      val init = state.offset
+      val a = pa.parseMut(state)
+      if (state.error eq null) (a, state.str.substring(init, state.offset))
+      else null
+    }
+
+    case class WithStringP0[A](parser: Parser0[A]) extends Parser0[(A, String)] {
+      override def parseMut(state: State): (A, String) =
+        Impl.withString0(parser, state)
+    }
+
+    case class WithStringP[A](parser: Parser[A]) extends Parser[(A, String)] {
+      override def parseMut(state: State): (A, String) =
+        Impl.withString0(parser, state)
     }
 
     case object StartParser extends Parser0[Unit] {
