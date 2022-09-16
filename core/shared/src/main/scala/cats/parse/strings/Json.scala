@@ -33,7 +33,7 @@ object Json {
       private[this] val quote = "\""
       def parser = Impl.JsonStringUtil.escapedString
       def encode(str: String): String =
-        s"$quote${Impl.JsonStringUtil.escape(str)}$quote"
+        quote + Impl.JsonStringUtil.escape(str) + quote
     }
 
   val undelimited: StringCodec[Parser0, String] =
