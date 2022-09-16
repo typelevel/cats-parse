@@ -21,7 +21,7 @@
 
 package cats.parse.bench.self
 
-import cats.parse.{Parser0 => P0, Parser => P, Numbers, Strings}
+import cats.parse.{Parser0 => P0, Parser => P, Numbers, strings}
 import org.typelevel.jawn.ast._
 
 /* Based on https://github.com/johnynek/bosatsu/blob/7f4b75356c207b0e0eb2ab7d39f646e04b4004ca/core/src/main/scala/org/bykn/bosatsu/Json.scala */
@@ -35,7 +35,7 @@ object Json {
   val parser: P[JValue] = P.recursive[JValue] { recurse =>
     val pnull = P.string("null").as(JNull)
     val bool = P.string("true").as(JBool.True).orElse(P.string("false").as(JBool.False))
-    val justStr = Strings.jsonString
+    val justStr = strings.Json.delimited.parser
     val str = justStr.map(JString(_))
     val num = Numbers.jsonNumber.map(JNum(_))
 
