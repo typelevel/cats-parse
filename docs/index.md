@@ -375,7 +375,7 @@ Below is most of a json parser (the string unescaping is elided). This example c
 for what it is like to use this library.
 
 ```scala mdoc:invisible
-import cats.parse.bench.self.JsonStringUtil
+import cats.parse.strings.Json.delimited.{parser => jsonString}
 ```
 
 ```scala mdoc
@@ -389,8 +389,7 @@ object Json {
   val parser: P[JValue] = P.recursive[JValue] { recurse =>
     val pnull = P.string("null").as(JNull)
     val bool = P.string("true").as(JBool.True).orElse(P.string("false").as(JBool.False))
-    val justStr = JsonStringUtil.escapedString('"')
-    val str = justStr.map(JString(_))
+    val str = jsonString.map(JString(_))
     val num = Numbers.jsonNumber.map(JNum(_))
 
     val listSep: P[Unit] =
@@ -404,7 +403,7 @@ object Json {
       .map { vs => JArray.fromSeq(vs) }
 
     val kv: P[(String, JValue)] =
-      justStr ~ (P.char(':').surroundedBy(whitespaces0) *> recurse)
+      jsonString ~ (P.char(':').surroundedBy(whitespaces0) *> recurse)
 
     val obj = rep(kv).with1
       .between(P.char('{'), P.char('}'))
