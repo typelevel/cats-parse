@@ -4,7 +4,8 @@ import cats.parse.{Parser, Parser0}
 
 object ExprParser {
 
-  import Operator.{BinP, UnP}
+  type BinP[A] = Parser[(A, A) => A]
+  type UnP[A] = Parser[A => A]
 
   def make[A](term: Parser[A], table: List[List[Operator[A]]]): Parser[A] =
     table.foldLeft(term)(addPrecLevel)
