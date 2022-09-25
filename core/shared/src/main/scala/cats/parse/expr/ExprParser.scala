@@ -7,9 +7,14 @@ object ExprParser {
   type BinP[A] = Parser[(A, A) => A]
   type UnP[A] = Parser[A => A]
 
+  /** Takes a parser for terms and a list of operator precedence levels and returns a parser of
+    * expressions.
+    */
   def make[A](term: Parser[A], table: List[List[Operator[A]]]): Parser[A] =
     table.foldLeft(term)(addPrecLevel)
 
+  /** Internal helper class for splitting an operator precedence level into the varios types.
+    */
   private final case class Batch[A](
       inn: List[BinP[A]],
       inl: List[BinP[A]],
@@ -28,41 +33,48 @@ object ExprParser {
   private object Batch {
     def empty[A]: Batch[A] =
       Batch(List.empty, List.empty, List.empty, List.empty, List.empty)
+
+    def apply[A](level: List[Operator[A]]): Batch[A] =
+      level.foldRight(Batch.empty[A]) { (op, b) => b.add(op) }
   }
 
   private def addPrecLevel[A](p: Parser[A], level: List[Operator[A]]): Parser[A] = {
 
-    val batch: Batch[A] = level.foldRight(Batch.empty[A]) { (op, b) => b.add(op) }
+    val batch = Batch(level)
 
     def orId(p: Parser[A => A]): Parser0[A => A] =
       p.orElse(Parser.pure((x: A) => x))
 
-    def pTerm(prefix: UnP[A], postfix: UnP[A]): Parser[A] =
+    def parseTerm(prefix: UnP[A], postfix: UnP[A]): Parser[A] =
       (orId(prefix).with1 ~ p ~ orId(postfix)).map { case ((pre, t), post) =>
         post(pre(t))
       }
 
-    def pInfixN(op: BinP[A], term: Parser[A], a: A): Parser[A] =
+    def parseInfixN(op: BinP[A], term: Parser[A], a: A): Parser[A] =
       (op ~ term).map { case (f, y) => f(a, y) }
 
-    def pInfixL(op: BinP[A], term: Parser[A], a: A): Parser[A] =
+    def parseInfixL(op: BinP[A], term: Parser[A], a: A): Parser[A] =
       (op ~ term).flatMap { case (f, y) =>
-        pInfixL(op, term, f(a, y)) | Parser.pure(f(a, y))
+        parseInfixL(op, term, f(a, y)) | Parser.pure(f(a, y))
       }
 
-    def pInfixR(op: BinP[A], term: Parser[A], a: A): Parser[A] =
-      (op ~ (term.flatMap(r => pInfixR(op, term, a) | Parser.pure(r)))).map { case (f, y) =>
+    def parseInfixR(op: BinP[A], term: Parser[A], a: A): Parser[A] =
+      (op ~ (term.flatMap(r => parseInfixR(op, term, a) | Parser.pure(r)))).map { case (f, y) =>
         f(a, y)
       }
 
-    val term_ = pTerm(Parser.oneOf(batch.pre), Parser.oneOf(batch.post))
+    /** Try to parse a term prefixed or postfixed
+      */
+    val term_ = parseTerm(Parser.oneOf(batch.pre), Parser.oneOf(batch.post))
 
+    /** Then try the operators in the precedence level
+      */
     term_.flatMap(x =>
       Parser.oneOf0(
         List(
-          pInfixR(Parser.oneOf(batch.inr), term_, x),
-          pInfixN(Parser.oneOf(batch.inn), term_, x),
-          pInfixL(Parser.oneOf(batch.inl), term_, x),
+          parseInfixR(Parser.oneOf(batch.inr), term_, x),
+          parseInfixN(Parser.oneOf(batch.inn), term_, x),
+          parseInfixL(Parser.oneOf(batch.inl), term_, x),
           Parser.pure(x)
         )
       )
