@@ -1,3 +1,24 @@
+/*
+ * Copyright (c) 2021 Typelevel
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package cats.parse.expr
 
 import cats.parse.{Parser, Parser0}
@@ -40,28 +61,34 @@ object ExprParser {
 
   private def addPrecLevel[A](p: Parser[A], level: List[Operator[A]]): Parser[A] = {
 
+    val idParser = Parser.pure((x: A) => x)
+
     val batch = Batch(level)
 
     def orId(p: Parser[A => A]): Parser0[A => A] =
-      p.orElse(Parser.pure((x: A) => x))
+      p.orElse(idParser)
 
     def parseTerm(prefix: UnP[A], postfix: UnP[A]): Parser[A] =
       (orId(prefix).with1 ~ p ~ orId(postfix)).map { case ((pre, t), post) =>
         post(pre(t))
       }
 
-    def parseInfixN(op: BinP[A], term: Parser[A], a: A): Parser[A] =
-      (op ~ term).map { case (f, y) => f(a, y) }
+    def parseInfixN(op: BinP[A], term: Parser[A]): Parser[A => A] =
+      (op ~ term).map { case (op, b) => a => op(a, b) }
 
-    def parseInfixL(op: BinP[A], term: Parser[A], a: A): Parser[A] =
-      (op ~ term).flatMap { case (f, y) =>
-        parseInfixL(op, term, f(a, y)) | Parser.pure(f(a, y))
-      }
+    def parseInfixL(op: BinP[A], term: Parser[A]): Parser[A => A] =
+      (op ~ term ~ Parser.defer(parseInfixL(op, term)).?)
+        .map {
+          case ((op, b), None) => (a: A) => op(a, b)
+          case ((op, b), Some(rest)) => (a: A) => rest(op(a, b))
+        }
 
-    def parseInfixR(op: BinP[A], term: Parser[A], a: A): Parser[A] =
-      (op ~ (term.flatMap(r => parseInfixR(op, term, a) | Parser.pure(r)))).map { case (f, y) =>
-        f(a, y)
-      }
+    def parseInfixR(op: BinP[A], term: Parser[A]): Parser[A => A] =
+      (op ~ term ~ Parser.defer(parseInfixR(op, term)).?)
+        .map {
+          case ((op, b), None) => (a: A) => op(a, b)
+          case ((op, b), Some(rest)) => (a: A) => op(a, rest(b))
+        }
 
     /** Try to parse a term prefixed or postfixed
       */
@@ -69,16 +96,19 @@ object ExprParser {
 
     /** Then try the operators in the precedence level
       */
-    term_.flatMap(x =>
-      Parser.oneOf0(
-        List(
-          parseInfixR(Parser.oneOf(batch.inr), term_, x),
-          parseInfixN(Parser.oneOf(batch.inn), term_, x),
-          parseInfixL(Parser.oneOf(batch.inl), term_, x),
-          Parser.pure(x)
+    (term_ ~
+      Parser
+        .oneOf0(
+          List(
+            parseInfixR(Parser.oneOf(batch.inr), term_),
+            parseInfixN(Parser.oneOf(batch.inn), term_),
+            parseInfixL(Parser.oneOf(batch.inl), term_)
+          )
         )
-      )
-    )
+        .?).map {
+      case (x, None) => x
+      case (x, Some(rest)) => rest(x)
+    }
 
   }
 }
