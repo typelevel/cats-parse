@@ -29,14 +29,14 @@ import org.scalacheck.Gen
 object ExprTest {
 
   sealed abstract class Exp
-  final case class N(n: Int) extends Exp
-  final case class Neg(a: Exp) extends Exp
-  final case class Q(a: Exp) extends Exp
-  final case class Minus(a: Exp, b: Exp) extends Exp
-  final case class Plus(a: Exp, b: Exp) extends Exp
-  final case class Times(a: Exp, b: Exp) extends Exp
-  final case class And(a: Exp, b: Exp) extends Exp
-  final case class Eq(a: Exp, b: Exp) extends Exp
+  case class N(n: Int) extends Exp
+  case class Neg(a: Exp) extends Exp
+  case class Q(a: Exp) extends Exp
+  case class Minus(a: Exp, b: Exp) extends Exp
+  case class Plus(a: Exp, b: Exp) extends Exp
+  case class Times(a: Exp, b: Exp) extends Exp
+  case class And(a: Exp, b: Exp) extends Exp
+  case class Eq(a: Exp, b: Exp) extends Exp
 
   def token[A](p: Parser[A]): Parser[A] =
     p.surroundedBy(Rfc5234.sp.rep0)
@@ -182,7 +182,7 @@ class ExprTest extends munit.ScalaCheckSuite {
 
   }
 
-  property("foo") {
+  property("parsing pretty printed expressions") {
 
     val exprParser = Parser.recursive[Exp] { expr =>
       val term = token(Numbers.nonNegativeIntString.map(x => N(x.toInt))) | expr.between(
