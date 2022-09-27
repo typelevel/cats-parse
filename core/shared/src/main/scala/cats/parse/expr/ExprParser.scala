@@ -25,7 +25,12 @@ import cats.parse.{Parser, Parser0}
 
 object ExprParser {
 
+  /** Parser of binary operator
+    */
   type BinP[A] = Parser[(A, A) => A]
+
+  /** Parser of unary operator
+    */
   type UnP[A] = Parser[A => A]
 
   /** Takes a parser for terms and a list of operator precedence levels and returns a parser of
@@ -34,7 +39,7 @@ object ExprParser {
   def make[A](term: Parser[A], table: List[List[Operator[A]]]): Parser[A] =
     table.foldLeft(term)(addPrecLevel)
 
-  /** Internal helper class for splitting an operator precedence level into the varios types.
+  /** Internal helper class for splitting an operator precedence level into the various types.
     */
   private final case class Batch[A](
       inn: List[BinP[A]],
@@ -61,12 +66,10 @@ object ExprParser {
 
   private def addPrecLevel[A](p: Parser[A], level: List[Operator[A]]): Parser[A] = {
 
-    val idParser = Parser.pure((x: A) => x)
-
     val batch = Batch(level)
 
     def orId(p: Parser[A => A]): Parser0[A => A] =
-      p.orElse(idParser)
+      p.orElse(Parser.pure((x: A) => x))
 
     def parseTerm(prefix: UnP[A], postfix: UnP[A]): Parser[A] =
       (orId(prefix).with1 ~ p ~ orId(postfix)).map { case ((pre, t), post) =>
