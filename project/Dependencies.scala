@@ -10,6 +10,6 @@ object Dependencies {
   lazy val parsley = "org.http4s" %% "parsley" % "1.5.0-M3"
   lazy val jawnAst = Def.setting("org.typelevel" %% "jawn-ast" % "1.4.0")
   lazy val jawnAst211 = Def.setting("org.typelevel" %% "jawn-ast" % "1.0.0-RC2")
-  lazy val parboiled = "org.parboiled" %% "parboiled" % "2.4.0"
+  lazy val parboiled = "org.parboiled" %% "parboiled" % "2.4.1"
   lazy val attoCore = "org.tpolecat" %% "atto-core" % "0.9.5"
 }
