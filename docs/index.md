@@ -367,6 +367,31 @@ p3.parse("The Wind Has Risen")
 
 So when the _right side_ returns an epsilon failure the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
 
+Another common use case for `soft` is implementing a parser to find values interspersed with a separator. For example, if you want to extract `'a'`, `'b'` and `'c'` from `"a,b,c"`, you can use `soft`.
+
+Naively, one may try the following:
+
+```scala mdoc
+val p4 = alpha
+val naiveInterspersed = (p4 <* pchar(',')).rep
+naiveInterspersed.parse("a,b,c")
+// res4 = Left(Error(5,NonEmptyList(InRange(offset = 5, lower = ',', upper = ','),List())))
+```
+
+Basically, it's looking for the trailing comma:
+
+```scala mdoc
+naiveInterspersed.parse("a,b,c,")
+// res5 = Right(("", NonEmptyList('a', List('b', 'c'))))
+```
+
+But you can use, `soft` along with `|` to implement that:
+```scala mdoc
+val interspersed = ((p4.soft <* pchar(',')) | p4).rep
+interspersed.parse("a,b,c")
+// res6 = Right(("", NonEmptyList('a', List('b', 'c'))))
+```
+
 # JSON parser example
 
 Below is most of a json parser (the string unescaping is elided). This example can give you a feel
