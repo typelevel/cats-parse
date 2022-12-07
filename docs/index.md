@@ -262,7 +262,7 @@ We need to make this difference because the first type of error allows us to say
 
 ### Backtrack
 
-Backtrack allows us to convert an _arresting failure_ to _epsilon failure_. It also rewinds the input to the offset to that used before parsing began. The resulting parser might still be combined with others. Let's look at the example:
+Backtrack allows us to convert an _arresting failure_ to _epsilon failure_. It also rewinds the input to the offset that was used before parsing began. The resulting parser might still be combined with others. Let's look at the example:
 
 ```scala mdoc:reset
 import cats.parse.Rfc5234.{digit, sp}
@@ -293,7 +293,7 @@ val p2 = sp *> digit
 
 p1.backtrack.orElse(p2).parse(" 1")
 // res0: Either[Error, Tuple2[String, Char]] = Right((,1))
-(p1.backtrack | p2 ).parse(" 1")
+(p1.backtrack | p2).parse(" 1")
 // res1: Either[Error, Tuple2[String, Char]] = Right((,1))
 ```
 
@@ -344,13 +344,11 @@ p1.parse("The Wind Has Risen")
 This error happens because we can't really tell if we are parsing the `fieldValue` before we met a `:` char. We might do this with by writing two parsers, converting the first one's failure to epsilon failure by `backtrack` and then providing fallback parser by `|` operator (which allows the epsilon failures):
 
 ```scala mdoc
-val p2 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
+val p2 = (searchWord ~ sp.?).rep.string
 
-val p3 = (searchWord ~ sp.?).rep.string
-
-(p2.backtrack | p3).parse("title:The Wind Has Risen")
+(p1.backtrack | p2).parse("title:The Wind Has Risen")
 // res0 = Right((,(Some((title,())),The Wind Has Risen)))
-(p2.backtrack | p3).parse("The Wind Has Risen")
+(p1.backtrack | p2).parse("The Wind Has Risen")
 // res1 = Right((,The Wind Has Risen))
 ```
 
@@ -359,12 +357,12 @@ But this problem might be resolved with `soft` method inside the first parser si
 ```scala mdoc
 val fieldValueSoft = alpha.rep.string.soft ~ pchar(':')
 
-val p4 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
+val p3 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
 
-p4.parse("title:The Wind Has Risen")
+p3.parse("title:The Wind Has Risen")
 // res2 = Right((,(Some((title,())),The Wind Has Risen)))
-p4.parse("The Wind Has Risen")
-// res3 = Right((,(None,The Wind Has Risen)))
+p3.parse("The Wind Has Risen")
+// res3 = Right((,(None,The Wind 22Has Risen)))
 ```
 
 So when the _right side_ returns an epsilon failure the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
