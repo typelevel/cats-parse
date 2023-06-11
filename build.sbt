@@ -2,7 +2,7 @@ import com.typesafe.tools.mima.core._
 import Dependencies._
 val scala211 = "2.11.12"
 val scala212 = "2.12.18"
-val scala213 = "2.13.10"
+val scala213 = "2.13.11"
 val scala3 = "3.2.2"
 
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
