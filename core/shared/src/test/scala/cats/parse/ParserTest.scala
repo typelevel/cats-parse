@@ -2859,8 +2859,8 @@ class ParserTest extends munit.ScalaCheckSuite {
     forAll { (s1: Set[Char], s2: Set[Char]) =>
       assertEquals(Parser.charIn(s1) | Parser.charIn(s2), Parser.charIn(s1 | s2))
       assertEquals(Parser.charIn(s1).void | Parser.charIn(s2).void, Parser.charIn(s1 | s2).void)
-    // TODO: make this law pass. Currently the left is StringIn, but the right is StringP(CharIn(_, _, _))
-    // assertEquals(Parser.charIn(s1).string | Parser.charIn(s2).string, Parser.charIn(s1 | s2).string)
+      // TODO: make this law pass. Currently the left is StringIn, but the right is StringP(CharIn(_, _, _))
+      // assertEquals(Parser.charIn(s1).string | Parser.charIn(s2).string, Parser.charIn(s1 | s2).string)
     } &&
     forAll { (s1: String, s2: String) =>
       if (!s2.startsWith(s1) && (s1.nonEmpty && s2.nonEmpty)) {
