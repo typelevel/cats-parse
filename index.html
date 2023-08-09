@@ -1,109 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
+  
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
-    <title>cats-parse</title>
-    
-      <meta name="author" content="P. Oscar Boykin"/>
-    
-    
-      <meta name="description" content="docs"/>
-    
-    
-      <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
-    
-    
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
-    
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
-    
-    <link rel="stylesheet" type="text/css" href="helium/icofont.min.css" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Typelevel Laika + Helium Theme" />
+  <title>cats-parse</title>
+  
+  <meta name="author" content="cats-parse contributors"/>
+  
+  <meta name="author" content="P. Oscar Boykin"/>
+  
+  
+  <meta name="description" content="docs"/>
+  
+  
+  
+  <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
+  
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
+  
+  <link rel="stylesheet" type="text/css" href="helium/icofont.min.css" />
     <link rel="stylesheet" type="text/css" href="helium/laika-helium.css" />
-    <link rel="stylesheet" type="text/css" href="site/styles.css" />
-    <script src="helium/laika-helium.js"></script>
-    
-    
-    <script> /* for avoiding page load transitions */ </script>
-  </head>
+  <script src="helium/laika-helium.js"></script>
+  
+  
+  <script> /* for avoiding page load transitions */ </script>
+</head>
 
   <body>
 
-    <header id="top-bar">
+    <header id="top-bar" class="light-default dark-default">
 
-      <div class="row">
-        <a id="nav-icon">
-          <i class="icofont-laika" title="Navigation">&#xefa2;</i>
-        </a>
-        
-      </div>
+  <div class="row">
+    <a id="nav-icon">
+      <i class="icofont-laika navigationMenu" title="Navigation">&#xefa2;</i>
+    </a>
+    
+    
+  </div>
 
-      <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
+  <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
 
-      <span class="row links"><a class="icon-link svg-link" href="https://github.com/typelevel/cats-parse"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <div class="row links">
+    
+    <a class="icon-link svg-link" href="https://github.com/typelevel/cats-parse"><span class="github" title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
     <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
   </g>
-</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+</svg></span></a>
+    
+    <a class="icon-link glyph-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika chat" title="Chat">&#xeed5;</i></a>
+    
+    <a class="icon-link svg-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <g class="svg-shape">
     <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
   </g>
-</svg>
-</span></a></span>
+</svg></span></a>
+    
+  </div>  
 
-    </header>
-
+</header>
+    
     <nav id="sidebar">
 
-      <div class="row">
-        <a class="icon-link svg-link" href="https://github.com/typelevel/cats-parse"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <div class="row">
+    
+    <a class="icon-link svg-link" href="https://github.com/typelevel/cats-parse"><span class="github" title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
     <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
   </g>
-</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+</svg></span></a>
+    
+    <a class="icon-link glyph-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika chat" title="Chat">&#xeed5;</i></a>
+    
+    <a class="icon-link svg-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <g class="svg-shape">
     <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
   </g>
-</svg>
-</span></a>
-      </div>
+</svg></span></a>
+    
+  </div>
 
-      <ul class="nav-list">
-        <li class="level1 active"><a href="#">cats-parse</a></li>
-      </ul>
+  <ul class="nav-list">
+    <li class="level1 active nav-leaf"><a href="#">cats-parse</a></li>
+  </ul>
 
-      <ul class="nav-list">
-        <li class="level1 nav-header">Related Projects</li>
-        
-          <li class="level2"><a href="https://typelevel.org/cats/">cats</a></li>
-        
-      </ul>
-
-    </nav>
+</nav>
 
     <div id="container">
 
-      <nav id="page-nav">
-        <p class="header"><a href="#">cats-parse</a></p>
+      
+<nav id="page-nav">
+  <p class="header"><a href="#">cats-parse</a></p>
 
-        <ul class="nav-list">
-          <li class="level1"><a href="#tutorial">Tutorial</a></li>
-          <li class="level2"><a href="#simple-parser">Simple parser</a></li>
-          <li class="level2"><a href="#mapping-output">Mapping output</a></li>
-          <li class="level2"><a href="#combining-parsers">Combining parsers</a></li>
-          <li class="level2"><a href="#repeating-parsers">Repeating parsers</a></li>
-          <li class="level2"><a href="#parsers-with-empty-output">Parsers with empty output</a></li>
-          <li class="level2"><a href="#error-handling">Error handling</a></li>
-          <li class="level1"><a href="#json-parser-example">JSON parser example</a></li>
-          <li class="level1"><a href="#performance">Performance</a></li>
-          <li class="level1"><a href="#migrating-from-fastparse">Migrating from Fastparse</a></li>
-          <li class="level1"><a href="#getting-and-giving-help">Getting and Giving Help</a></li>
-        </ul>
+  <ul class="nav-list">
+    <li class="level1 nav-node"><a href="#tutorial">Tutorial</a></li>
+    <li class="level2 nav-leaf"><a href="#simple-parser">Simple parser</a></li>
+    <li class="level2 nav-leaf"><a href="#mapping-output">Mapping output</a></li>
+    <li class="level2 nav-leaf"><a href="#combining-parsers">Combining parsers</a></li>
+    <li class="level2 nav-leaf"><a href="#repeating-parsers">Repeating parsers</a></li>
+    <li class="level2 nav-leaf"><a href="#parsers-with-empty-output">Parsers with empty output</a></li>
+    <li class="level2 nav-leaf"><a href="#error-handling">Error handling</a></li>
+    <li class="level1 nav-leaf"><a href="#json-parser-example">JSON parser example</a></li>
+    <li class="level1 nav-leaf"><a href="#performance">Performance</a></li>
+    <li class="level1 nav-leaf"><a href="#migrating-from-fastparse">Migrating from Fastparse</a></li>
+    <li class="level1 nav-leaf"><a href="#getting-and-giving-help">Getting and Giving Help</a></li>
+  </ul>
 
-        <p class="footer"></p>
-      </nav>
+  <p class="footer"></p>
+</nav>
+
 
       <main class="content">
 
@@ -129,9 +140,9 @@
           <li>Stability: we are very reluctant to break compatibility between versions. We want to put a minimal tax on users to stay on the latest versions.</li>
         </ol>
         
-        <h1 id="tutorial" class="section">Tutorial<a class="anchor-link right" href="#tutorial"><i class="icofont-laika">&#xef71;</i></a></h1>
+        <h1 id="tutorial" class="section"><a class="anchor-link left" href="#tutorial"><i class="icofont-laika link">&#xef71;</i></a>Tutorial</h1>
         
-        <h2 id="simple-parser" class="section">Simple parser<a class="anchor-link right" href="#simple-parser"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="simple-parser" class="section"><a class="anchor-link left" href="#simple-parser"><i class="icofont-laika link">&#xef71;</i></a>Simple parser</h2>
         <p>The library provides a set of simple parsers which might be combined to create any parsing logic. The simplest parser is <code>Parser.anyChar</code> which is successful where there is one char at the input. It has type <code>Parser[Char]</code> which means it returns one parsed char.</p>
         <p>To provide any input to parser one need to use <code>parse</code> method.</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Parser</span><span>
@@ -147,7 +158,7 @@
 //   value = Error(
 //      = 0,
 //      = NonEmptyList(
-//       head = InRange(offset = 0, lower = &#39;\u0000&#39;, upper = &#39;\uffff&#39;),
+//       head = InRange(offset = 0, lower = &#39;\u0000&#39;, upper = &#39;￿&#39;),
 //       tail = List()
 //     )
 //   )
@@ -157,7 +168,7 @@
 </span><span class="comment">// res3: Either[Parser.Error, (String, Char)] = Right(value = (&quot;wo&quot;, &#39;t&#39;))</span></code></pre>
         <p>Notice the return type. <code>Tuple2[String, Char]</code> contains the rest of the input string and one parsed char if parsing was successful. It returns <code>Left</code> with error message if there was some parsing error.</p>
         
-        <h2 id="mapping-output" class="section">Mapping output<a class="anchor-link right" href="#mapping-output"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="mapping-output" class="section"><a class="anchor-link left" href="#mapping-output"><i class="icofont-laika link">&#xef71;</i></a>Mapping output</h2>
         <p>The output of the parser might be processed with <code>map</code> method:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Parser</span><span>
 
@@ -223,7 +234,7 @@
 </span><span class="identifier">p5</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;1&quot;</span><span>)
 </span><span class="comment">// res8: Either[Parser.Error, (String, Unit)] = Right(value = (&quot;&quot;, ()))</span></code></pre>
         
-        <h2 id="combining-parsers" class="section">Combining parsers<a class="anchor-link right" href="#combining-parsers"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="combining-parsers" class="section"><a class="anchor-link left" href="#combining-parsers"><i class="icofont-laika link">&#xef71;</i></a>Combining parsers</h2>
         <p>The parsers might be combined through operators:</p>
         <ul>
           <li><code>~</code> - product. Allows continuing parsing if the left side was successful;</li>
@@ -292,7 +303,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11636/699989195@413fc050
+//   fn = cats.parse.Parser$$Lambda$10110/575421923@22a1907
 // )
 </span><span>
 </span><span class="comment">// still error since we need the space even if we drop it
@@ -331,7 +342,7 @@
 //           ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$11634/2092982544@48357d6b
+//       fn = cats.parse.Parser$$Lambda$10108/1615755596@3b93112d
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -341,7 +352,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11636/699989195@413fc050
+//   fn = cats.parse.Parser$$Lambda$10110/575421923@22a1907
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p5</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">Char</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">surroundedBy</span><span>(</span><span class="identifier">sp</span><span>)
 </span><span class="comment">// p5: Parser[Char] = Map(
@@ -368,7 +379,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11637/770385113@4cefc867
+//   fn = cats.parse.Parser$$Lambda$10111/117838449@587594d5
 // )
 </span><span>
 </span><span class="identifier">p4</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; a &quot;</span><span>)
@@ -398,7 +409,7 @@
 //           ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$11634/2092982544@48357d6b
+//       fn = cats.parse.Parser$$Lambda$10108/1615755596@3b93112d
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -408,7 +419,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11636/699989195@413fc050
+//   fn = cats.parse.Parser$$Lambda$10110/575421923@22a1907
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p7</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">Char</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">between</span><span>(</span><span class="identifier">sp</span><span>, </span><span class="identifier">digit</span><span>)
 </span><span class="comment">// p7: Parser[Char] = Map(
@@ -435,7 +446,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11637/770385113@4cefc867
+//   fn = cats.parse.Parser$$Lambda$10111/117838449@587594d5
 // )
 </span><span>
 </span><span class="identifier">p6</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; a1&quot;</span><span>)
@@ -471,7 +482,7 @@
 </span><span class="identifier">p3</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; &quot;</span><span>)
 </span><span class="comment">// res19: Either[Parser.Error, (String, AnyVal)] = Right(value = (&quot;&quot;, ()))</span></code></pre>
         
-        <h2 id="repeating-parsers" class="section">Repeating parsers<a class="anchor-link right" href="#repeating-parsers"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="repeating-parsers" class="section"><a class="anchor-link left" href="#repeating-parsers"><i class="icofont-laika link">&#xef71;</i></a>Repeating parsers</h2>
         <p>Sometimes we need something to repeat zero or more types. The cats-parse have <code>rep</code> and <code>rep0</code> methods for repeating values. <code>rep</code> means that the parser must be successful <em>at least one time</em>. <code>rep0</code> means that the parser output might be empty.</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">data</span><span>.</span><span class="type-name">NonEmptyList</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Rfc5234</span><span>.</span><span class="identifier">alpha</span><span>
@@ -486,7 +497,7 @@
 //   ),
 //   min = 1,
 //   maxMinusOne = 2147483647,
-//   acc1 = cats.parse.Accumulator$$anon$12@736dbcea
+//   acc1 = cats.parse.Accumulator$$anon$12@4b84d69d
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span>: </span><span class="type-name">Parser0</span><span>[</span><span class="type-name">List</span><span>[</span><span class="type-name">Char</span><span>]] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">rep0</span><span>
 </span><span class="comment">// p2: Parser0[List[Char]] = OneOf0(
@@ -499,7 +510,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$9@105059c9
+//       acc1 = cats.parse.Accumulator0$$anon$9@19341ccb
 //     ),
 //     Pure(result = List())
 //   )
@@ -541,7 +552,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator$$anon$12@71a0f615
+//     acc1 = cats.parse.Accumulator$$anon$12@3a0d7cb9
 //   ),
 //   fn = &lt;function1&gt;
 // )
@@ -556,7 +567,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//     acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //   )
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">String</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">repAs</span><span>[</span><span class="type-name">String</span><span>]
@@ -568,11 +579,11 @@
 //   ),
 //   min = 1,
 //   maxMinusOne = 2147483647,
-//   acc1 = cats.parse.Accumulator0$$anon$7@5d2acad7
+//   acc1 = cats.parse.Accumulator0$$anon$7@23778377
 // )</span></code></pre>
         <p>All three parsers will be identical in parsing results, but <code>p2</code> and <code>p3</code> are using built-in methods which will not create intermediate list. <code>rep</code> + <code>map</code> creates intermediate list which is mapped to string in this example.</p>
         
-        <h2 id="parsers-with-empty-output" class="section">Parsers with empty output<a class="anchor-link right" href="#parsers-with-empty-output"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="parsers-with-empty-output" class="section"><a class="anchor-link left" href="#parsers-with-empty-output"><i class="icofont-laika link">&#xef71;</i></a>Parsers with empty output</h2>
         <p>Some parsers never return a value. They have a type <code>Parser0</code>. One might get this type of parser when using <code>rep0</code> or <code>.?</code> methods.</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Rfc5234</span><span>.{</span><span class="identifier">alpha</span><span>, </span><span class="identifier">sp</span><span>}
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Parser</span><span>
@@ -589,7 +600,7 @@
 //         ),
 //         min = 1,
 //         maxMinusOne = 2147483647,
-//         acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//         acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //       ),
 //       second = OneOf0(
 //         all = List(
@@ -604,7 +615,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//     acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //   )
 // )
 </span><span>
@@ -643,7 +654,7 @@
 //           ),
 //           min = 1,
 //           maxMinusOne = 2147483647,
-//           acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//           acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //         ),
 //         second = OneOf0(
 //           all = List(
@@ -659,7 +670,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//     acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //   )
 // )
 </span><span>
@@ -675,7 +686,7 @@
         <p>If we have multiple <code>Parser0</code> parsers before the <code>Parser</code> - we&#39;d need to use parenthesis like this:
         <code>(sp.? ~ sp.?).with1 *&gt; alpha.rep</code>.</p>
         
-        <h2 id="error-handling" class="section">Error handling<a class="anchor-link right" href="#error-handling"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="error-handling" class="section"><a class="anchor-link left" href="#error-handling"><i class="icofont-laika link">&#xef71;</i></a>Error handling</h2>
         <p>Parser might be interrupted by parsing error. There are two kinds of errors:</p>
         <ul>
           <li>an error that has consumed 0 characters (<strong>epsilon failure</strong>);</li>
@@ -706,7 +717,7 @@
 //       ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11634/2092982544@48357d6b
+//   fn = cats.parse.Parser$$Lambda$10108/1615755596@3b93112d
 // )
 </span><span>
 </span><span class="comment">// epsilon failure
@@ -735,7 +746,7 @@
 // )</span></code></pre>
         <p>We need to make this difference because the first type of error allows us to say that parser is not matching the input before we started to process it and the second error happens while parser processing the input.</p>
         
-        <h3 id="backtrack" class="section">Backtrack<a class="anchor-link right" href="#backtrack"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <h3 id="backtrack" class="section"><a class="anchor-link left" href="#backtrack"><i class="icofont-laika link">&#xef71;</i></a>Backtrack</h3>
         <p>Backtrack allows us to convert an <em>arresting failure</em> to <em>epsilon failure</em>. It also rewinds the input to the offset to that used before parsing began. The resulting parser might still be combined with others. Let&#39;s look at the example:</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Rfc5234</span><span>.{</span><span class="identifier">digit</span><span>, </span><span class="identifier">sp</span><span>}
 
@@ -757,7 +768,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$11634/2092982544@48357d6b
+//       fn = cats.parse.Parser$$Lambda$10108/1615755596@3b93112d
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -767,7 +778,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11636/699989195@413fc050
+//   fn = cats.parse.Parser$$Lambda$10110/575421923@22a1907
 // )
 </span><span>
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
@@ -806,7 +817,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$11634/2092982544@48357d6b
+//       fn = cats.parse.Parser$$Lambda$10108/1615755596@3b93112d
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -816,7 +827,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11636/699989195@413fc050
+//   fn = cats.parse.Parser$$Lambda$10110/575421923@22a1907
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span> = </span><span class="identifier">sp</span><span> *&gt; </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p2: cats.parse.Parser[Char] = Map(
@@ -834,7 +845,7 @@
 //       ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11634/2092982544@48357d6b
+//   fn = cats.parse.Parser$$Lambda$10108/1615755596@3b93112d
 // )
 </span><span>
 </span><span class="identifier">p1</span><span>.</span><span class="identifier">backtrack</span><span>.</span><span class="identifier">orElse</span><span>(</span><span class="identifier">p2</span><span>).</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
@@ -868,7 +879,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$11634/2092982544@48357d6b
+//       fn = cats.parse.Parser$$Lambda$10108/1615755596@3b93112d
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -878,7 +889,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11636/699989195@413fc050
+//   fn = cats.parse.Parser$$Lambda$10110/575421923@22a1907
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span> = </span><span class="identifier">sp</span><span> *&gt; </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p2: cats.parse.Parser[Char] = Map(
@@ -896,7 +907,7 @@
 //       ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$11634/2092982544@48357d6b
+//   fn = cats.parse.Parser$$Lambda$10108/1615755596@3b93112d
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span> = </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p3: cats.parse.Parser[Char] = CharIn(
@@ -924,7 +935,7 @@
         <p>The first parser combination is interrupted by <em>arresting failures</em> and the second parsing combination will only suffer from <em>epsilon failures</em>. The second parser works because <code>orElse</code> and <code>|</code> operators actually allows recovering from epsilon failures, but not from arresting failures.</p>
         <p>So the <code>backtrack</code> helps us where the <em>left side</em> returns arresting failure.</p>
         
-        <h3 id="soft" class="section">Soft<a class="anchor-link right" href="#soft"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <h3 id="soft" class="section"><a class="anchor-link left" href="#soft"><i class="icofont-laika link">&#xef71;</i></a>Soft</h3>
         <p>This method might look similar to <code>backtrack</code>, but it allows us to <em>proceed</em> the parsing when the <em>right side</em> is returning an epsilon failure. It is really useful for ambiguous parsers when we can&#39;t really tell what exactly we are parsing before the end. Let&#39;s say we want to parse some input to the search engine which contains fields. This might look like &quot;field:search_query&quot;. Let&#39;s try to write a parser for this:</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Rfc5234</span><span>.{</span><span class="identifier">alpha</span><span>, </span><span class="identifier">sp</span><span>}
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Parser</span><span>
@@ -940,7 +951,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//     acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //   )
 // )
 </span><span>
@@ -955,7 +966,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//       acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //     )
 //   ),
 //   second = Void(
@@ -985,7 +996,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//               acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //             )
 //           ),
 //           second = Void(
@@ -996,7 +1007,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$11626/571313952@4f265eaa
+//         fn = cats.parse.Parser0$$Lambda$10100/261637826@1a1c0196
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1012,7 +1023,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//               acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 // ...
 </span><span>
 
@@ -1050,7 +1061,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//               acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //             )
 //           ),
 //           second = Void(
@@ -1061,7 +1072,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$11626/571313952@4f265eaa
+//         fn = cats.parse.Parser0$$Lambda$10100/261637826@1a1c0196
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1077,7 +1088,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//               acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 // ...
 </span><span>
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span> = (</span><span class="identifier">searchWord</span><span> ~ </span><span class="identifier">sp</span><span>.?).</span><span class="identifier">rep</span><span>.</span><span class="identifier">string</span><span>
@@ -1092,7 +1103,7 @@
 //         ),
 //         min = 1,
 //         maxMinusOne = 2147483647,
-//         acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//         acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //       ),
 //       second = OneOf0(
 //         all = List(
@@ -1107,7 +1118,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//     acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //   )
 // )
 </span><span>
@@ -1132,7 +1143,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//       acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //     )
 //   ),
 //   second = Void(
@@ -1162,7 +1173,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//               acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 //             )
 //           ),
 //           second = Void(
@@ -1173,7 +1184,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$11626/571313952@4f265eaa
+//         fn = cats.parse.Parser0$$Lambda$10100/261637826@1a1c0196
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1189,7 +1200,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@433ea4b6
+//               acc1 = cats.parse.Accumulator0$$anon$11@4e2a9411
 // ...
 </span><span>
 </span><span class="identifier">p4</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;title:The Wind Has Risen&quot;</span><span>)
@@ -1203,7 +1214,7 @@
 // )</span></code></pre>
         <p>So when the <em>right side</em> returns an epsilon failure the <code>soft</code> method allows us to rewind parsed input and try to proceed it&#39;s parsing with next parsers (without changing the parser itself!).</p>
         
-        <h1 id="json-parser-example" class="section">JSON parser example<a class="anchor-link right" href="#json-parser-example"><i class="icofont-laika">&#xef71;</i></a></h1>
+        <h1 id="json-parser-example" class="section"><a class="anchor-link left" href="#json-parser-example"><i class="icofont-laika link">&#xef71;</i></a>JSON parser example</h1>
         <p>Below is most of a json parser (the string unescaping is elided). This example can give you a feel
         for what it is like to use this library.</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.{</span><span class="type-name">Parser0</span><span>, </span><span class="type-name">Parser</span><span> =&gt; </span><span class="type-name">P</span><span>, </span><span class="type-name">Numbers</span><span>}
@@ -1243,7 +1254,7 @@
 </span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">parserFile</span><span>: </span><span class="type-name">P</span><span>[</span><span class="type-name">JValue</span><span>] = </span><span class="identifier">whitespaces0</span><span>.</span><span class="identifier">with1</span><span> *&gt; </span><span class="identifier">parser</span><span> &lt;* (</span><span class="identifier">whitespaces0</span><span> ~ </span><span class="type-name">P</span><span>.</span><span class="identifier">end</span><span>)
 }</span></code></pre>
         
-        <h1 id="performance" class="section">Performance<a class="anchor-link right" href="#performance"><i class="icofont-laika">&#xef71;</i></a></h1>
+        <h1 id="performance" class="section"><a class="anchor-link left" href="#performance"><i class="icofont-laika link">&#xef71;</i></a>Performance</h1>
         <p>We have a benchmark suite that compares JSON parsing across several commonly used libraries. A
         recent (2021/11/05) result is below:</p>
         <pre><code>[info] Benchmark                         Mode  Cnt    Score    Error  Units
@@ -1280,7 +1291,7 @@
         Keep in mind that parser performance depends both on the parsing library but also how the parser
         is written, but these results suggest that this library is already quite competitive.</p>
         
-        <h1 id="migrating-from-fastparse" class="section">Migrating from Fastparse<a class="anchor-link right" href="#migrating-from-fastparse"><i class="icofont-laika">&#xef71;</i></a></h1>
+        <h1 id="migrating-from-fastparse" class="section"><a class="anchor-link left" href="#migrating-from-fastparse"><i class="icofont-laika link">&#xef71;</i></a>Migrating from Fastparse</h1>
         <p>You should find all the Fastparse methods you are used to. If not, feel free to open an issue.
         There are a few things to keep in mind:</p>
         <ol class="arabic">
@@ -1290,19 +1301,22 @@
           <li>In cats-parse, using <code>*&gt;</code>, <code>&lt;*</code>, and <code>.void</code> methods can be a significant optimization: if you don&#39;t need a result, communicate that to the library with those methods.</li>
         </ol>
         
-        <h1 id="getting-and-giving-help" class="section">Getting and Giving Help<a class="anchor-link right" href="#getting-and-giving-help"><i class="icofont-laika">&#xef71;</i></a></h1>
+        <h1 id="getting-and-giving-help" class="section"><a class="anchor-link left" href="#getting-and-giving-help"><i class="icofont-laika link">&#xef71;</i></a>Getting and Giving Help</h1>
         <p>We welcome new contributors and new maintainers. Please feel free to open issues and PRs. If you have any
         problem using the library, an issue is the best way to ask a question until we flush out more
         documentation.</p>
 
-        <hr style="margin-top: 30px"/>
-        <footer style="font-size: 90%; text-align: center">
-          cats-parse is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.
-        </footer>
+        
+<hr class="footer-rule"/>
+<footer>
+  cats-parse is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.
+</footer>
+
 
       </main>
 
     </div>
 
   </body>
+
 </html>
