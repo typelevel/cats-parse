@@ -1706,8 +1706,8 @@ object Parser {
   def defer0[A](pa: => Parser0[A]): Parser0[A] =
     Impl.Defer0(() => pa)
 
-  /** Build a recursive parser by assuming you have it Useful for parsing recurive structures, like
-    * for instance JSON.
+  /** Build a recursive parser by assuming you have it Useful for parsing recursive structures like
+    * JSON.
     */
   def recursive[A](fn: Parser[A] => Parser[A]): Parser[A] = {
     lazy val result: Parser[A] = fn(defer(result))
