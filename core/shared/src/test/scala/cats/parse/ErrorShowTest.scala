@@ -43,9 +43,9 @@ class ErrorShowTest extends munit.ScalaCheckSuite {
     }
   }
 
-  val ok = string("ok")
+  val ok = string("ok").void
   val nl = string("\n")
-  val lx = string("l") ~ digits
+  val lx = (string("l") ~ digits).void
   val lxOk = ((lx | ok) ~ nl)
 
   // # Expectations:
