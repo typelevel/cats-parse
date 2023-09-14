@@ -21,7 +21,19 @@
 
 package cats.parse
 
-import cats.{Eval, FunctorFilter, Monad, Defer, Alternative, FlatMap, Now, MonoidK, Order, Show}
+import cats.{
+  Eval,
+  Functor,
+  FunctorFilter,
+  Monad,
+  Defer,
+  Alternative,
+  FlatMap,
+  Now,
+  MonoidK,
+  Order,
+  Show
+}
 import cats.data.{AndThen, Chain, NonEmptyList}
 
 import cats.implicits._
@@ -1706,8 +1718,8 @@ object Parser {
   def defer0[A](pa: => Parser0[A]): Parser0[A] =
     Impl.Defer0(() => pa)
 
-  /** Build a recursive parser by assuming you have it Useful for parsing recurive structures, like
-    * for instance JSON.
+  /** Build a recursive parser by assuming you have it Useful for parsing recursive structures like
+    * JSON.
     */
   def recursive[A](fn: Parser[A] => Parser[A]): Parser[A] = {
     lazy val result: Parser[A] = fn(defer(result))
@@ -2063,12 +2075,12 @@ object Parser {
   implicit val catsInstancesParser
       : FlatMap[Parser] with Defer[Parser] with MonoidK[Parser] with FunctorFilter[Parser] =
     new FlatMap[Parser] with Defer[Parser] with MonoidK[Parser] with FunctorFilter[Parser] {
-      override def empty[A] = Fail
+      override def empty[A]: Parser[A] = Fail
 
       override def defer[A](pa: => Parser[A]): Parser[A] =
         Parser.this.defer(pa)
 
-      override def functor = this
+      override def functor: Functor[Parser] = this
 
       override def map[A, B](fa: Parser[A])(fn: A => B): Parser[B] =
         Parser.this.map(fa)(fn)
@@ -3596,7 +3608,7 @@ object Parser0 {
 
       override def empty[A]: Parser0[A] = Parser.Fail
 
-      override def functor = this
+      override def functor: Functor[Parser0] = this
 
       override def map[A, B](fa: Parser0[A])(fn: A => B): Parser0[B] = Parser.map0(fa)(fn)
 

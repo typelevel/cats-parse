@@ -2967,7 +2967,7 @@ class ParserTest extends munit.ScalaCheckSuite {
     val p2 = Parser.char('z')
 
     val p = p1.? ~ p2
-    val q = (p1 ~ p2) | p2
+    val q = (p1 ~ p2).void | p2.void
 
     val err1 = p.parse("")
     val err2 = q.parse("")

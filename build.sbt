@@ -3,7 +3,7 @@ import Dependencies._
 val scala211 = "2.11.12"
 val scala212 = "2.12.18"
 val scala213 = "2.13.11"
-val scala3 = "3.3.0"
+val scala3 = "3.3.1"
 
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
@@ -14,27 +14,35 @@ ThisBuild / tlBaseVersion := "0.3"
 ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
-ThisBuild / crossScalaVersions := List(scala3, scala211, scala212, scala213)
+ThisBuild / crossScalaVersions := List(scala211, scala212, scala213, scala3)
+ThisBuild / scalaVersion := scala213
 
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.3.4")
-ThisBuild / tlSkipIrrelevantScalas := true
 
+ThisBuild / tlCiDependencyGraphJob := false // omit after dropping scala 2.11
 ThisBuild / githubWorkflowBuildMatrixExclusions ++=
   Seq(
-    MatrixExclude(Map("project" -> "rootJS", "scala" -> scala211)),
-    MatrixExclude(Map("project" -> "rootNative", "scala" -> scala211))
+    MatrixExclude(Map("project" -> "rootJS", "scala" -> "2.11")),
+    MatrixExclude(Map("project" -> "rootNative", "scala" -> "2.11"))
   )
 
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     id = "coverage",
     name = "Generate coverage report",
-    scalas = List(scala213),
+    scalas = Nil,
+    sbtStepPreamble = Nil,
     steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
       githubWorkflowJavaVersions.value.toList
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
       WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageAggregate")),
-      WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
+      WorkflowStep.Use(
+        UseRef.Public(
+          "codecov",
+          "codecov-action",
+          "v3"
+        )
+      )
     )
   )
 )
@@ -54,7 +62,6 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .settings(
     name := "cats-parse",
-    tlFatalWarningsInCi := !tlIsScala3.value,
     libraryDependencies ++= {
       Seq(
         if (isScala211.value) cats211.value else cats.value,
@@ -68,6 +75,10 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
     scalacOptions ++= {
       // this code seems to trigger a bug in 2.11 pattern analysis
       if (isScala211.value) List("-Xno-patmat-analysis") else Nil
+    },
+    tlFatalWarnings := {
+      if (isScala211.value) false
+      else tlFatalWarnings.value
     },
     mimaPreviousArtifacts := {
       if (isScala211.value) Set.empty else mimaPreviousArtifacts.value
@@ -107,17 +118,21 @@ lazy val bench = project
   .settings(
     name := "bench",
     coverageEnabled := false,
-    crossScalaVersions := (ThisBuild / crossScalaVersions).value.filter { v =>
-      v.startsWith("2.12") || v.startsWith("2.13")
+    Compile / unmanagedSources := {
+      if (Set("2.12", "2.13").contains(scalaBinaryVersion.value)) {
+        (Compile / unmanagedSources).value
+      } else Nil
     },
-    libraryDependencies ++=
-      Seq(
-        fastParse,
-        parsley,
-        jawnAst.value,
-        parboiled,
-        attoCore
-      ),
-    githubWorkflowArtifactUpload := false
+    libraryDependencies ++= {
+      if (Set("2.12", "2.13").contains(scalaBinaryVersion.value))
+        Seq(
+          fastParse,
+          parsley,
+          jawnAst.value,
+          parboiled,
+          attoCore
+        )
+      else Nil
+    }
   )
   .dependsOn(core.jvm)

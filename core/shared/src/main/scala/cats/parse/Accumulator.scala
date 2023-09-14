@@ -135,7 +135,7 @@ object Accumulator0 {
 object Accumulator extends Priority0Accumulator {
   implicit def nonEmptyListAccumulator0[A]: Accumulator[A, NonEmptyList[A]] =
     new Accumulator[A, NonEmptyList[A]] {
-      def newAppender(first: A) =
+      def newAppender(first: A): Appender[A, NonEmptyList[A]] =
         new Appender[A, NonEmptyList[A]] {
           val bldr = List.newBuilder[A]
           def append(item: A) = {
@@ -149,7 +149,7 @@ object Accumulator extends Priority0Accumulator {
 
   implicit def nonEmptyVectorAccumulator0[A]: Accumulator[A, NonEmptyVector[A]] =
     new Accumulator[A, NonEmptyVector[A]] {
-      def newAppender(first: A) =
+      def newAppender(first: A): Appender[A, NonEmptyVector[A]] =
         new Appender[A, NonEmptyVector[A]] {
           val bldr = Vector.newBuilder[A]
           bldr += first
