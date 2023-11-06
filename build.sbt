@@ -10,7 +10,10 @@ addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 tlReplaceCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
 
-ThisBuild / tlBaseVersion := "0.3"
+ThisBuild / tlBaseVersion := "1.0"
+// continue enforcing bincompat with 0.3.x series
+ThisBuild / tlMimaPreviousVersions ++= (0 to 10).map(x => s"0.3.$x").toSet
+
 ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
