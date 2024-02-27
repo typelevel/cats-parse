@@ -306,7 +306,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10597/0x0000000102d27040@6a0e14dd
+//   fn = cats.parse.Parser$$Lambda$10742/0x0000000102d27040@632facc
 // )
 </span><span>
 </span><span class="comment">// still error since we need the space even if we drop it
@@ -345,7 +345,7 @@
 //           ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10595/0x0000000102d24040@68a1483a
+//       fn = cats.parse.Parser$$Lambda$10740/0x0000000102d24840@636c3ea9
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -355,7 +355,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10597/0x0000000102d27040@6a0e14dd
+//   fn = cats.parse.Parser$$Lambda$10742/0x0000000102d27040@632facc
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p5</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">Char</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">surroundedBy</span><span>(</span><span class="identifier">sp</span><span>)
 </span><span class="comment">// p5: Parser[Char] = Map(
@@ -382,7 +382,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10598/0x0000000102d26840@76f1c20c
+//   fn = cats.parse.Parser$$Lambda$10743/0x0000000102d26040@e1f6af1
 // )
 </span><span>
 </span><span class="identifier">p4</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; a &quot;</span><span>)
@@ -412,7 +412,7 @@
 //           ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10595/0x0000000102d24040@68a1483a
+//       fn = cats.parse.Parser$$Lambda$10740/0x0000000102d24840@636c3ea9
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -422,7 +422,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10597/0x0000000102d27040@6a0e14dd
+//   fn = cats.parse.Parser$$Lambda$10742/0x0000000102d27040@632facc
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p7</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">Char</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">between</span><span>(</span><span class="identifier">sp</span><span>, </span><span class="identifier">digit</span><span>)
 </span><span class="comment">// p7: Parser[Char] = Map(
@@ -449,7 +449,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10598/0x0000000102d26840@76f1c20c
+//   fn = cats.parse.Parser$$Lambda$10743/0x0000000102d26040@e1f6af1
 // )
 </span><span>
 </span><span class="identifier">p6</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; a1&quot;</span><span>)
@@ -501,7 +501,7 @@
 //   ),
 //   min = 1,
 //   maxMinusOne = 2147483647,
-//   acc1 = cats.parse.Accumulator$$anon$12@5de68e55
+//   acc1 = cats.parse.Accumulator$$anon$12@43b7386
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span>: </span><span class="type-name">Parser0</span><span>[</span><span class="type-name">List</span><span>[</span><span class="type-name">Char</span><span>]] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">rep0</span><span>
 </span><span class="comment">// p2: Parser0[List[Char]] = OneOf0(
@@ -514,7 +514,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$9@47d4d1c8
+//       acc1 = cats.parse.Accumulator0$$anon$9@15ce1d57
 //     ),
 //     Pure(result = List())
 //   )
@@ -557,7 +557,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator$$anon$12@25d6b190
+//     acc1 = cats.parse.Accumulator$$anon$12@17d5e031
 //   ),
 //   fn = &lt;function1&gt;
 // )
@@ -572,7 +572,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//     acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //   )
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">String</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">repAs</span><span>[</span><span class="type-name">String</span><span>]
@@ -584,7 +584,7 @@
 //   ),
 //   min = 1,
 //   maxMinusOne = 2147483647,
-//   acc1 = cats.parse.Accumulator0$$anon$7@34325f4e
+//   acc1 = cats.parse.Accumulator0$$anon$7@3d90b050
 // )</span></code></pre>
         <p>All three parsers will be identical in parsing results, but <code>p2</code> and <code>p3</code> are using built-in methods which will not create intermediate list. <code>rep</code> + <code>map</code> creates intermediate list which is mapped to string in this example.</p>
         
@@ -605,7 +605,7 @@
 //         ),
 //         min = 1,
 //         maxMinusOne = 2147483647,
-//         acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//         acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //       ),
 //       second = OneOf0(
 //         all = List(
@@ -620,7 +620,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//     acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //   )
 // )
 </span><span>
@@ -660,7 +660,7 @@
 //           ),
 //           min = 1,
 //           maxMinusOne = 2147483647,
-//           acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//           acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //         ),
 //         second = OneOf0(
 //           all = List(
@@ -676,7 +676,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//     acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //   )
 // )
 </span><span>
@@ -724,7 +724,7 @@
 //       ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10595/0x0000000102d24040@68a1483a
+//   fn = cats.parse.Parser$$Lambda$10740/0x0000000102d24840@636c3ea9
 // )
 </span><span>
 </span><span class="comment">// epsilon failure
@@ -776,7 +776,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10595/0x0000000102d24040@68a1483a
+//       fn = cats.parse.Parser$$Lambda$10740/0x0000000102d24840@636c3ea9
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -786,7 +786,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10597/0x0000000102d27040@6a0e14dd
+//   fn = cats.parse.Parser$$Lambda$10742/0x0000000102d27040@632facc
 // )
 </span><span>
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
@@ -826,7 +826,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10595/0x0000000102d24040@68a1483a
+//       fn = cats.parse.Parser$$Lambda$10740/0x0000000102d24840@636c3ea9
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -836,7 +836,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10597/0x0000000102d27040@6a0e14dd
+//   fn = cats.parse.Parser$$Lambda$10742/0x0000000102d27040@632facc
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span> = </span><span class="identifier">sp</span><span> *&gt; </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p2: cats.parse.Parser[Char] = Map(
@@ -854,7 +854,7 @@
 //       ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10595/0x0000000102d24040@68a1483a
+//   fn = cats.parse.Parser$$Lambda$10740/0x0000000102d24840@636c3ea9
 // )
 </span><span>
 </span><span class="identifier">p1</span><span>.</span><span class="identifier">backtrack</span><span>.</span><span class="identifier">orElse</span><span>(</span><span class="identifier">p2</span><span>).</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
@@ -889,7 +889,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10595/0x0000000102d24040@68a1483a
+//       fn = cats.parse.Parser$$Lambda$10740/0x0000000102d24840@636c3ea9
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -899,7 +899,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10597/0x0000000102d27040@6a0e14dd
+//   fn = cats.parse.Parser$$Lambda$10742/0x0000000102d27040@632facc
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span> = </span><span class="identifier">sp</span><span> *&gt; </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p2: cats.parse.Parser[Char] = Map(
@@ -917,7 +917,7 @@
 //       ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10595/0x0000000102d24040@68a1483a
+//   fn = cats.parse.Parser$$Lambda$10740/0x0000000102d24840@636c3ea9
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span> = </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p3: cats.parse.Parser[Char] = CharIn(
@@ -962,7 +962,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//     acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //   )
 // )
 </span><span>
@@ -977,7 +977,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//       acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //     )
 //   ),
 //   second = Void(
@@ -1007,7 +1007,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//               acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //             )
 //           ),
 //           second = Void(
@@ -1018,7 +1018,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$10587/0x0000000102d1e040@55098291
+//         fn = cats.parse.Parser0$$Lambda$10732/0x0000000102d1e840@58512610
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1034,7 +1034,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//               acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 // ...
 </span><span>
 
@@ -1073,7 +1073,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//               acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //             )
 //           ),
 //           second = Void(
@@ -1084,7 +1084,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$10587/0x0000000102d1e040@55098291
+//         fn = cats.parse.Parser0$$Lambda$10732/0x0000000102d1e840@58512610
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1100,7 +1100,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//               acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 // ...
 </span><span>
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span> = (</span><span class="identifier">searchWord</span><span> ~ </span><span class="identifier">sp</span><span>.?).</span><span class="identifier">rep</span><span>.</span><span class="identifier">string</span><span>
@@ -1115,7 +1115,7 @@
 //         ),
 //         min = 1,
 //         maxMinusOne = 2147483647,
-//         acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//         acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //       ),
 //       second = OneOf0(
 //         all = List(
@@ -1130,7 +1130,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//     acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //   )
 // )
 </span><span>
@@ -1156,7 +1156,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//       acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //     )
 //   ),
 //   second = Void(
@@ -1186,7 +1186,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//               acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 //             )
 //           ),
 //           second = Void(
@@ -1197,7 +1197,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$10587/0x0000000102d1e040@55098291
+//         fn = cats.parse.Parser0$$Lambda$10732/0x0000000102d1e840@58512610
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1213,7 +1213,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@5dcff684
+//               acc1 = cats.parse.Accumulator0$$anon$11@626848d8
 // ...
 </span><span>
 </span><span class="identifier">p4</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;title:The Wind Has Risen&quot;</span><span>)
