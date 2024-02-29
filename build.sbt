@@ -3,7 +3,7 @@ import Dependencies._
 val scala211 = "2.11.12"
 val scala212 = "2.12.19"
 val scala213 = "2.13.12"
-val scala3 = "3.3.1"
+val scala3 = "3.3.3"
 
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
