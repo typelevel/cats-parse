@@ -1,16 +1,19 @@
 import com.typesafe.tools.mima.core._
 import Dependencies._
 val scala211 = "2.11.12"
-val scala212 = "2.12.18"
-val scala213 = "2.13.11"
-val scala3 = "3.3.1"
+val scala212 = "2.12.19"
+val scala213 = "2.13.12"
+val scala3 = "3.3.3"
 
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 tlReplaceCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
 
-ThisBuild / tlBaseVersion := "0.3"
+ThisBuild / tlBaseVersion := "1.0"
+// continue enforcing bincompat with 0.3.x series
+ThisBuild / tlMimaPreviousVersions ++= (0 to 10).map(x => s"0.3.$x").toSet
+
 ThisBuild / startYear := Some(2021)
 ThisBuild / developers += tlGitHubDev("johnynek", "P. Oscar Boykin")
 
