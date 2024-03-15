@@ -5,10 +5,11 @@ val scala212 = "2.12.19"
 val scala213 = "2.13.12"
 val scala3 = "3.3.1"
 
-addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
-addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
-
-tlReplaceCommandAlias("prePR", "; githubWorkflowGenerate ; +fmt; bench/compile; +test")
+GlobalScope / tlCommandAliases ++= Map(
+  "fmt" -> List("scalafmtAll", "scalafmtSbt"),
+  "fmtCheck" -> List("scalafmtCheckAll", "scalafmtSbtCheck"),
+  "prePR" -> List("githubWorkflowGenerate", "+fmt", "bench/compile", "+test")
+)
 
 ThisBuild / tlBaseVersion := "1.0"
 // continue enforcing bincompat with 0.3.x series
