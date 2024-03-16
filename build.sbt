@@ -121,6 +121,7 @@ lazy val bench = project
   .settings(
     name := "bench",
     coverageEnabled := false,
+    scalacOptions += "-Wconf:cat=unused-nowarn:s",
     Compile / unmanagedSources := {
       if (Set("2.12", "2.13").contains(scalaBinaryVersion.value)) {
         (Compile / unmanagedSources).value
