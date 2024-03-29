@@ -23,13 +23,12 @@ package cats.parse.extra
 
 import cats.parse.{Parser, Parser0}
 
-/**
- * Typeclass for "has a Parser0"
- *
- * This is primarily provided to help keep track of `Parser0` instances, and as such the omission of
- * `cats.Functor` instances is intentional.
- * @tparam A
- */
+/** Typeclass for "has a Parser0"
+  *
+  * This is primarily provided to help keep track of `Parser0` instances, and as such the omission
+  * of `cats.Functor` instances is intentional.
+  * @tparam A
+  */
 trait DefaultParser0[+A] {
   def parser0: Parser0[A]
 }
@@ -39,7 +38,7 @@ object DefaultParser0 {
   def instance[A](p: Parser0[A]): DefaultParser0[A] = new Impl[A](p)
 
   private final class Impl[+A](override val parser0: Parser0[A])
-    extends DefaultParser0[A]
+      extends DefaultParser0[A]
       with Serializable
 
   object syntax {
