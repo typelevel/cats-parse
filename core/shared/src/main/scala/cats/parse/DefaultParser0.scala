@@ -19,9 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package cats.parse.extra
-
-import cats.parse.{Parser, Parser0}
+package cats.parse
 
 /** Typeclass for "has a Parser0"
   *
