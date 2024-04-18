@@ -31,6 +31,18 @@ import cats.parse.Parser
   */
 trait DefaultParser[+A] {
   def parser: Parser[A]
+
+  /** Pass through to equivalent method on `Parser`
+    * @see
+    *   [[Parser.parse]]
+    */
+  def parse(string: String): Either[Parser.Error, (String, A)] = parser.parse(string)
+
+  /** Pass through to equivalent method on `Parser`
+    * @see
+    *   [[Parser.parseAll]]
+    */
+  def parseAll(string: String): Either[Parser.Error, A] = parser.parseAll(string)
 }
 object DefaultParser {
   def apply[A](implicit P: DefaultParser[A]): P.type = P
