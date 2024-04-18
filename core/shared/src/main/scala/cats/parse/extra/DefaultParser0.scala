@@ -26,7 +26,7 @@ import cats.parse.{Parser, Parser0}
 /** Typeclass for "has a Parser0"
   *
   * This is primarily provided to help keep track of `Parser0` instances, and as such the omission
-  * of `cats.Functor` instances is intentional.
+  * of a `cats.Functor` instance is intentional.
   * @tparam A
   */
 trait DefaultParser0[+A] {
