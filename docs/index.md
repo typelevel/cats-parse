@@ -160,7 +160,7 @@ p3.parse(" ")
 
 ## Repeating parsers
 
-Sometimes we need something to repeat zero or more types. The cats-parse have `rep` and `rep0` methods for repeating values. `rep` means that the parser must be successful _at least one time_. `rep0` means that the parser output might be empty.
+Sometimes we need something to repeat zero or more times. The cats-parse have `rep` and `rep0` methods for repeating values. `rep` means that the parser must be successful _at least one time_. `rep0` means that the parser output might be empty.
 
 ```scala mdoc:reset
 import cats.data.NonEmptyList
