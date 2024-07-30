@@ -71,13 +71,13 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
         Seq(
           cats211.value,
           munit211.value % Test,
-          munitScalacheck211.value % Test,
+          munitScalacheck211.value % Test
         )
       else
         Seq(
           cats.value,
           munit.value % Test,
-          munitScalacheck.value % Test,
+          munitScalacheck.value % Test
         )
     },
     libraryDependencies ++= {
