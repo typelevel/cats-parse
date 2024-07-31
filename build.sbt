@@ -120,7 +120,8 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   )
   .nativeSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
-    tlVersionIntroduced := List("2.12", "2.13", "3").map(_ -> "0.3.8").toMap,
+    // cats-parse 1.0.1 switches to Scala Native 0.5, reset tlVersionIntroduced
+    tlVersionIntroduced := List("2.12", "2.13", "3").map(_ -> "1.0.1").toMap,
     coverageEnabled := false
   )
 
