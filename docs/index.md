@@ -41,11 +41,10 @@ import cats.parse.Parser
 val p: Parser[Char] = Parser.anyChar
 
 p.parse("t")
-// res0: Either[Error, Tuple2[String, Char]] = Right((,t))
+
 p.parse("")
-// res1: Either[Error, Tuple2[String, Char]] = Left(Error(0,NonEmptyList(InRange(0,,))))
+
 p.parse("two")
-// res2: Either[Error, Tuple2[String, Char]] = Right((wo,t))
 ```
 
 Notice the return type. `Tuple2[String, Char]` contains the rest of the input string and one parsed char if parsing was successful. It returns `Left` with error message if there was some parsing error.
@@ -62,7 +61,6 @@ case class CharWrapper(value: Char)
 val p: Parser[CharWrapper] = Parser.anyChar.map(char => CharWrapper(char))
 
 p.parse("t")
-// res0 = Right((,CharWrapper(t)))
 ```
 
 There are built-in methods for mapping the output to types `String` or `Unit`:
@@ -78,7 +76,6 @@ val p2: Parser[String] = digit.map((c: Char) => c.toString)
 val p3: Parser[String] = digit.string
 
 p3.parse("1")
-// res0: Either[Error, Tuple2[String, String]] = Right((,1))
 
 /* Unit */
 
@@ -87,7 +84,6 @@ val p4: Parser[Unit] = digit.map(_ => ())
 val p5: Parser[Unit] = digit.void
 
 p5.parse("1")
-// res1: Either[Error, Tuple2[String, Unit]] = Right((,()))
 ```
 
 ## Combining parsers
@@ -112,9 +108,9 @@ import cats.parse.Parser
 val p1: Parser[(Char, Unit)] = alpha ~ sp
 
 p1.parse("t")
-// res0: Either[Error, Tuple2[String, Tuple2[Char, Unit]]] = Left(Error(1,NonEmptyList(InRange(1, , ))))
+
 p1.parse("t ")
-// res1: Either[Error, Tuple2[String, Tuple2[Char, Unit]]] = Right((,(t,())))
+
 
 /* productL, productR */
 
@@ -124,9 +120,9 @@ val p2: Parser[Char] = alpha <* sp
 
 // still error since we need the space even if we drop it
 p2.parse("t")
-// res2: Either[Error, Tuple2[String, Char]] = Left(Error(1,NonEmptyList(InRange(1, , ))))
+
 p2.parse("t ")
-// res3: Either[Error, Tuple2[String, Char]] = Right((,t))
+
 
 /* surroundedBy */
 
@@ -134,9 +130,9 @@ val p4: Parser[Char] = sp *> alpha <* sp
 val p5: Parser[Char] = alpha.surroundedBy(sp)
 
 p4.parse(" a ")
-// res0: Either[Error, Tuple2[String, Char]] = Right((,a))
+
 p5.parse(" a ")
-// res1: Either[Error, Tuple2[String, Char]] = Right((,a))
+
 
 /* between */
 
@@ -144,18 +140,17 @@ val p6: Parser[Char] = sp *> alpha <* digit
 val p7: Parser[Char] = alpha.between(sp, digit)
 
 p6.parse(" a1")
-// res2: Either[Error, Tuple2[String, Char]] = Right((,a))
+
 p7.parse(" a1")
-// res3: Either[Error, Tuple2[String, Char]] = Right((,a))
+
 
 /* OrElse */
 
 val p3: Parser[AnyVal] = alpha | sp
 
 p3.parse("t")
-// res4: Either[Error, Tuple2[String, AnyVal]] = Right((,t))
+
 p3.parse(" ")
-// res5: Either[Error, Tuple2[String, AnyVal]] = Right((,()))
 ```
 
 ## Repeating parsers
@@ -171,11 +166,10 @@ val p1: Parser[NonEmptyList[Char]]  = alpha.rep
 val p2: Parser0[List[Char]] = alpha.rep0
 
 p1.parse("")
-// Left(Error(0,NonEmptyList(InRange(0,A,Z), InRange(0,a,z))))
+
 p2.parse("")
-// Right((,List()))
+
 p2.parse("something")
-// Right((,List(s, o, m, e, t, h, i, n, g)))
 ```
 
 Notice the types of parsers. `Parser` type always means some non-empty output and the output of `Parser0` might be empty.
@@ -206,7 +200,6 @@ import cats.parse.Parser
 val p: Parser[String] = (alpha.rep <* sp.?).rep.string
 
 p.parse("hello world")
-// res0 = Right((,hello world))
 ```
 
 Notice the type we got - `Parser[String]`. That is because we have `rep` outside and our `alpha.rep` parser with `Parser` type is on the left side of the clause. But what if we want to parse strings with spaces at the beginning?
@@ -227,9 +220,8 @@ import cats.parse.Parser
 val p: Parser[String] = (sp.?.with1 *> alpha.rep <* sp.?).rep.string
 
 p.parse("hello world")
-// res0: Either[Error, Tuple2[String, String]] = Right((,hello world))
+
 p.parse(" hello world")
-// res1: Either[Error, Tuple2[String, String]] = Right((,hello world))
 ```
 
 If we have multiple `Parser0` parsers before the `Parser` - we'd need to use parenthesis like this:
@@ -251,11 +243,9 @@ val p2: Parser[Char] = sp *> alpha
 
 // epsilon failure
 p1.parse("123")
-// res0: Either[Error, Tuple2[String, Char]] = Left(Error(0,NonEmptyList(InRange(0,A,Z), InRange(0,a,z))))
 
 // arresting failure
 p2.parse(" 1")
-// res1: Either[Error, Tuple2[String, Char]] = Left(Error(1,NonEmptyList(InRange(1,A,Z), InRange(1,a,z))))
 ```
 
 We need to make this difference because the first type of error allows us to say that parser is not matching the input before we started to process it and the second error happens while parser processing the input.
@@ -270,7 +260,6 @@ import cats.parse.Rfc5234.{digit, sp}
 val p = sp *> digit <* sp
 
 p.parse(" 1")
-// res1 = Left(Error(2,NonEmptyList(InRange(2, , ))))
 ```
 
 `Parser.Error` contains two parameters:
@@ -292,9 +281,8 @@ val p1 = sp *> digit <* sp
 val p2 = sp *> digit
 
 p1.backtrack.orElse(p2).parse(" 1")
-// res0: Either[Error, Tuple2[String, Char]] = Right((,1))
+
 (p1.backtrack | p2 ).parse(" 1")
-// res1: Either[Error, Tuple2[String, Char]] = Right((,1))
 ```
 
 Notice that `(p1.backtrack | p2)` clause is another parser by itself since we're still combining parsers by using `orElse`.
@@ -309,10 +297,8 @@ val p2 = sp *> digit
 val p3 = digit
 
 (p1 | p2).parse(" 1")
-// res1 = Left(Error(2,NonEmptyList(InRange(2, , ))))
 
 (p1 | p2 | p3).parse("1")
-// res2 = Right((,1))
 ```
 
 The first parser combination is interrupted by _arresting failures_ and the second parsing combination will only suffer from _epsilon failures_. The second parser works because `orElse` and `|` operators actually allows recovering from epsilon failures, but not from arresting failures.
@@ -336,9 +322,8 @@ val p1 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
 
 
 p1.parse("title:The Wind Has Risen")
-// res0 = Right((,(Some((title,())),The Wind Has Risen)))
+
 p1.parse("The Wind Has Risen")
-// res1 = Left(Error(3,NonEmptyList(InRange(3,:,:))))
 ```
 
 This error happens because we can't really tell if we are parsing the `fieldValue` before we met a `:` char. We might do this with by writing two parsers, converting the first one's failure to epsilon failure by `backtrack` and then providing fallback parser by `|` operator (which allows the epsilon failures):
@@ -349,9 +334,8 @@ val p2 = fieldValue.? ~ (searchWord ~ sp.?).rep.string
 val p3 = (searchWord ~ sp.?).rep.string
 
 (p2.backtrack | p3).parse("title:The Wind Has Risen")
-// res0 = Right((,(Some((title,())),The Wind Has Risen)))
+
 (p2.backtrack | p3).parse("The Wind Has Risen")
-// res1 = Right((,The Wind Has Risen))
 ```
 
 But this problem might be resolved with `soft` method inside the first parser since the right side of it actually returns an epsilon failure itself:
@@ -362,9 +346,8 @@ val fieldValueSoft = alpha.rep.string.soft ~ pchar(':')
 val p4 = fieldValueSoft.? ~ (searchWord ~ sp.?).rep.string
 
 p4.parse("title:The Wind Has Risen")
-// res2 = Right((,(Some((title,())),The Wind Has Risen)))
+
 p4.parse("The Wind Has Risen")
-// res3 = Right((,(None,The Wind Has Risen)))
 ```
 
 So when the _right side_ returns an epsilon failure the `soft` method allows us to rewind parsed input and try to proceed it's parsing with next parsers (without changing the parser itself!).
