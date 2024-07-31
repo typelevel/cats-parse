@@ -41,7 +41,7 @@ class JvmNumbersTest extends munit.ScalaCheckSuite {
       case Left(_) => None
       case Right(a) => Some(a)
     }
-    val jawn = JParser.parseFromString(a).toOption.collect { case jn: JNum => jn }
+    val jawn = JParser.parseFromString(a).toOption.collect { case jnum: JNum => jnum }
 
     assertEquals(jn.isDefined, jawn.isDefined)
 
