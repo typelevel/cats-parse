@@ -2,7 +2,7 @@ import com.typesafe.tools.mima.core._
 import Dependencies._
 val scala211 = "2.11.12"
 val scala212 = "2.12.19"
-val scala213 = "2.13.12"
+val scala213 = "2.13.14"
 val scala3 = "3.3.3"
 
 GlobalScope / tlCommandAliases ++= Map(
@@ -67,11 +67,18 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .settings(
     name := "cats-parse",
     libraryDependencies ++= {
-      Seq(
-        if (isScala211.value) cats211.value else cats.value,
-        munit.value % Test,
-        munitScalacheck.value % Test
-      )
+      if (isScala211.value)
+        Seq(
+          cats211.value,
+          munit211.value % Test,
+          munitScalacheck211.value % Test
+        )
+      else
+        Seq(
+          cats.value,
+          munit.value % Test,
+          munitScalacheck.value % Test
+        )
     },
     libraryDependencies ++= {
       if (tlIsScala3.value) Nil else Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value)
@@ -113,7 +120,8 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   )
   .nativeSettings(
     crossScalaVersions := (ThisBuild / crossScalaVersions).value.filterNot(_.startsWith("2.11")),
-    tlVersionIntroduced := List("2.12", "2.13", "3").map(_ -> "0.3.8").toMap,
+    // cats-parse 1.0.1 switches to Scala Native 0.5, reset tlVersionIntroduced
+    tlVersionIntroduced := List("2.12", "2.13", "3").map(_ -> "1.0.1").toMap,
     coverageEnabled := false
   )
 
