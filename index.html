@@ -152,7 +152,7 @@
 </span><span>
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;t&quot;</span><span>)
 </span><span class="comment">// res1: Either[Parser.Error, (String, Char)] = Right(value = (&quot;&quot;, &#39;t&#39;))
-// res0: Either[Error, Tuple2[String, Char]] = Right((,t))
+</span><span>
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;&quot;</span><span>)
 </span><span class="comment">// res2: Either[Parser.Error, (String, Char)] = Left(
 //   value = Error(
@@ -163,10 +163,9 @@
 //     )
 //   )
 // )
-// res1: Either[Error, Tuple2[String, Char]] = Left(Error(0,NonEmptyList(InRange(0,,))))
+</span><span>
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;two&quot;</span><span>)
-</span><span class="comment">// res3: Either[Parser.Error, (String, Char)] = Right(value = (&quot;wo&quot;, &#39;t&#39;))
-// res2: Either[Error, Tuple2[String, Char]] = Right((wo,t))</span></code></pre>
+</span><span class="comment">// res3: Either[Parser.Error, (String, Char)] = Right(value = (&quot;wo&quot;, &#39;t&#39;))</span></code></pre>
         <p>Notice the return type. <code>Tuple2[String, Char]</code> contains the rest of the input string and one parsed char if parsing was successful. It returns <code>Left</code> with error message if there was some parsing error.</p>
         
         <h2 id="mapping-output" class="section"><a class="anchor-link left" href="#mapping-output"><i class="icofont-laika link">&#xef71;</i></a>Mapping output</h2>
@@ -181,8 +180,7 @@
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;t&quot;</span><span>)
 </span><span class="comment">// res5: Either[Parser.Error, (String, CharWrapper)] = Right(
 //   value = (&quot;&quot;, CharWrapper(value = &#39;t&#39;))
-// )
-// res0 = Right((,CharWrapper(t)))</span></code></pre>
+// )</span></code></pre>
         <p>There are built-in methods for mapping the output to types <code>String</code> or <code>Unit</code>:</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Rfc5234</span><span>.</span><span class="identifier">digit</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Parser</span><span>
@@ -210,7 +208,6 @@
 </span><span>
 </span><span class="identifier">p3</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;1&quot;</span><span>)
 </span><span class="comment">// res7: Either[Parser.Error, (String, String)] = Right(value = (&quot;&quot;, &quot;1&quot;))
-// res0: Either[Error, Tuple2[String, String]] = Right((,1))
 </span><span>
 </span><span class="comment">/* Unit */</span><span>
 
@@ -234,8 +231,7 @@
 // )
 </span><span>
 </span><span class="identifier">p5</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;1&quot;</span><span>)
-</span><span class="comment">// res8: Either[Parser.Error, (String, Unit)] = Right(value = (&quot;&quot;, ()))
-// res1: Either[Error, Tuple2[String, Unit]] = Right((,()))</span></code></pre>
+</span><span class="comment">// res8: Either[Parser.Error, (String, Unit)] = Right(value = (&quot;&quot;, ()))</span></code></pre>
         
         <h2 id="combining-parsers" class="section"><a class="anchor-link left" href="#combining-parsers"><i class="icofont-laika link">&#xef71;</i></a>Combining parsers</h2>
         <p>The parsers might be combined through operators:</p>
@@ -279,13 +275,13 @@
 //     )
 //   )
 // )
-// res0: Either[Error, Tuple2[String, Tuple2[Char, Unit]]] = Left(Error(1,NonEmptyList(InRange(1, , ))))
+</span><span>
 </span><span class="identifier">p1</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;t &quot;</span><span>)
 </span><span class="comment">// res11: Either[Parser.Error, (String, (Char, Unit))] = Right(
 //   value = (&quot;&quot;, (&#39;t&#39;, ()))
 // )
-// res1: Either[Error, Tuple2[String, Tuple2[Char, Unit]]] = Right((,(t,())))
 </span><span>
+
 </span><span class="comment">/* productL, productR */</span><span>
 
 </span><span class="comment">// The type is just Char because we dropping the space
@@ -306,7 +302,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10860/0x0000000102da7040@7438e2e5
+//   fn = cats.parse.Parser$$Lambda$12761/0x0000000103617040@66a9f9af
 // )
 </span><span>
 </span><span class="comment">// still error since we need the space even if we drop it
@@ -320,11 +316,11 @@
 //     )
 //   )
 // )
-// res2: Either[Error, Tuple2[String, Char]] = Left(Error(1,NonEmptyList(InRange(1, , ))))
+</span><span>
 </span><span class="identifier">p2</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;t &quot;</span><span>)
 </span><span class="comment">// res13: Either[Parser.Error, (String, Char)] = Right(value = (&quot;&quot;, &#39;t&#39;))
-// res3: Either[Error, Tuple2[String, Char]] = Right((,t))
 </span><span>
+
 </span><span class="comment">/* surroundedBy */</span><span>
 
 </span><span class="keyword">val</span><span> </span><span class="identifier">p4</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">Char</span><span>] = </span><span class="identifier">sp</span><span> *&gt; </span><span class="identifier">alpha</span><span> &lt;* </span><span class="identifier">sp</span><span>
@@ -345,7 +341,7 @@
 //           ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10855/0x0000000102d9e040@1933ec2
+//       fn = cats.parse.Parser$$Lambda$12756/0x000000010360f840@59054c10
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -355,7 +351,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10860/0x0000000102da7040@7438e2e5
+//   fn = cats.parse.Parser$$Lambda$12761/0x0000000103617040@66a9f9af
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p5</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">Char</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">surroundedBy</span><span>(</span><span class="identifier">sp</span><span>)
 </span><span class="comment">// p5: Parser[Char] = Map(
@@ -382,16 +378,16 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10861/0x0000000102da6840@51cd35f3
+//   fn = cats.parse.Parser$$Lambda$12762/0x0000000103616840@7a03c082
 // )
 </span><span>
 </span><span class="identifier">p4</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; a &quot;</span><span>)
 </span><span class="comment">// res14: Either[Parser.Error, (String, Char)] = Right(value = (&quot;&quot;, &#39;a&#39;))
-// res0: Either[Error, Tuple2[String, Char]] = Right((,a))
+</span><span>
 </span><span class="identifier">p5</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; a &quot;</span><span>)
 </span><span class="comment">// res15: Either[Parser.Error, (String, Char)] = Right(value = (&quot;&quot;, &#39;a&#39;))
-// res1: Either[Error, Tuple2[String, Char]] = Right((,a))
 </span><span>
+
 </span><span class="comment">/* between */</span><span>
 
 </span><span class="keyword">val</span><span> </span><span class="identifier">p6</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">Char</span><span>] = </span><span class="identifier">sp</span><span> *&gt; </span><span class="identifier">alpha</span><span> &lt;* </span><span class="identifier">digit</span><span>
@@ -412,7 +408,7 @@
 //           ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10855/0x0000000102d9e040@1933ec2
+//       fn = cats.parse.Parser$$Lambda$12756/0x000000010360f840@59054c10
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -422,7 +418,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10860/0x0000000102da7040@7438e2e5
+//   fn = cats.parse.Parser$$Lambda$12761/0x0000000103617040@66a9f9af
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p7</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">Char</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">between</span><span>(</span><span class="identifier">sp</span><span>, </span><span class="identifier">digit</span><span>)
 </span><span class="comment">// p7: Parser[Char] = Map(
@@ -449,16 +445,16 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10861/0x0000000102da6840@51cd35f3
+//   fn = cats.parse.Parser$$Lambda$12762/0x0000000103616840@7a03c082
 // )
 </span><span>
 </span><span class="identifier">p6</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; a1&quot;</span><span>)
 </span><span class="comment">// res16: Either[Parser.Error, (String, Char)] = Right(value = (&quot;&quot;, &#39;a&#39;))
-// res2: Either[Error, Tuple2[String, Char]] = Right((,a))
+</span><span>
 </span><span class="identifier">p7</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; a1&quot;</span><span>)
 </span><span class="comment">// res17: Either[Parser.Error, (String, Char)] = Right(value = (&quot;&quot;, &#39;a&#39;))
-// res3: Either[Error, Tuple2[String, Char]] = Right((,a))
 </span><span>
+
 </span><span class="comment">/* OrElse */</span><span>
 
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">AnyVal</span><span>] = </span><span class="identifier">alpha</span><span> | </span><span class="identifier">sp</span><span>
@@ -481,10 +477,9 @@
 </span><span>
 </span><span class="identifier">p3</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;t&quot;</span><span>)
 </span><span class="comment">// res18: Either[Parser.Error, (String, AnyVal)] = Right(value = (&quot;&quot;, &#39;t&#39;))
-// res4: Either[Error, Tuple2[String, AnyVal]] = Right((,t))
+</span><span>
 </span><span class="identifier">p3</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; &quot;</span><span>)
-</span><span class="comment">// res19: Either[Parser.Error, (String, AnyVal)] = Right(value = (&quot;&quot;, ()))
-// res5: Either[Error, Tuple2[String, AnyVal]] = Right((,()))</span></code></pre>
+</span><span class="comment">// res19: Either[Parser.Error, (String, AnyVal)] = Right(value = (&quot;&quot;, ()))</span></code></pre>
         
         <h2 id="repeating-parsers" class="section"><a class="anchor-link left" href="#repeating-parsers"><i class="icofont-laika link">&#xef71;</i></a>Repeating parsers</h2>
         <p>Sometimes we need something to repeat zero or more times. The cats-parse have <code>rep</code> and <code>rep0</code> methods for repeating values. <code>rep</code> means that the parser must be successful <em>at least one time</em>. <code>rep0</code> means that the parser output might be empty.</p>
@@ -501,7 +496,7 @@
 //   ),
 //   min = 1,
 //   maxMinusOne = 2147483647,
-//   acc1 = cats.parse.Accumulator$$anon$12@58f515c1
+//   acc1 = cats.parse.Accumulator$$anon$12@32d4e9e4
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span>: </span><span class="type-name">Parser0</span><span>[</span><span class="type-name">List</span><span>[</span><span class="type-name">Char</span><span>]] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">rep0</span><span>
 </span><span class="comment">// p2: Parser0[List[Char]] = OneOf0(
@@ -514,7 +509,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$9@1808154e
+//       acc1 = cats.parse.Accumulator0$$anon$9@26c19ccb
 //     ),
 //     Pure(result = List())
 //   )
@@ -530,17 +525,16 @@
 //     )
 //   )
 // )
-// Left(Error(0,NonEmptyList(InRange(0,A,Z), InRange(0,a,z))))
+</span><span>
 </span><span class="identifier">p2</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;&quot;</span><span>)
 </span><span class="comment">// res22: Either[Parser.Error, (String, List[Char])] = Right(
 //   value = (&quot;&quot;, List())
 // )
-// Right((,List()))
+</span><span>
 </span><span class="identifier">p2</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;something&quot;</span><span>)
 </span><span class="comment">// res23: Either[Parser.Error, (String, List[Char])] = Right(
 //   value = (&quot;&quot;, List(&#39;s&#39;, &#39;o&#39;, &#39;m&#39;, &#39;e&#39;, &#39;t&#39;, &#39;h&#39;, &#39;i&#39;, &#39;n&#39;, &#39;g&#39;))
-// )
-// Right((,List(s, o, m, e, t, h, i, n, g)))</span></code></pre>
+// )</span></code></pre>
         <p>Notice the types of parsers. <code>Parser</code> type always means some non-empty output and the output of <code>Parser0</code> might be empty.</p>
         <p>One common task in this example is to parse a full line (or words) of text. In the example it is done by <code>rep</code>, and then it could be mapped to <code>String</code> in different ways:</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">data</span><span>.</span><span class="type-name">NonEmptyList</span><span>
@@ -557,7 +551,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator$$anon$12@7ec3412e
+//     acc1 = cats.parse.Accumulator$$anon$12@583e8d57
 //   ),
 //   fn = &lt;function1&gt;
 // )
@@ -572,7 +566,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//     acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //   )
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span>: </span><span class="type-name">Parser</span><span>[</span><span class="type-name">String</span><span>] = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">repAs</span><span>[</span><span class="type-name">String</span><span>]
@@ -584,7 +578,7 @@
 //   ),
 //   min = 1,
 //   maxMinusOne = 2147483647,
-//   acc1 = cats.parse.Accumulator0$$anon$7@68251697
+//   acc1 = cats.parse.Accumulator0$$anon$7@3bb43ddf
 // )</span></code></pre>
         <p>All three parsers will be identical in parsing results, but <code>p2</code> and <code>p3</code> are using built-in methods which will not create intermediate list. <code>rep</code> + <code>map</code> creates intermediate list which is mapped to string in this example.</p>
         
@@ -605,7 +599,7 @@
 //         ),
 //         min = 1,
 //         maxMinusOne = 2147483647,
-//         acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//         acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //       ),
 //       second = OneOf0(
 //         all = List(
@@ -620,15 +614,14 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//     acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //   )
 // )
 </span><span>
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;hello world&quot;</span><span>)
 </span><span class="comment">// res26: Either[Parser.Error, (String, String)] = Right(
 //   value = (&quot;&quot;, &quot;hello world&quot;)
-// )
-// res0 = Right((,hello world))</span></code></pre>
+// )</span></code></pre>
         <p>Notice the type we got - <code>Parser[String]</code>. That is because we have <code>rep</code> outside and our <code>alpha.rep</code> parser with <code>Parser</code> type is on the left side of the clause. But what if we want to parse strings with spaces at the beginning?</p>
         <pre class="keep-together pdf epub"><code class="scala:fail">val p = (sp.? *&gt; alpha.rep &lt;* sp.?).rep.string</code></pre>
         <p>We will get an error <code>value rep is not a member of cats.parse.Parser0</code>. This happens since we have the left-side parser as optional in <code>sp.? *&gt; alpha.rep &lt;* sp.?</code> clause. This clause has a type <code>Parser0</code> which can&#39;t be repeated.</p>
@@ -660,7 +653,7 @@
 //           ),
 //           min = 1,
 //           maxMinusOne = 2147483647,
-//           acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//           acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //         ),
 //         second = OneOf0(
 //           all = List(
@@ -676,7 +669,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//     acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //   )
 // )
 </span><span>
@@ -684,12 +677,11 @@
 </span><span class="comment">// res28: Either[Parser.Error, (String, String)] = Right(
 //   value = (&quot;&quot;, &quot;hello world&quot;)
 // )
-// res0: Either[Error, Tuple2[String, String]] = Right((,hello world))
+</span><span>
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; hello world&quot;</span><span>)
 </span><span class="comment">// res29: Either[Parser.Error, (String, String)] = Right(
 //   value = (&quot;&quot;, &quot; hello world&quot;)
-// )
-// res1: Either[Error, Tuple2[String, String]] = Right((,hello world))</span></code></pre>
+// )</span></code></pre>
         <p>If we have multiple <code>Parser0</code> parsers before the <code>Parser</code> - we&#39;d need to use parenthesis like this:
         <code>(sp.? ~ sp.?).with1 *&gt; alpha.rep</code>.</p>
         
@@ -724,7 +716,7 @@
 //       ranges = NonEmptyList(head = (&#39;A&#39;, &#39;Z&#39;), tail = List((&#39;a&#39;, &#39;z&#39;)))
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10855/0x0000000102d9e040@1933ec2
+//   fn = cats.parse.Parser$$Lambda$12756/0x000000010360f840@59054c10
 // )
 </span><span>
 </span><span class="comment">// epsilon failure
@@ -738,7 +730,6 @@
 //     )
 //   )
 // )
-// res0: Either[Error, Tuple2[String, Char]] = Left(Error(0,NonEmptyList(InRange(0,A,Z), InRange(0,a,z))))
 </span><span>
 </span><span class="comment">// arresting failure
 </span><span class="identifier">p2</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
@@ -750,8 +741,7 @@
 //       tail = List(InRange(offset = 1, lower = &#39;a&#39;, upper = &#39;z&#39;))
 //     )
 //   )
-// )
-// res1: Either[Error, Tuple2[String, Char]] = Left(Error(1,NonEmptyList(InRange(1,A,Z), InRange(1,a,z))))</span></code></pre>
+// )</span></code></pre>
         <p>We need to make this difference because the first type of error allows us to say that parser is not matching the input before we started to process it and the second error happens while parser processing the input.</p>
         
         <h3 id="backtrack" class="section"><a class="anchor-link left" href="#backtrack"><i class="icofont-laika link">&#xef71;</i></a>Backtrack</h3>
@@ -776,7 +766,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10855/0x0000000102d9e040@1933ec2
+//       fn = cats.parse.Parser$$Lambda$12756/0x000000010360f840@59054c10
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -786,7 +776,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10860/0x0000000102da7040@7438e2e5
+//   fn = cats.parse.Parser$$Lambda$12761/0x0000000103617040@66a9f9af
 // )
 </span><span>
 </span><span class="identifier">p</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
@@ -798,8 +788,7 @@
 //       tail = List()
 //     )
 //   )
-// )
-// res1 = Left(Error(2,NonEmptyList(InRange(2, , ))))</span></code></pre>
+// )</span></code></pre>
         <p><code>Parser.Error</code> contains two parameters:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">final</span><span> </span><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Error</span><span>(</span><span class="identifier">input</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">failedAtOffset</span><span>: </span><span class="type-name">Int</span><span>, </span><span class="identifier">expected</span><span>: </span><span class="type-name">NonEmptyList</span><span>[</span><span class="type-name">Expectation</span><span>])
 
@@ -826,7 +815,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10855/0x0000000102d9e040@1933ec2
+//       fn = cats.parse.Parser$$Lambda$12756/0x000000010360f840@59054c10
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -836,7 +825,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10860/0x0000000102da7040@7438e2e5
+//   fn = cats.parse.Parser$$Lambda$12761/0x0000000103617040@66a9f9af
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span> = </span><span class="identifier">sp</span><span> *&gt; </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p2: cats.parse.Parser[Char] = Map(
@@ -854,19 +843,18 @@
 //       ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10855/0x0000000102d9e040@1933ec2
+//   fn = cats.parse.Parser$$Lambda$12756/0x000000010360f840@59054c10
 // )
 </span><span>
 </span><span class="identifier">p1</span><span>.</span><span class="identifier">backtrack</span><span>.</span><span class="identifier">orElse</span><span>(</span><span class="identifier">p2</span><span>).</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
 </span><span class="comment">// res36: Either[cats.parse.Parser.Error, (String, Char)] = Right(
 //   value = (&quot;&quot;, &#39;1&#39;)
 // )
-// res0: Either[Error, Tuple2[String, Char]] = Right((,1))
-</span><span>(</span><span class="identifier">p1</span><span>.</span><span class="identifier">backtrack</span><span> | </span><span class="identifier">p2</span><span> ).</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
+</span><span>
+(</span><span class="identifier">p1</span><span>.</span><span class="identifier">backtrack</span><span> | </span><span class="identifier">p2</span><span> ).</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot; 1&quot;</span><span>)
 </span><span class="comment">// res37: Either[cats.parse.Parser.Error, (String, Char)] = Right(
 //   value = (&quot;&quot;, &#39;1&#39;)
-// )
-// res1: Either[Error, Tuple2[String, Char]] = Right((,1))</span></code></pre>
+// )</span></code></pre>
         <p>Notice that <code>(p1.backtrack | p2)</code> clause is another parser by itself since we&#39;re still combining parsers by using <code>orElse</code>.</p>
         <p>But we&#39;ve already used <code>orElse</code> in example before without any <code>backtrack</code> operator, and it worked just fine. Why do we need <code>backtrack</code> now? Let&#39;s look at this example:</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">parse</span><span>.</span><span class="type-name">Rfc5234</span><span>.{</span><span class="identifier">digit</span><span>, </span><span class="identifier">sp</span><span>}
@@ -889,7 +877,7 @@
 //           ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //         )
 //       ),
-//       fn = cats.parse.Parser$$Lambda$10855/0x0000000102d9e040@1933ec2
+//       fn = cats.parse.Parser$$Lambda$12756/0x000000010360f840@59054c10
 //     ),
 //     second = Void(
 //       parser = CharIn(
@@ -899,7 +887,7 @@
 //       )
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10860/0x0000000102da7040@7438e2e5
+//   fn = cats.parse.Parser$$Lambda$12761/0x0000000103617040@66a9f9af
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span> = </span><span class="identifier">sp</span><span> *&gt; </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p2: cats.parse.Parser[Char] = Map(
@@ -917,7 +905,7 @@
 //       ranges = NonEmptyList(head = (&#39;0&#39;, &#39;9&#39;), tail = List())
 //     )
 //   ),
-//   fn = cats.parse.Parser$$Lambda$10855/0x0000000102d9e040@1933ec2
+//   fn = cats.parse.Parser$$Lambda$12756/0x000000010360f840@59054c10
 // )
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span> = </span><span class="identifier">digit</span><span>
 </span><span class="comment">// p3: cats.parse.Parser[Char] = CharIn(
@@ -936,13 +924,11 @@
 //     )
 //   )
 // )
-// res1 = Left(Error(2,NonEmptyList(InRange(2, , ))))
 </span><span>
 (</span><span class="identifier">p1</span><span> | </span><span class="identifier">p2</span><span> | </span><span class="identifier">p3</span><span>).</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;1&quot;</span><span>)
 </span><span class="comment">// res40: Either[cats.parse.Parser.Error, (String, Char)] = Right(
 //   value = (&quot;&quot;, &#39;1&#39;)
-// )
-// res2 = Right((,1))</span></code></pre>
+// )</span></code></pre>
         <p>The first parser combination is interrupted by <em>arresting failures</em> and the second parsing combination will only suffer from <em>epsilon failures</em>. The second parser works because <code>orElse</code> and <code>|</code> operators actually allows recovering from epsilon failures, but not from arresting failures.</p>
         <p>So the <code>backtrack</code> helps us where the <em>left side</em> returns arresting failure.</p>
         
@@ -962,7 +948,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//     acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //   )
 // )
 </span><span>
@@ -977,7 +963,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//       acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //     )
 //   ),
 //   second = Void(
@@ -1007,7 +993,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//               acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //             )
 //           ),
 //           second = Void(
@@ -1018,7 +1004,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$10847/0x0000000102d98040@645a93d4
+//         fn = cats.parse.Parser0$$Lambda$12748/0x0000000103609840@214818d8
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1034,7 +1020,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//               acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 // ...
 </span><span>
 
@@ -1042,7 +1028,7 @@
 </span><span class="comment">// res42: Either[Parser.Error, (String, (Option[(String, Unit)], String))] = Right(
 //   value = (&quot;&quot;, (Some(value = (&quot;title&quot;, ())), &quot;The Wind Has Risen&quot;))
 // )
-// res0 = Right((,(Some((title,())),The Wind Has Risen)))
+</span><span>
 </span><span class="identifier">p1</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;The Wind Has Risen&quot;</span><span>)
 </span><span class="comment">// res43: Either[Parser.Error, (String, (Option[(String, Unit)], String))] = Left(
 //   value = Error(
@@ -1052,8 +1038,7 @@
 //       tail = List()
 //     )
 //   )
-// )
-// res1 = Left(Error(3,NonEmptyList(InRange(3,:,:))))</span></code></pre>
+// )</span></code></pre>
         <p>This error happens because we can&#39;t really tell if we are parsing the <code>fieldValue</code> before we met a <code>:</code> char. We might do this with by writing two parsers, converting the first one&#39;s failure to epsilon failure by <code>backtrack</code> and then providing fallback parser by <code>|</code> operator (which allows the epsilon failures):</p>
         <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">p2</span><span> = </span><span class="identifier">fieldValue</span><span>.? ~ (</span><span class="identifier">searchWord</span><span> ~ </span><span class="identifier">sp</span><span>.?).</span><span class="identifier">rep</span><span>.</span><span class="identifier">string</span><span>
 </span><span class="comment">// p2: cats.parse.Parser0[(Option[(String, Unit)], String)] = OneOf(
@@ -1073,7 +1058,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//               acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //             )
 //           ),
 //           second = Void(
@@ -1084,7 +1069,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$10847/0x0000000102d98040@645a93d4
+//         fn = cats.parse.Parser0$$Lambda$12748/0x0000000103609840@214818d8
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1100,7 +1085,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//               acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 // ...
 </span><span>
 </span><span class="keyword">val</span><span> </span><span class="identifier">p3</span><span> = (</span><span class="identifier">searchWord</span><span> ~ </span><span class="identifier">sp</span><span>.?).</span><span class="identifier">rep</span><span>.</span><span class="identifier">string</span><span>
@@ -1115,7 +1100,7 @@
 //         ),
 //         min = 1,
 //         maxMinusOne = 2147483647,
-//         acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//         acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //       ),
 //       second = OneOf0(
 //         all = List(
@@ -1130,7 +1115,7 @@
 //     ),
 //     min = 1,
 //     maxMinusOne = 2147483647,
-//     acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//     acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //   )
 // )
 </span><span>
@@ -1138,12 +1123,11 @@
 </span><span class="comment">// res44: Either[Parser.Error, (String, Object with Serializable)] = Right(
 //   value = (&quot;&quot;, (Some(value = (&quot;title&quot;, ())), &quot;The Wind Has Risen&quot;))
 // )
-// res0 = Right((,(Some((title,())),The Wind Has Risen)))
-</span><span>(</span><span class="identifier">p2</span><span>.</span><span class="identifier">backtrack</span><span> | </span><span class="identifier">p3</span><span>).</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;The Wind Has Risen&quot;</span><span>)
+</span><span>
+(</span><span class="identifier">p2</span><span>.</span><span class="identifier">backtrack</span><span> | </span><span class="identifier">p3</span><span>).</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;The Wind Has Risen&quot;</span><span>)
 </span><span class="comment">// res45: Either[Parser.Error, (String, Object with Serializable)] = Right(
 //   value = (&quot;&quot;, &quot;The Wind Has Risen&quot;)
-// )
-// res1 = Right((,The Wind Has Risen))</span></code></pre>
+// )</span></code></pre>
         <p>But this problem might be resolved with <code>soft</code> method inside the first parser since the right side of it actually returns an epsilon failure itself:</p>
         <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">fieldValueSoft</span><span> = </span><span class="identifier">alpha</span><span>.</span><span class="identifier">rep</span><span>.</span><span class="identifier">string</span><span>.</span><span class="identifier">soft</span><span> ~ </span><span class="identifier">pchar</span><span>(</span><span class="char-literal">&#39;:&#39;</span><span>)
 </span><span class="comment">// fieldValueSoft: Parser[(String, Unit)] = SoftProd(
@@ -1156,7 +1140,7 @@
 //       ),
 //       min = 1,
 //       maxMinusOne = 2147483647,
-//       acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//       acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //     )
 //   ),
 //   second = Void(
@@ -1186,7 +1170,7 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//               acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 //             )
 //           ),
 //           second = Void(
@@ -1197,7 +1181,7 @@
 //             )
 //           )
 //         ),
-//         fn = cats.parse.Parser0$$Lambda$10847/0x0000000102d98040@645a93d4
+//         fn = cats.parse.Parser0$$Lambda$12748/0x0000000103609840@214818d8
 //       ),
 //       second = StringP(
 //         parser = Rep(
@@ -1213,19 +1197,18 @@
 //               ),
 //               min = 1,
 //               maxMinusOne = 2147483647,
-//               acc1 = cats.parse.Accumulator0$$anon$11@614fe597
+//               acc1 = cats.parse.Accumulator0$$anon$11@71e2efa1
 // ...
 </span><span>
 </span><span class="identifier">p4</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;title:The Wind Has Risen&quot;</span><span>)
 </span><span class="comment">// res46: Either[Parser.Error, (String, (Option[(String, Unit)], String))] = Right(
 //   value = (&quot;&quot;, (Some(value = (&quot;title&quot;, ())), &quot;The Wind Has Risen&quot;))
 // )
-// res2 = Right((,(Some((title,())),The Wind Has Risen)))
+</span><span>
 </span><span class="identifier">p4</span><span>.</span><span class="identifier">parse</span><span>(</span><span class="string-literal">&quot;The Wind Has Risen&quot;</span><span>)
 </span><span class="comment">// res47: Either[Parser.Error, (String, (Option[(String, Unit)], String))] = Right(
 //   value = (&quot;&quot;, (None, &quot;The Wind Has Risen&quot;))
-// )
-// res3 = Right((,(None,The Wind Has Risen)))</span></code></pre>
+// )</span></code></pre>
         <p>So when the <em>right side</em> returns an epsilon failure the <code>soft</code> method allows us to rewind parsed input and try to proceed it&#39;s parsing with next parsers (without changing the parser itself!).</p>
         
         <h1 id="json-parser-example" class="section"><a class="anchor-link left" href="#json-parser-example"><i class="icofont-laika link">&#xef71;</i></a>JSON parser example</h1>
