@@ -290,7 +290,9 @@ sealed abstract class Parser0[+A] { self: Product =>
     *
     * For example, with `p: Parser0[Int]` and `p1: Parser0[Double]`:
     *
-    * val a1: Parser0[(Int, Double)] = p ~ p1 val a2: Parser[(Int, Double)] = p.with1 ~ p1
+    * val a1: Parser0[(Int, Double)] = p ~ p1 
+    *
+    * val a2: Parser[(Int, Double)] = p.with1 ~ p1
     *
     * val b1: Parser0[Double] = p *> p1 val b2: Parser[Double] = p.with1 *> p1
     *
