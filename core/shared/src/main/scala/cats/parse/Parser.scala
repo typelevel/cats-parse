@@ -294,9 +294,13 @@ sealed abstract class Parser0[+A] { self: Product =>
     *
     * val a2: Parser[(Int, Double)] = p.with1 ~ p1
     *
-    * val b1: Parser0[Double] = p *> p1 val b2: Parser[Double] = p.with1 *> p1
+    * val b1: Parser0[Double] = p *> p1
     *
-    * val c1: Parser0[Int] = p <* p1 val c2: Parser[Int] = p.with1 <* p1
+    * val b2: Parser[Double] = p.with1 *> p1
+    *
+    * val c1: Parser0[Int] = p <* p1
+    *
+    * val c2: Parser[Int] = p.with1 <* p1
     *
     * Without using `with1`, these methods will return `Parser0` values since they are not known to
     * return `Parser` values instead.
