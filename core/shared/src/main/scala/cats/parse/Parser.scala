@@ -974,13 +974,13 @@ object Parser {
     def unapply(error: Error): Option[(Int, NonEmptyList[Expectation])] =
       Some((error.failedAtOffset, error.expected))
 
-    implicit val catsShowError: Show[Error] =
+    implicit def catsShowErrorGivenExpectation(implicit showExp: Show[Expectation]): Show[Error] =
       new Show[Error] {
         def show(error: Error): String = {
           val nl = "\n"
 
           def errorMsg = {
-            val expectations = error.expected.toList.iterator.map(e => s"* ${e.show}").mkString(nl)
+            val expectations = error.expected.toList.iterator.map(e => s"* ${showExp.show(e)}").mkString(nl)
 
             s"""|expectation${if (error.expected.tail.nonEmpty) "s" else ""}:
                 |$expectations""".stripMargin
@@ -1037,6 +1037,9 @@ object Parser {
           }
         }
       }
+
+    // This is here for binary compatibility, but no longer implicit
+    val catsShowError: Show[Error] = catsShowErrorGivenExpectation(Expectation.catsShowExpectation)
   }
 
   /** Enables syntax to access product01, product and flatMap01 This helps us build Parser instances
