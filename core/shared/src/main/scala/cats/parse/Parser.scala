@@ -980,7 +980,8 @@ object Parser {
           val nl = "\n"
 
           def errorMsg = {
-            val expectations = error.expected.toList.iterator.map(e => s"* ${showExp.show(e)}").mkString(nl)
+            val expectations =
+              error.expected.toList.iterator.map(e => s"* ${showExp.show(e)}").mkString(nl)
 
             s"""|expectation${if (error.expected.tail.nonEmpty) "s" else ""}:
                 |$expectations""".stripMargin
