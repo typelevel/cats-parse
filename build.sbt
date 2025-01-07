@@ -11,7 +11,7 @@ GlobalScope / tlCommandAliases ++= Map(
   "prePR" -> List("githubWorkflowGenerate", "+fmt", "bench/compile", "+test")
 )
 
-ThisBuild / tlBaseVersion := "1.0"
+ThisBuild / tlBaseVersion := "1.1"
 // continue enforcing bincompat with 0.3.x series
 ThisBuild / tlMimaPreviousVersions ++= (0 to 10).map(x => s"0.3.$x").toSet
 
