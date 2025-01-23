@@ -50,10 +50,8 @@ import scala.collection.immutable.NumericRange
   *
   *   - Success: The parser consumes zero-or-more characters of input and successfully extracts a
   *     value. The input offset will be moved forward by the number of characters consumed.
-  *
   *   - Epsilon failure: The parser fails to extract a value without consuming any characters of
   *     input. The input offset will not be changed.
-  *
   *   - Arresting failure: The parser fails to extract a value but does consume one-or-more
   *     characters of input. The input offset will be moved forward by the number of characters
   *     consumed and all parsing will stop (unless a higher-level parser backtracks).
