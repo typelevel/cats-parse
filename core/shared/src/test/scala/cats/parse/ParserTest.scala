@@ -3073,14 +3073,14 @@ class ParserTest extends munit.ScalaCheckSuite {
       case Left(a) => Left(Left(a))
       case Right(bc) =>
         bc match {
-          case Left(b)    => Left(Right(b))
-          case Right(c)   => Right(c)
+          case Left(b) => Left(Right(b))
+          case Right(c) => Right(c)
           case Both(b, c) => Both(Right(b), c)
         }
       case Both(a, bc) =>
         bc match {
-          case Left(b)    => Left(Both(a, b))
-          case Right(c)   => Both(Left(a), c)
+          case Left(b) => Left(Both(a, b))
+          case Right(c) => Both(Left(a), c)
           case Both(b, c) => Both(Both(a, b), c)
         }
     }
@@ -3088,7 +3088,6 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("align is associative") {
     forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, arbitrary[String]) { (a, b, c, str) =>
-
       val alignInst = cats.Align[Parser]
       import alignInst.align
 
@@ -3101,7 +3100,6 @@ class ParserTest extends munit.ScalaCheckSuite {
 
   property("align0 is associative") {
     forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, arbitrary[String]) { (a, b, c, str) =>
-
       val alignInst = cats.Align[Parser0]
       import alignInst.align
 

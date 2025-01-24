@@ -1585,9 +1585,9 @@ object Parser {
       case _ => Impl.SoftProd(first, second)
     }
 
-  /**
-   * This implements the main method from the Align typeclass
-   */
+  /** This implements the main method from the Align typeclass. This parses the first then maybe the
+    * second, or just the second. Put another way, it parses at least one of the arguments.
+    */
   def align[A, B](pa: Parser[A], pb: Parser[B]): Parser[Ior[A, B]] = {
     val hasA = (pa ~ pb.?)
       .map {
@@ -1600,9 +1600,9 @@ object Parser {
     hasA | onlyB
   }
 
-  /**
-   * This implements the main method from the Align typeclass
-   */
+  /** This implements the main method from the Align typeclass This parses the first then maybe the
+    * second, or just the second. Put another way, it parses at least one of the arguments.
+    */
   def align0[A, B](pa: Parser0[A], pb: Parser0[B]): Parser0[Ior[A, B]] = {
     val hasA = (pa ~ pb.?)
       .map {
