@@ -55,11 +55,11 @@ lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .settings(
     name := "cats-parse",
     libraryDependencies ++=
-        Seq(
-          cats.value,
-          munit.value % Test,
-          munitScalacheck.value % Test
-        ),
+      Seq(
+        cats.value,
+        munit.value % Test,
+        munitScalacheck.value % Test
+      ),
     libraryDependencies ++= {
       if (tlIsScala3.value) Nil else Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value)
     },
