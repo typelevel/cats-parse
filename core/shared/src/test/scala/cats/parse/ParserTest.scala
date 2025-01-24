@@ -22,7 +22,7 @@
 package cats.parse
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList, NonEmptyVector}
+import cats.data.{Ior, NonEmptyList, NonEmptyVector}
 import cats.implicits._
 import cats.{Eq, Id, FlatMap, Functor, Defer, MonoidK, Monad, Eval}
 import org.scalacheck.Prop.forAll
@@ -3062,6 +3062,51 @@ class ParserTest extends munit.ScalaCheckSuite {
       val right = (Parser.index ~ a.fa ~ Parser.index).map { case ((start, a), end) =>
         (a, str.substring(start, end))
       }
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  private def alignAssoc[A, B, C](x: Ior[A, Ior[B, C]]): Ior[Ior[A, B], C] = {
+    import Ior._
+    x match {
+      case Left(a) => Left(Left(a))
+      case Right(bc) =>
+        bc match {
+          case Left(b)    => Left(Right(b))
+          case Right(c)   => Right(c)
+          case Both(b, c) => Both(Right(b), c)
+        }
+      case Both(a, bc) =>
+        bc match {
+          case Left(b)    => Left(Both(a, b))
+          case Right(c)   => Both(Left(a), c)
+          case Both(b, c) => Both(Both(a, b), c)
+        }
+    }
+  }
+
+  property("align is associative") {
+    forAll(ParserGen.gen, ParserGen.gen, ParserGen.gen, arbitrary[String]) { (a, b, c, str) =>
+
+      val alignInst = cats.Align[Parser]
+      import alignInst.align
+
+      val left = align(a.fa, align(b.fa, c.fa)).map(alignAssoc)
+      val right = align(align(a.fa, b.fa), c.fa)
+
+      assertEquals(left.parse(str), right.parse(str))
+    }
+  }
+
+  property("align0 is associative") {
+    forAll(ParserGen.gen0, ParserGen.gen0, ParserGen.gen0, arbitrary[String]) { (a, b, c, str) =>
+
+      val alignInst = cats.Align[Parser0]
+      import alignInst.align
+
+      val left = align(a.fa, align(b.fa, c.fa)).map(alignAssoc)
+      val right = align(align(a.fa, b.fa), c.fa)
 
       assertEquals(left.parse(str), right.parse(str))
     }
