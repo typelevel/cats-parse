@@ -28,14 +28,9 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.11, 2.12, 2.13, 3]
+        scala: [2.12, 2.13, 3]
         java: [temurin@8]
         project: [rootJS, rootJVM, rootNative]
-        exclude:
-          - project: rootJS
-            scala: 2.11
-          - project: rootNative
-            scala: 2.11
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -131,16 +126,6 @@ jobs:
       - name: sbt update
         if: matrix.java == 'temurin@8' && steps.setup-java-temurin-8.outputs.cache-hit == 'false'
         run: sbt +update
-
-      - name: Download target directories (2.11, rootJVM)
-        uses: actions/download-artifact@v4
-        with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.11-rootJVM
-
-      - name: Inflate target directories (2.11, rootJVM)
-        run: |
-          tar xf targets.tar
-          rm targets.tar
 
       - name: Download target directories (2.12, rootJS)
         uses: actions/download-artifact@v4
@@ -255,6 +240,42 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_CREDENTIAL_HOST: ${{ secrets.SONATYPE_CREDENTIAL_HOST }}
         run: sbt tlCiRelease
+
+  dependency-submission:
+    name: Submit Dependencies
+    if: github.event.repository.fork == false && github.event_name != 'pull_request'
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        java: [temurin@8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java (temurin@8)
+        id: setup-java-temurin-8
+        if: matrix.java == 'temurin@8'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+          cache: sbt
+
+      - name: sbt update
+        if: matrix.java == 'temurin@8' && steps.setup-java-temurin-8.outputs.cache-hit == 'false'
+        run: sbt +update
+
+      - name: Submit Dependencies
+        uses: scalacenter/sbt-dependency-submission@v2
+        with:
+          modules-ignore: rootjs_2.12 rootjs_2.13 rootjs_3 docs_2.12 docs_2.13 docs_3 rootjvm_2.12 rootjvm_2.13 rootjvm_3 rootnative_2.12 rootnative_2.13 rootnative_3 bench_2.12 bench_2.13 bench_3
+          configs-ignore: test scala-tool scala-doc-tool test-internal
 
   coverage:
     name: Generate coverage report
