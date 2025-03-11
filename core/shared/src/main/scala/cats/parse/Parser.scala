@@ -22,6 +22,7 @@
 package cats.parse
 
 import cats.{
+  Align,
   Eval,
   Functor,
   FunctorFilter,
@@ -34,7 +35,7 @@ import cats.{
   Order,
   Show
 }
-import cats.data.{AndThen, Chain, NonEmptyList}
+import cats.data.{AndThen, Chain, Ior, NonEmptyList}
 
 import cats.implicits._
 import scala.collection.immutable.SortedSet
@@ -50,10 +51,8 @@ import scala.collection.immutable.NumericRange
   *
   *   - Success: The parser consumes zero-or-more characters of input and successfully extracts a
   *     value. The input offset will be moved forward by the number of characters consumed.
-  *
   *   - Epsilon failure: The parser fails to extract a value without consuming any characters of
   *     input. The input offset will not be changed.
-  *
   *   - Arresting failure: The parser fails to extract a value but does consume one-or-more
   *     characters of input. The input offset will be moved forward by the number of characters
   *     consumed and all parsing will stop (unless a higher-level parser backtracks).
@@ -1584,6 +1583,36 @@ object Parser {
       case _ => Impl.SoftProd(first, second)
     }
 
+  /** This implements the main method from the Align typeclass. This parses the first then maybe the
+    * second, or just the second. Put another way, it parses at least one of the arguments.
+    */
+  def align[A, B](pa: Parser[A], pb: Parser[B]): Parser[Ior[A, B]] = {
+    val hasA = (pa ~ pb.?)
+      .map {
+        case (a, Some(b)) => Ior.Both(a, b)
+        case (a, None) => Ior.Left(a)
+      }
+
+    val onlyB = pb.map(Ior.Right(_))
+
+    hasA | onlyB
+  }
+
+  /** This implements the main method from the Align typeclass This parses the first then maybe the
+    * second, or just the second. Put another way, it parses at least one of the arguments.
+    */
+  def align0[A, B](pa: Parser0[A], pb: Parser0[B]): Parser0[Ior[A, B]] = {
+    val hasA = (pa ~ pb.?)
+      .map {
+        case (a, Some(b)) => Ior.Both(a, b)
+        case (a, None) => Ior.Left(a)
+      }
+
+    val onlyB = pb.map(Ior.Right(_))
+
+    hasA | onlyB
+  }
+
   /** transform a Parser0 result
     */
   def map0[A, B](p: Parser0[A])(fn: A => B): Parser0[B] =
@@ -2159,6 +2188,13 @@ object Parser {
         productR(fa)(pb)
       }
 
+    }
+
+  implicit val catsAlignParser: Align[Parser] =
+    new Align[Parser] {
+      def functor = catsInstancesParser
+      def align[A, B](pa: Parser[A], pb: Parser[B]): Parser[Ior[A, B]] =
+        Parser.align(pa, pb)
     }
 
   /*
@@ -3693,5 +3729,12 @@ object Parser0 {
         productR(fa)(pb)
       }
 
+    }
+
+  implicit val catsAlignParser0: Align[Parser0] =
+    new Align[Parser0] {
+      def functor = catInstancesParser0
+      def align[A, B](pa: Parser0[A], pb: Parser0[B]): Parser0[Ior[A, B]] =
+        Parser.align0(pa, pb)
     }
 }
