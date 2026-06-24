@@ -7,7 +7,7 @@ object Dependencies {
   lazy val munitScalacheck = Def.setting("org.scalameta" %%% "munit-scalacheck" % "1.2.0")
   lazy val fastParse = "com.lihaoyi" %% "fastparse" % "3.1.1"
   lazy val parsley = "org.http4s" %% "parsley" % "1.5.0-M3"
-  lazy val jawnAst = Def.setting("org.typelevel" %% "jawn-ast" % "1.6.0")
+  lazy val jawnAst = Def.setting("org.typelevel" %% "jawn-ast" % "1.7.0")
   lazy val parboiled = "org.parboiled" %% "parboiled" % "2.5.1"
   lazy val attoCore = "org.tpolecat" %% "atto-core" % "0.9.5"
 }
