@@ -2019,7 +2019,7 @@ object Parser {
     */
   def index: Parser0[Int] = Impl.Index
 
-  /** return the current Caret (offset, line, column) this is a bit more expensive that just the
+  /** return the current Caret (offset, line, column) this is a bit more expensive than just the
     * index
     */
   def caret: Parser0[Caret] = Impl.GetCaret
